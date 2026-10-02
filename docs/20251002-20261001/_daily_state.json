@@ -1,0 +1,1433 @@
+{
+  "date": "20251002-20261001",
+  "date_label": "2025-10-02 ～ 2026-10-01",
+  "generated_at": "2026-10-02T03:48:45.801196+00:00",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2605.12090v1",
+      "route": "20251002-20261001/2605.12090v1",
+      "title": "World Action Models: The Next Frontier in Embodied AI",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.230598+00:00",
+      "updated_at": "2026-10-02T03:48:44.230598+00:00"
+    },
+    {
+      "paper_id": "2605.05951v1",
+      "route": "20251002-20261001/2605.05951v1",
+      "title": "HaM-World: Soft-Hamiltonian World Models with Selective Memory for Planning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.226713+00:00",
+      "updated_at": "2026-10-02T03:48:44.226713+00:00"
+    },
+    {
+      "paper_id": "2609.35138v2",
+      "route": "20251002-20261001/2609.35138v2",
+      "title": "FlexiWorld: Learning and Planning via Flexible Action Chunks Across Multiple Time Scales",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.801196+00:00",
+      "updated_at": "2026-10-02T03:48:45.801196+00:00"
+    },
+    {
+      "paper_id": "2609.34414v1",
+      "route": "20251002-20261001/2609.34414v1",
+      "title": "From World Models to World Action Models: Rethinking Next-State Prediction",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.768503+00:00",
+      "updated_at": "2026-10-02T03:48:45.768503+00:00"
+    },
+    {
+      "paper_id": "2609.33563v1",
+      "route": "20251002-20261001/2609.33563v1",
+      "title": "MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.736401+00:00",
+      "updated_at": "2026-10-02T03:48:45.736401+00:00"
+    },
+    {
+      "paper_id": "2609.33464v1",
+      "route": "20251002-20261001/2609.33464v1",
+      "title": "VIDEAS: Distilling Explicit Action Semantics from Demonstration Videos for World Models via Prior-Guided Simulation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.704299+00:00",
+      "updated_at": "2026-10-02T03:48:45.704299+00:00"
+    },
+    {
+      "paper_id": "2609.30436v1",
+      "route": "20251002-20261001/2609.30436v1",
+      "title": "WALT: Learning World-Model-Aligned Latent Trajectories for Autonomous Driving",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.672554+00:00",
+      "updated_at": "2026-10-02T03:48:45.672554+00:00"
+    },
+    {
+      "paper_id": "2609.29171v1",
+      "route": "20251002-20261001/2609.29171v1",
+      "title": "Representation World Model: Learning States, Transition and Executable Plans in Representation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.641210+00:00",
+      "updated_at": "2026-10-02T03:48:45.641210+00:00"
+    },
+    {
+      "paper_id": "2609.22879v1",
+      "route": "20251002-20261001/2609.22879v1",
+      "title": "Prioritized Rollouts for Efficient World Model-based Vision-Language-Action Policy Optimization",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.610128+00:00",
+      "updated_at": "2026-10-02T03:48:45.610128+00:00"
+    },
+    {
+      "paper_id": "2609.22055v1",
+      "route": "20251002-20261001/2609.22055v1",
+      "title": "Benchmarking World Models for Continual Learning on Compositional Tasks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.579335+00:00",
+      "updated_at": "2026-10-02T03:48:45.579335+00:00"
+    },
+    {
+      "paper_id": "2609.18430v1",
+      "route": "20251002-20261001/2609.18430v1",
+      "title": "StrucPhysVideo: Learning Physical Dynamics from Structured Captions and Robot Actions",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.548953+00:00",
+      "updated_at": "2026-10-02T03:48:45.548953+00:00"
+    },
+    {
+      "paper_id": "2609.16697v1",
+      "route": "20251002-20261001/2609.16697v1",
+      "title": "World Models for Embodied Intelligence: From Plausible to Controllable to Actionable",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.518932+00:00",
+      "updated_at": "2026-10-02T03:48:45.518932+00:00"
+    },
+    {
+      "paper_id": "2609.16074v1",
+      "route": "20251002-20261001/2609.16074v1",
+      "title": "World-Action Models for Robot Learning and Control: A Survey",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.489285+00:00",
+      "updated_at": "2026-10-02T03:48:45.489285+00:00"
+    },
+    {
+      "paper_id": "2609.12278v1",
+      "route": "20251002-20261001/2609.12278v1",
+      "title": "Amortized Low-Rank Adaptation for Model-Based Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.460024+00:00",
+      "updated_at": "2026-10-02T03:48:45.460024+00:00"
+    },
+    {
+      "paper_id": "2609.03681v1",
+      "route": "20251002-20261001/2609.03681v1",
+      "title": "WISE: World-model-guided Imagination Scheduling for Efficient Post-training of Vision-Language-Action Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.431335+00:00",
+      "updated_at": "2026-10-02T03:48:45.431335+00:00"
+    },
+    {
+      "paper_id": "2609.03565v1",
+      "route": "20251002-20261001/2609.03565v1",
+      "title": "Toward Physically Grounded JEPA World Models for Goal-Conditioned Robotic Planning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.402901+00:00",
+      "updated_at": "2026-10-02T03:48:45.402901+00:00"
+    },
+    {
+      "paper_id": "2608.26190v1",
+      "route": "20251002-20261001/2608.26190v1",
+      "title": "Predicting Consequences and Reinforcing Navigation Policies with Latent World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.374793+00:00",
+      "updated_at": "2026-10-02T03:48:45.374793+00:00"
+    },
+    {
+      "paper_id": "2608.20401v1",
+      "route": "20251002-20261001/2608.20401v1",
+      "title": "World models of environment, agent and joint agent-environment systems",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.346924+00:00",
+      "updated_at": "2026-10-02T03:48:45.346924+00:00"
+    },
+    {
+      "paper_id": "2608.18669v1",
+      "route": "20251002-20261001/2608.18669v1",
+      "title": "Reinforced Planning with Latent World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.319333+00:00",
+      "updated_at": "2026-10-02T03:48:45.319333+00:00"
+    },
+    {
+      "paper_id": "2608.17959v2",
+      "route": "20251002-20261001/2608.17959v2",
+      "title": "Towards Zero-Shot Task Transfer with Neurosymbolic World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.291953+00:00",
+      "updated_at": "2026-10-02T03:48:45.291953+00:00"
+    },
+    {
+      "paper_id": "2608.17163v1",
+      "route": "20251002-20261001/2608.17163v1",
+      "title": "Q-Learning With World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.265086+00:00",
+      "updated_at": "2026-10-02T03:48:45.265086+00:00"
+    },
+    {
+      "paper_id": "2608.07107v2",
+      "route": "20251002-20261001/2608.07107v2",
+      "title": "MemWM: Memory-Augmented Text-Based World Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.238559+00:00",
+      "updated_at": "2026-10-02T03:48:45.238559+00:00"
+    },
+    {
+      "paper_id": "2607.26336v1",
+      "route": "20251002-20261001/2607.26336v1",
+      "title": "Learning Implicit Causal World Models from Multi-Agent Demonstrations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.212245+00:00",
+      "updated_at": "2026-10-02T03:48:45.212245+00:00"
+    },
+    {
+      "paper_id": "2607.14180v1",
+      "route": "20251002-20261001/2607.14180v1",
+      "title": "RENEW: Towards Learning World Models and Repairing Model Exploitation from Preferences",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.186319+00:00",
+      "updated_at": "2026-10-02T03:48:45.186319+00:00"
+    },
+    {
+      "paper_id": "2607.11673v2",
+      "route": "20251002-20261001/2607.11673v2",
+      "title": "ABot-3DWorld 0: A Universal World Model to Explore Any 3D Space",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.160731+00:00",
+      "updated_at": "2026-10-02T03:48:45.160731+00:00"
+    },
+    {
+      "paper_id": "2607.04409v1",
+      "route": "20251002-20261001/2607.04409v1",
+      "title": "Learning Task-Sufficient World Models by Synergizing Agentic Exploration and Structured Modeling",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.135632+00:00",
+      "updated_at": "2026-10-02T03:48:45.135632+00:00"
+    },
+    {
+      "paper_id": "2606.30639v2",
+      "route": "20251002-20261001/2606.30639v2",
+      "title": "Self-Evolving World Models for LLM Agent Planning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.110761+00:00",
+      "updated_at": "2026-10-02T03:48:45.110761+00:00"
+    },
+    {
+      "paper_id": "2606.27575v1",
+      "route": "20251002-20261001/2606.27575v1",
+      "title": "Perceptual 3D Simulation With Physical World Modeling",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.086160+00:00",
+      "updated_at": "2026-10-02T03:48:45.086160+00:00"
+    },
+    {
+      "paper_id": "2606.21173v1",
+      "route": "20251002-20261001/2606.21173v1",
+      "title": "Inverting the Bellman Equation: From $Q$-Values to World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.061974+00:00",
+      "updated_at": "2026-10-02T03:48:45.061974+00:00"
+    },
+    {
+      "paper_id": "2606.18250v2",
+      "route": "20251002-20261001/2606.18250v2",
+      "title": "Future Dynamic 3D Reconstruction: Toward 3D World Modeling with Disentangled Ego-Motion",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.038007+00:00",
+      "updated_at": "2026-10-02T03:48:45.038007+00:00"
+    },
+    {
+      "paper_id": "2606.09457v2",
+      "route": "20251002-20261001/2606.09457v2",
+      "title": "$ω$-EVA: Envision, Verify, and Act with Latent Interactive World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:45.014615+00:00",
+      "updated_at": "2026-10-02T03:48:45.014615+00:00"
+    },
+    {
+      "paper_id": "2606.00439v1",
+      "route": "20251002-20261001/2606.00439v1",
+      "title": "Physical Object Understanding with a Physically Controllable World Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.991477+00:00",
+      "updated_at": "2026-10-02T03:48:44.991477+00:00"
+    },
+    {
+      "paper_id": "2605.26282v1",
+      "route": "20251002-20261001/2605.26282v1",
+      "title": "Scaling World-Model Reinforcement Learning Through Diffusion Policy Optimization",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.968532+00:00",
+      "updated_at": "2026-10-02T03:48:44.968532+00:00"
+    },
+    {
+      "paper_id": "2605.23993v2",
+      "route": "20251002-20261001/2605.23993v2",
+      "title": "Nano World Models: A Minimalist Implementation of Future Video Prediction",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.945993+00:00",
+      "updated_at": "2026-10-02T03:48:44.945993+00:00"
+    },
+    {
+      "paper_id": "2605.16395v1",
+      "route": "20251002-20261001/2605.16395v1",
+      "title": "OrbiSim: World Models as Differentiable Physics Engines for Embodied Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.923887+00:00",
+      "updated_at": "2026-10-02T03:48:44.923887+00:00"
+    },
+    {
+      "paper_id": "2605.11367v2",
+      "route": "20251002-20261001/2605.11367v2",
+      "title": "3D-Belief: Embodied Belief Inference via Generative 3D World Modeling",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.902066+00:00",
+      "updated_at": "2026-10-02T03:48:44.902066+00:00"
+    },
+    {
+      "paper_id": "2605.06388v1",
+      "route": "20251002-20261001/2605.06388v1",
+      "title": "Reconstruction or Semantics? What Makes a Latent Space Useful for Robotic World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.880546+00:00",
+      "updated_at": "2026-10-02T03:48:44.880546+00:00"
+    },
+    {
+      "paper_id": "2605.00412v3",
+      "route": "20251002-20261001/2605.00412v3",
+      "title": "Physically Native World Models: A Hamiltonian Perspective on Generative World Modeling",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.859510+00:00",
+      "updated_at": "2026-10-02T03:48:44.859510+00:00"
+    },
+    {
+      "paper_id": "2604.16484v1",
+      "route": "20251002-20261001/2604.16484v1",
+      "title": "DexWorldModel: Causal Latent World Modeling towards Automated Learning of Embodied Tasks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.838793+00:00",
+      "updated_at": "2026-10-02T03:48:44.838793+00:00"
+    },
+    {
+      "paper_id": "2604.08958v3",
+      "route": "20251002-20261001/2604.08958v3",
+      "title": "WOMBET: World Model-Based Experience Transfer for Robust and Sample-efficient Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.818332+00:00",
+      "updated_at": "2026-10-02T03:48:44.818332+00:00"
+    },
+    {
+      "paper_id": "2604.03208v2",
+      "route": "20251002-20261001/2604.03208v2",
+      "title": "Hierarchical Planning with Latent World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.798247+00:00",
+      "updated_at": "2026-10-02T03:48:44.798247+00:00"
+    },
+    {
+      "paper_id": "2603.29089v1",
+      "route": "20251002-20261001/2603.29089v1",
+      "title": "WorldFlow3D: Flowing Through 3D Distributions for Unbounded World Generation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.778548+00:00",
+      "updated_at": "2026-10-02T03:48:44.778548+00:00"
+    },
+    {
+      "paper_id": "2603.28955v1",
+      "route": "20251002-20261001/2603.28955v1",
+      "title": "Enhancing Policy Learning with World-Action Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.759177+00:00",
+      "updated_at": "2026-10-02T03:48:44.759177+00:00"
+    },
+    {
+      "paper_id": "2603.25981v1",
+      "route": "20251002-20261001/2603.25981v1",
+      "title": "Policy-Guided World Model Planning for Language-Conditioned Visual Navigation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.740165+00:00",
+      "updated_at": "2026-10-02T03:48:44.740165+00:00"
+    },
+    {
+      "paper_id": "2603.20607v1",
+      "route": "20251002-20261001/2603.20607v1",
+      "title": "Towards Practical World Model-based Reinforcement Learning for Vision-Language-Action Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.721526+00:00",
+      "updated_at": "2026-10-02T03:48:44.721526+00:00"
+    },
+    {
+      "paper_id": "2603.14948v1",
+      "route": "20251002-20261001/2603.14948v1",
+      "title": "Bridging Scene Generation and Planning: Driving with World Model via Unifying Vision and Motion Representation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.703049+00:00",
+      "updated_at": "2026-10-02T03:48:44.703049+00:00"
+    },
+    {
+      "paper_id": "2603.12639v2",
+      "route": "20251002-20261001/2603.12639v2",
+      "title": "RoboStereo: Dual-Tower 4D Embodied World Models for Unified Policy Optimization",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.684778+00:00",
+      "updated_at": "2026-10-02T03:48:44.684778+00:00"
+    },
+    {
+      "paper_id": "2603.04029v1",
+      "route": "20251002-20261001/2603.04029v1",
+      "title": "Self-adapting Robotic Agents through Online Continual Reinforcement Learning with World Model Feedback",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.666839+00:00",
+      "updated_at": "2026-10-02T03:48:44.666839+00:00"
+    },
+    {
+      "paper_id": "2602.23997v1",
+      "route": "20251002-20261001/2602.23997v1",
+      "title": "Foundation World Models for Agents that Learn, Verify, and Adapt Reliably Beyond Static Environments",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.649409+00:00",
+      "updated_at": "2026-10-02T03:48:44.649409+00:00"
+    },
+    {
+      "paper_id": "2602.14351v2",
+      "route": "20251002-20261001/2602.14351v2",
+      "title": "WIMLE: Uncertainty-Aware World Models with IMLE for Sample-Efficient Continuous Control",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.632497+00:00",
+      "updated_at": "2026-10-02T03:48:44.632497+00:00"
+    },
+    {
+      "paper_id": "2602.13977v2",
+      "route": "20251002-20261001/2602.13977v2",
+      "title": "WoVR: World Models as Reliable Simulators for Post-Training VLA Policies with RL",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.615714+00:00",
+      "updated_at": "2026-10-02T03:48:44.615714+00:00"
+    },
+    {
+      "paper_id": "2602.12099v2",
+      "route": "20251002-20261001/2602.12099v2",
+      "title": "GigaBrain-0.5M*: a VLA That Learns From World Model-Based Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.599546+00:00",
+      "updated_at": "2026-10-02T03:48:44.599546+00:00"
+    },
+    {
+      "paper_id": "2602.11291v2",
+      "route": "20251002-20261001/2602.11291v2",
+      "title": "H-WM: Robotic Task and Motion Planning Guided by Hierarchical World Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.583712+00:00",
+      "updated_at": "2026-10-02T03:48:44.583712+00:00"
+    },
+    {
+      "paper_id": "2602.10044v1",
+      "route": "20251002-20261001/2602.10044v1",
+      "title": "Optimistic World Models: Efficient Exploration in Model-Based Deep Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.568162+00:00",
+      "updated_at": "2026-10-02T03:48:44.568162+00:00"
+    },
+    {
+      "paper_id": "2602.09878v2",
+      "route": "20251002-20261001/2602.09878v2",
+      "title": "MVISTA-4D: View-Consistent 4D World Model with Test-Time Action Inference for Robotic Manipulation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.553037+00:00",
+      "updated_at": "2026-10-02T03:48:44.553037+00:00"
+    },
+    {
+      "paper_id": "2602.09022v1",
+      "route": "20251002-20261001/2602.09022v1",
+      "title": "WorldCompass: Reinforcement Learning for Long-Horizon World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.538225+00:00",
+      "updated_at": "2026-10-02T03:48:44.538225+00:00"
+    },
+    {
+      "paper_id": "2602.07854v3",
+      "route": "20251002-20261001/2602.07854v3",
+      "title": "Geometry-Aware Rotary Position Embedding for Consistent Video World Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.523709+00:00",
+      "updated_at": "2026-10-02T03:48:44.523709+00:00"
+    },
+    {
+      "paper_id": "2602.06508v2",
+      "route": "20251002-20261001/2602.06508v2",
+      "title": "World-VLA-Loop: Closed-Loop Learning of Video World Model and VLA Policy",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.509506+00:00",
+      "updated_at": "2026-10-02T03:48:44.509506+00:00"
+    },
+    {
+      "paper_id": "2602.05842v2",
+      "route": "20251002-20261001/2602.05842v2",
+      "title": "Reinforcement World Model Learning for LLM-based Agents",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.495615+00:00",
+      "updated_at": "2026-10-02T03:48:44.495615+00:00"
+    },
+    {
+      "paper_id": "2602.02454v1",
+      "route": "20251002-20261001/2602.02454v1",
+      "title": "World-Gymnast: Training Robots with Reinforcement Learning in a World Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.481976+00:00",
+      "updated_at": "2026-10-02T03:48:44.481976+00:00"
+    },
+    {
+      "paper_id": "2602.01630v1",
+      "route": "20251002-20261001/2602.01630v1",
+      "title": "Research on World Models Is Not Merely Injecting World Knowledge into Specific Tasks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.468715+00:00",
+      "updated_at": "2026-10-02T03:48:44.468715+00:00"
+    },
+    {
+      "paper_id": "2602.01270v1",
+      "route": "20251002-20261001/2602.01270v1",
+      "title": "Mixture-of-World Models: Scaling Multi-Task Reinforcement Learning with Modular Latent Dynamics",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.455697+00:00",
+      "updated_at": "2026-10-02T03:48:44.455697+00:00"
+    },
+    {
+      "paper_id": "2602.00785v1",
+      "route": "20251002-20261001/2602.00785v1",
+      "title": "World Models as an Intermediary between Agents and the Real World",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.443092+00:00",
+      "updated_at": "2026-10-02T03:48:44.443092+00:00"
+    },
+    {
+      "paper_id": "2602.00475v1",
+      "route": "20251002-20261001/2602.00475v1",
+      "title": "Parallel Stochastic Gradient-Based Planning for World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.430946+00:00",
+      "updated_at": "2026-10-02T03:48:44.430946+00:00"
+    },
+    {
+      "paper_id": "2601.19336v1",
+      "route": "20251002-20261001/2601.19336v1",
+      "title": "From Observations to Events: Event-Aware World Model for Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.419146+00:00",
+      "updated_at": "2026-10-02T03:48:44.419146+00:00"
+    },
+    {
+      "paper_id": "2601.12428v1",
+      "route": "20251002-20261001/2601.12428v1",
+      "title": "ReWorld: Multi-Dimensional Reward Modeling for Embodied World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.407696+00:00",
+      "updated_at": "2026-10-02T03:48:44.407696+00:00"
+    },
+    {
+      "paper_id": "2601.08955v3",
+      "route": "20251002-20261001/2601.08955v3",
+      "title": "Imagine-then-Plan: Agent Learning from Adaptive Lookahead with World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.396542+00:00",
+      "updated_at": "2026-10-02T03:48:44.396542+00:00"
+    },
+    {
+      "paper_id": "2601.07463v2",
+      "route": "20251002-20261001/2601.07463v2",
+      "title": "Puzzle it Out: Local-to-Global World Model for Offline Multi-Agent Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.385740+00:00",
+      "updated_at": "2026-10-02T03:48:44.385740+00:00"
+    },
+    {
+      "paper_id": "2601.06604v1",
+      "route": "20251002-20261001/2601.06604v1",
+      "title": "Object-Centric World Models Meet Monte Carlo Tree Search",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.375200+00:00",
+      "updated_at": "2026-10-02T03:48:44.375200+00:00"
+    },
+    {
+      "paper_id": "2512.24497v4",
+      "route": "20251002-20261001/2512.24497v4",
+      "title": "What Drives Success in Physical Planning with Joint-Embedding Predictive World Models?",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.365024+00:00",
+      "updated_at": "2026-10-02T03:48:44.365024+00:00"
+    },
+    {
+      "paper_id": "2512.19133v1",
+      "route": "20251002-20261001/2512.19133v1",
+      "title": "WorldRFT: Latent World Model Planning with Reinforcement Fine-Tuning for Autonomous Driving",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.355123+00:00",
+      "updated_at": "2026-10-02T03:48:44.355123+00:00"
+    },
+    {
+      "paper_id": "2512.18832v2",
+      "route": "20251002-20261001/2512.18832v2",
+      "title": "From Word to World: Can Large Language Models be Implicit Text-based World Models?",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.345638+00:00",
+      "updated_at": "2026-10-02T03:48:44.345638+00:00"
+    },
+    {
+      "paper_id": "2512.18477v1",
+      "route": "20251002-20261001/2512.18477v1",
+      "title": "STORM: Search-Guided Generative World Models for Robotic Manipulation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.336188+00:00",
+      "updated_at": "2026-10-02T03:48:44.336188+00:00"
+    },
+    {
+      "paper_id": "2512.10016v1",
+      "route": "20251002-20261001/2512.10016v1",
+      "title": "Latent Action World Models for Control with Unlabeled Trajectories",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.327127+00:00",
+      "updated_at": "2026-10-02T03:48:44.327127+00:00"
+    },
+    {
+      "paper_id": "2512.01952v2",
+      "route": "20251002-20261001/2512.01952v2",
+      "title": "GrndCtrl: Grounding World Models via Self-Supervised Reward Alignment",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.318047+00:00",
+      "updated_at": "2026-10-02T03:48:44.318047+00:00"
+    },
+    {
+      "paper_id": "2511.20095v2",
+      "route": "20251002-20261001/2511.20095v2",
+      "title": "WPT: World-to-Policy Transfer via Online World Model Distillation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.309935+00:00",
+      "updated_at": "2026-10-02T03:48:44.309935+00:00"
+    },
+    {
+      "paper_id": "2511.19584v2",
+      "route": "20251002-20261001/2511.19584v2",
+      "title": "Learning Massively Multitask World Models for Continuous Control",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.302092+00:00",
+      "updated_at": "2026-10-02T03:48:44.302092+00:00"
+    },
+    {
+      "paper_id": "2511.14262v3",
+      "route": "20251002-20261001/2511.14262v3",
+      "title": "Object-Centric World Models for Causality-Aware Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.294432+00:00",
+      "updated_at": "2026-10-02T03:48:44.294432+00:00"
+    },
+    {
+      "paper_id": "2511.09515v1",
+      "route": "20251002-20261001/2511.09515v1",
+      "title": "WMPO: World Model-based Policy Optimization for Vision-Language-Action Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.287370+00:00",
+      "updated_at": "2026-10-02T03:48:44.287370+00:00"
+    },
+    {
+      "paper_id": "2511.06252v1",
+      "route": "20251002-20261001/2511.06252v1",
+      "title": "MrCoM: A Meta-Regularized World-Model Generalizing Across Multi-Scenarios",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.279400+00:00",
+      "updated_at": "2026-10-02T03:48:44.279400+00:00"
+    },
+    {
+      "paper_id": "2511.06136v2",
+      "route": "20251002-20261001/2511.06136v2",
+      "title": "When Object-Centric World Models Meet Policy Learning: From Pixels to Policies, and Where It Breaks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.272962+00:00",
+      "updated_at": "2026-10-02T03:48:44.272962+00:00"
+    },
+    {
+      "paper_id": "2511.02225v1",
+      "route": "20251002-20261001/2511.02225v1",
+      "title": "Learning Interactive World Model for Object-Centric Reinforcement Learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.266848+00:00",
+      "updated_at": "2026-10-02T03:48:44.266848+00:00"
+    },
+    {
+      "paper_id": "2511.02097v2",
+      "route": "20251002-20261001/2511.02097v2",
+      "title": "A Step Toward World Models: A Survey on Robotic Manipulation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.261155+00:00",
+      "updated_at": "2026-10-02T03:48:44.261155+00:00"
+    },
+    {
+      "paper_id": "2511.01310v2",
+      "route": "20251002-20261001/2511.01310v2",
+      "title": "From Pixels to Cooperation Multi Agent Reinforcement Learning based on Multimodal World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.255702+00:00",
+      "updated_at": "2026-10-02T03:48:44.255702+00:00"
+    },
+    {
+      "paper_id": "2510.18135v2",
+      "route": "20251002-20261001/2510.18135v2",
+      "title": "World-in-World: World Models in a Closed-Loop World",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.250668+00:00",
+      "updated_at": "2026-10-02T03:48:44.250668+00:00"
+    },
+    {
+      "paper_id": "2510.16732v3",
+      "route": "20251002-20261001/2510.16732v3",
+      "title": "A Comprehensive Survey on World Models for Embodied AI",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.245939+00:00",
+      "updated_at": "2026-10-02T03:48:44.245939+00:00"
+    },
+    {
+      "paper_id": "2510.15047v1",
+      "route": "20251002-20261001/2510.15047v1",
+      "title": "Internalizing World Models via Self-Play Finetuning for Agentic RL",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.241596+00:00",
+      "updated_at": "2026-10-02T03:48:44.241596+00:00"
+    },
+    {
+      "paper_id": "2510.12312v2",
+      "route": "20251002-20261001/2510.12312v2",
+      "title": "Deep SPI: Safe Policy Improvement via World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.237585+00:00",
+      "updated_at": "2026-10-02T03:48:44.237585+00:00"
+    },
+    {
+      "paper_id": "2510.09036v2",
+      "route": "20251002-20261001/2510.09036v2",
+      "title": "RoDyn: Taming Interactive Robot-Dynamic 2.5D World Model for Robotic Manipulation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T03:48:44.233969+00:00",
+      "updated_at": "2026-10-02T03:48:44.233969+00:00"
+    }
+  ]
+}
