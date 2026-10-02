@@ -1,0 +1,412 @@
+Title: DispFlow-GS: Displacement Flow Supervision with Motion Disentangling for Monocular Deformable 3D Gaussian Splatting
+
+URL Source: https://arxiv.org/pdf/2609.36940v1
+
+Published Time: Wed, 30 Sep 2026 01:13:30 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# DispFlow-GS: Displacement Flow Supervision with Motion Disentangling for Monocular Deformable 3D Gaussian Splatting 
+
+Thai Duy Nguyen 1, Haitian Zhang 1, and Addison Lin Wang 1,∗
+
+Abstract — Accurate dynamic scene reconstruction is im-portant for robotic perception, where temporally consistent representations of dynamic environments are essential. De-formable 3D Gaussian Splatting (3DGS) models dynamic scenes through deformation fields, and recent methods incorporate motion supervision by aligning rendered Gaussian flow with optical flow. However, we find that such Gaussian-flow-based supervision provides only limited improvements in motion mod-eling. We identify a fundamental limitation of this supervision paradigm, namely a domain gap between rendered Gaussian flow and optical flow. To address this limitation, we propose a motion supervision framework built on Displacement Flow, which splats per-Gaussian 3D displacements onto the image plane to provide direct and stable optimization signals. We further disentangle scene motion from camera motion via intermediate-view rendering, enabling more reliable motion priors and targeted constraints on deformation and geometry. We also observe a discrepancy between motion fidelity and image-based evaluation, where improved motion awareness does not necessarily translate into better rendered image quality or higher image-based metric scores. Motivated by this mismatch, we introduce Deformation-Rendering Consistency (DRC), a motion-aware metric that measures the alignment between predicted deformation and rendering improvement. Experiments on dynamic scene benchmarks show substantial improvements in motion localization and motion–rendering consistency, reaching up to 39% and 6%, respectively, while image-based metrics change by only about 0.1%. These results confirm the observed mismatch between motion fidelity and image-based evaluation, demonstrating the significance of DRC for motion-aware evaluation. 
+
+I. I NTRODUCTION 
+
+Novel-view synthesis [1]–[3] and 3D reconstruction of dynamic scenes is important for applications such as Si-multaneous Localization and Mapping (SLAM) [4], and robotic navigation [5]. Building upon neural radiance field (NeRF) [2] and 3D Gaussian Splatting (3DGS) [1], re-cent dynamic 3DGS methods have demonstrated efficient reconstruction and rendering of time-varying scenes [6]– [8]. Dynamic 3DGS approaches model temporal evolu-tion through three main paradigms, including: explicit 4D primitive-based methods, deformation-field-based methods, and frame-wise training methods. Explicit 4D methods in-corporate time directly into Gaussian representations [8], [9], while frame-wise methods optimize temporally varying Gaussian states [10]. In contrast, deformation-field-based 3DGS maintains a canonical Gaussian representation and learns a deformation field to predict time-dependent changes 
+
+> 1
+
+Nanyang Technological University, Singapore. 
+
+{nguyendu003,haitian003 }@e.ntu.edu.sg, linwang@ntu.edu.sg 
+
+> ∗
+
+Corresponding author. Frame 1 ( 𝒗𝒊𝒆𝒘 𝟏 , 𝒕 𝟏 ) Frame 2 ( 𝒗𝒊𝒆𝒘 𝟐 , 𝒕 𝟐 )  
+
+> Deformable 3DGS
+> Rendered intermediate frame
+> Scene motion Camera motion
+> Motion Estimation
+> Motion
+> Estimation
+> Disentangled
+> (𝒗𝒊𝒆𝒘 𝟏 , 𝒕 𝟐 )
+> optim. optim.
+
+Fig. 1. Highlight of our motion disentangling framework. In dynamic scenarios, between frames there are two types of motion being entangled together: the camera motion (from view 1 to view 2), and the scene motion (from state at t1 to t2). For efficient motion supervision, such two motions need to be disentangle. Our method uses Deformable 3DGS to render an intermediate image at (view 1, t 2), such that its motion relative to each input frame isolates a single motion component by keeping either the viewpoint or the scene state fixed during motion estimation. 
+
+in Gaussian attributes [6], [7]. This provides a compact and continuous representation of scene dynamics, with better parameter efficiency than explicit 4D primitives and stronger temporal coherence than independent frame-wise methods. In this work, we focus specifically on this deformation-field-based paradigm for motion-aware reconstruction. Most deformable 3DGS methods rely primarily on pho-tometric supervision between rendered and input images. However, photometric supervision is ambiguous for dy-namic scenes, as different deformation patterns can pro-duce similar appearance consistency. Recent works there-fore introduce motion-aware constraints to improve de-formation learning [11]–[13]. GaussianFlow [11] renders the motion of projected Gaussians and supervises it using optical flow, while subsequent approaches further exploit Gaussian-derived motion for motion decomposition and de-formation learning [12], [14]. Our work focuses on this 
+
+Gaussian-flow-based motion supervision within deformation-field-based 3DGS. Despite different supervision targets and formulations, these approaches align motion rendered from deformed Gaussians with flow-derived motion cues. Our empirical analysis shows that such supervision provides only limited improvement in motion-aware deformation. We identify a key limitation: Gaussian flow and optical flow represent motion differently, creating a domain gap between arXiv:2609.36940v1 [cs.CV] 29 Sep 2026 the rendered motion representation and its supervision target. 
+
+To address this limitation, we propose a novel motion supervision framework using Displacement Flow , obtained by splatting per-Gaussian 3D displacements onto the image plane. Rather than enforcing pixel correspondence between heterogeneous motion representations, Displacement Flow captures relative motion magnitude induced by Gaussian deformation. We further disentangle scene motion from camera-induced motion via intermediate-view rendering, as depicted in Fig. 1, allowing motion priors to be estimated under a fixed viewpoint for more reliable supervision. Since our focus is motion-aware deformation learning, image-based metrics such as PSNR, SSIM, and LPIPS cannot fully reflect motion fidelity. Empirical results in Sec. V-B show that improvements in motion quality do not necessarily translate into gains in these metrics. This distinction is particularly relevant to robotic perception, where correctly identifying dynamic regions can matter even when rendered appear-ance changes little. We therefore introduce Deformation– Rendering Consistency (DRC) , which measures whether pre-dicted deformation aligns with rendering improvement. We evaluate our method on the NeRF-DS [15] and HyperNeRF [16] benchmarks. Our approach consistently improves motion-aware metrics while image-based perfor-mance remains largely unchanged. We show that improved motion awareness does not necessarily translate into better rendered image quality or higher image-based metric scores, highlighting the need for motion-aware evaluation. Our main contributions are summarized as follows: 1) We identify a domain gap between rendered Gaussian flow and optical-flow supervision as a key limitation of motion learning in deformable 3DGS. 2) We propose a motion supervision framework using 
+
+Displacement Flow and scene-motion decomposition for more efficient deformation learning. 3) We reveal a discrepancy between motion fidelity and image-based evaluation, motivating Deformation– Rendering Consistency for motion-aware evaluation. II. R ELATED WORKS 
+
+Dynamic Scene Reconstruction. The NeRF framework [2] has been extended to dynamic scenes through deforma-tion fields that map observations to a shared canonical space [17], [18], direct spatiotemporal modeling [19]– [21], and structured representations [22]–[24]. Similarly, many works explore dynamic scene reconstruction with 3DGS [25], [26]. Dynamic 3DGS methods can be broadly grouped into explicit 4D primitive-based, deformation-field-based, and frame-wise approaches. Explicit 4D methods incorporate time directly into Gaussian primitives [8], [27], while frame-wise methods optimize Gaussian states across timestamps [10], [28]. In contrast, deformation-field-based methods maintain canonical Gaussians and predict time-dependent transformations through a learned deformation field [6], [7]. Our work focuses on the deformation-field-based paradigm and studies motion supervision for more reliable motion-aware deformation learning. project           
+
+> 3D space
+> 2D space
+> (image plane)
+> project
+> : 3D/2D Gaussians : Gaussian flow : Optical flow
+> 𝑡 = 𝑡 1𝑡 = 𝑡 2
+> Fig. 2. Gaussian flow formulation and its discrepancy with optical flow. Gaussian flow is the α-composited weighted sum of pixel displace-ments induced by projected 2D Gaussians. It considers only the Gaussian composition at t1, ignoring changes in contributing Gaussians and blending weights due to deformation and viewpoint variation. In contrast, optical flow uses pixel positions at both t1and t2, leading to a domain gap between two representations.
+
+Motion-Aware Deformable 3DGS. Recent methods intro-duce motion supervision to improve deformation learning in deformable 3DGS. GaussianFlow [11] supervises rendered Gaussian flow using optical flow, while MotionGS [12] fur-ther decomposes camera and scene motion before applying flow guidance. Guo et al. [13] incorporate uncertainty-aware flow supervision, whereas Xie et al. [29] estimate Gaussian motion using a differentiable Lucas–Kanade formulation without explicit optical-flow supervision. Despite different designs, these approaches still align Gaussian-derived mo-tion with flow-based targets whose motion definitions are inherently different, introducing the domain gap studied in this work. In contrast, we supervise Displacement Flow , con-structed from per-Gaussian 3D displacements, using directly estimated scene motion under a fixed viewpoint, avoiding direct correspondence matching between Gaussian-derived motion and optical flow, which represent motion differently. 
+
+Motion Disentanglement for Robotics. Robotic perception in dynamic environments requires distinguishing platform-induced motion from motion intrinsic to the scene, as both are entangled in temporal observations. Recent works ad-dress this through dynamic–static scene decomposition for autonomous driving [30], scene-flow-based motion reason-ing [31], [32], and motion segmentation using scene-flow and ego-motion consistency with 4D radar [33] or temporal LiDAR [34]. Image-based methods further combine optical flow and geometric constraints to separate scene motion from camera-induced motion [35]. When camera-induced motion and scene motion are not separated, the observed motion is difficult to attribute reliably to actual scene dynamics. Such ambiguity also affects dynamic scene representations for robotic perception, where inter-frame motion jointly reflects viewpoint change and scene dynamics. We address it through intermediate-view rendering, fixing the viewpoint to isolate scene motion for more reliable deformation supervision. Canonical 3DGS 
+
+𝒙  𝒓  𝒔 
+
+> Deformation
+> Field
+
+𝒕 𝟏 
+
+𝒕 𝟐 
+
+𝜹 𝒙 𝒕 𝟏 , 𝜹 𝒓 𝒕 𝟏 , 𝜹 𝒔 𝒕 𝟏 
+
+𝜹 𝒙  
+
+> 𝒕 𝟐
+
+, 𝜹 𝒓  
+
+> 𝒕 𝟐
+
+, 𝜹 𝒔 
+
+> 𝒕 𝟐
+
++…
+
+(𝜹 𝒙  
+
+> 𝒕 𝟐
+
+− 𝜹 𝒙  
+
+> 𝒕 𝟏
+
+)
+
+> Per-Gaussian
+> 3D Displacements
+
+Diff. Gaussian Rasterization 
+
+Projection 
+
+Displacement Flow (Eq. 5) 
+
+Rendered Frame 1 
+
+( መ𝐼 1)
+
+Input Frame 1 
+
+(𝐼 1)
+
+Scene Motion 
+
+(see Fig. 4) 
+
+𝓛 𝒑𝒉𝒐𝒕𝒐. 
+
+𝓛 𝒎𝒐𝒕𝒊𝒐𝒏   
+
+> Camera Pose 1 Fig. 3. Overview of the proposed DispFlow-GS framework. The optimization consists of two components: photometric loss and motion loss. The photometric loss is the standard rendered image loss. The motion loss is defined by our Displacement Flow Supervision, where displacement flow is obtained by splatting per-Gaussian 3D displacements onto the image plane and supervising them against scene motion.
+
+III. R EVISIT THE MOTION SUPERVISION FOR 
+
+DEFORMABLE 3DGS This section revisits a widely adopted motion supervi-sion scheme in existing works [11]–[13], [29] that aims to improve motion awareness. In this approach, Gaussian flow is rendered by compositing the motion of projected 2D Gaussians through α-blending. The rendered flow map is then aligned with target optical flow to provide supervision. We then examine whether these two representations encode motion consistently, revealing their domain mismatch. 
+
+A. Formulation of Gaussian Flow Supervision 
+
+Motion supervision in deformable 3DGS typically extracts a motion representation from deformed Gaussians and super-vises it using priors from off-the-shelf flow models. Despite different supervision targets and losses, many methods [11]– [13], [29] adopt Gaussian flow as the motion representation. Since the supervision directly compares this rendered motion with an external flow prior, its formulation determines how effectively the target motion constrains the deformation field. Introduced in GaussianFlow [11], Gaussian flow F Gt1→t2 is the α-composited displacement of projected 2D Gaussians: 
+
+F Gt1→t2 =
+
+> K
+
+X
+
+> i=1
+
+wi (xi,t 2 − xt1 )=
+
+> K
+
+X
+
+> i=1
+
+wi
+
+ Σi,t 2 Σ−1 
+
+> i,t 1
+
+(xt1 − μi,t 1 ) + μi,t 2 − xt1
+
+ .
+
+(1) Here, K is the number of contributing Gaussians and 
+
+wi = TiαiP   
+
+> jTjαj
+
+is the normalized α-blending weight. xt1 and 
+
+xi,t 2 denote the pixel coordinates before and after Gaussian deformation, while μi,t and Σi,t are the Gaussian mean and covariance. The computation is illustrated in Fig. 2. Applying (1) to all pixels produces the rendered Gaussian flow, supervised by pseudo ground-truth optical flow: 
+
+Lflow = F ot1→t2 (xt1 ) − F Gt1→t2 , (2) where F ot1→t2 is estimated using a pre-trained flow model. 
+
+B. Problems of Gaussian Flow Supervision Scheme 
+
+From (1), Gaussian flow at a pixel is computed using the composition weights wi at time t1, modeling pixel dis-placement as the weighted aggregation of the displacements of Gaussians contributing at t1. This formulation implic-itly assumes that Gaussian contributions to a pixel remain consistent across timestamps . In practice, however, both the contributing Gaussians and their α-blending weights change over time due to deformation and reprojection, leading to a mismatch between the supervision signal and the rendered motion representation used for deformation learning. Consequently, Gaussian flow does not model explicit correspondence between pixel locations at t1 and t2, but instead represents accumulated motion induced by Gaussian deformation at t1. In contrast, optical flow establishes a direct mapping between pixel positions at t1 and their landing positions at t2, as illustrated in Fig. 2. This difference introduces a domain gap between Gaussian flow and optical flow, preventing the semantic meaning of optical flow from being faithfully captured under this formulation. IV. M ETHODOLOGY 
+
+A. Displacement Flow Supervision 
+
+Design Rationales. A natural way to address the domain gap in Sec. III-B is to model Gaussian composition at both t1 and 
+
+t2 and establish cross-time correspondence. However, obtain-ing correspondence at t2 would already amount to solving optical flow, making this formulation circular. We therefore reinterpret Gaussian-derived motion as a motion magnitude map rather than a correspondence field. This motivates a representation that captures relative Gaussian motion without requiring explicit cross-time pixel correspondence. 
+
+Formulation of Displacement Flow. We propose Displace-ment Flow , derived by splatting per-Gaussian 3D displace-ments onto the image plane (see Fig. 3). At each step, a pair of images at timestamps t1 and t2 is processed, producing two sets of deformations from the canonical 3DGS: 
+
+δt1 
+
+> xi
+
+, δ t1 
+
+> ri
+
+, δ t1 
+
+> si
+
+= D(xi, t 1), δt2 
+
+> xi
+
+, δ t2 
+
+> ri
+
+, δ t2 
+
+> si
+
+= D(xi, t 2). (3) The 3D displacement of each Gaussian from t1 to t2 is computed as 
+
+δt1t2 
+
+> xi
+
+= δt2 
+
+> xi
+
+− δt1 
+
+> xi
+
+. (4) time                                
+
+> camera
+> view
+> 𝑡 1𝑡 2
+> 𝑣𝑖𝑒𝑤 1
+> 𝑣𝑖𝑒𝑤 2
+> camera motion
+> (𝑣𝑖𝑒𝑤 1, 𝑡 2)
+> (𝑣𝑖𝑒𝑤 2, 𝑡 1)
+> Input frame 1
+> I1(𝑣𝑖𝑒𝑤 1, 𝑡 1)
+> Input frame 2
+> I2(𝑣𝑖𝑒𝑤 2, 𝑡 2)
+> MotionGS:
+> (Indirect calculation)
+> Scene motion =total motion –camera motion
+> = 𝐹𝑙𝑜𝑤 𝐼 1𝑣𝑖𝑒𝑤 1, 𝑡 1, 𝐼 2𝑣𝑖𝑒𝑤 2, 𝑡 2–camera motion
+> Ours:
+> (Direct calculation)
+> Scene motion = 𝐹𝑙𝑜𝑤[𝐼 1𝑣𝑖𝑒𝑤 1, 𝑡 1,መ𝐼 1𝑣𝑖𝑒𝑤 1, 𝑡 2]
+> *𝐹𝑙𝑜𝑤[∙,∙] :off-the-shelf flow model
+> scene motion Fig. 4. Illustration of scene motion calculation. For an input pair (view 1, t 1)and (view 2, t 2), total motion includes scene and camera motion. MotionGS estimates cross-view flow and subtracts camera motion, which is error-prone due to large cross-view displacements. Instead, we render an intermediate frame at (view 1, t 2)and compute flow between (view 1, t 1)and (view 1, t 2)to isolate scene motion under a fixed viewpoint.
+
+Displacement Flow is then obtained by splatting these 3D displacements onto the image plane using α-blending: 
+
+Fdisp =
+
+> K
+
+X
+
+> i=1
+
+wi δt1t2 
+
+> xi
+
+, (5) where wi is the α-blending weight and K is the number of contributing Gaussians. Unlike Gaussian flow, Displacement Flow is constructed directly from 3D center displacements, providing a direct gradient path to the deformation field. 
+
+Supervision. The displacement flow Fdisp is supervised against scene motion Fscene , which excludes camera-induced motion (detailed in Sec. IV-B). Following the discussion above, both flows are normalized into a motion magnitude representation in [0 , 1] using min-max normalization. The motion loss is defined as 
+
+Lmotion = ˆFscene − ˆFdisp 1
+
+. (6) Rather than enforcing exact pixel correspondence, this supervision aligns relative motion structures across the scene, encouraging deformation updates that are consistent with dynamic regions while mitigating the domain gap limitation discussed in Sec. III-B. 
+
+B. Motion Disentangling via Intermediate Image Rendering 
+
+At each optimization step, we process an image pair from different viewpoints and timestamps. Two motion compo-nents occur simultaneously: scene motion (temporal defor-mation) and camera motion (viewpoint change), denoted as 
+
+(view 1, t 1) → (view 2, t 2). Since Displacement Flow models only scene motion, these components must be disentangled. Using the differentiable rendering of deformable 3DGS, we render an intermediate state at (view 1, t 2), decomposing the transformation as: 
+
+(view 1, t 1) → (view 1, t 2) → (view 2, t 2), (7) where the first stage isolates scene motion and the sec-ond camera motion. Rendering at (view 2, t 1) produces the reverse order. We adopt the former so scene motion is expressed under view 1, which is directly constrained by photometric loss, leading to more stable supervision. These decomposed pairs enable separate estimation of scene motion flow and camera flow using off-the-shelf opti-cal flow models. The resulting flows provide pseudo ground-truth motion priors during optimization. This decomposition also improves flow reliability, as directly estimating flow between the original pair can be inaccurate under large or complex motion. See Fig. 4 for illustration. 
+
+C. Optimization 
+
+The overall training objective is 
+
+L = Lphoto + αt Lmotion , (8) where Lphoto is the photometric loss and Lmotion is the pro-posed motion supervision term. The coefficient αt controls the contribution of motion supervision during training. To stabilize optimization, motion supervision is introduced after an initial warm-up period and its weight is gradually increased. For iterations t ≥ t0, αt is linearly ramped from 
+
+0.1α to α, while αt = 0 for t < t 0. This scheduling prevents motion supervision from dominating early training before photometric reconstruction stabilizes, allowing the deforma-tion field to first learn a reasonable geometric initialization and later refine motion-consistent deformation. V. E XPERIMENTS 
+
+Implementation Details. Training runs for 20,000 iterations, with the first 3,000 iterations used for warm-up. Motion su-pervision is introduced at iteration 10,000 with a final weight of α = 0 .1 for both the NeRF-DS [15] and HyperNeRF [16] datasets. The spatial learning-rate scale for the deformation field is set to 12. We use the pre-trained GMFlow [36] model to estimate scene motion. Other hyperparameters follow the baseline method [7]. Experiments are conducted using PyTorch [37] on a single NVIDIA RTX 5090 GPU. 
+
+Benchmark Datasets. We evaluate our method on two representative real-world dynamic scene benchmarks: NeRF-DS [15] and HyperNeRF [16]. The image resolutions and train–test splits follow the original dataset protocols. 
+
+A. Evaluation Metrics 
+
+Image-based Metrics. Following prior works, we report PSNR, SSIM, and LPIPS for image reconstruction quality. TABLE I QUANTITATIVE COMPARISON USING IMAGE -BASED METRICS ON THE NERF-DS DATASET PER SCENE .WE HIGHLIGHT THE BEST AND SECOND -BEST RESULTS IN EACH SCENE .                                                                                                                                                                                                                               
+
+> Sieve Plate Bell Press Method PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> 3D-GS [1] 23.16 0.8203 0.2247 16.14 0.6970 0.4093 21.01 0.7885 0.2503 22.89 0.8163 0.2904 TiNeuVox [38] 21.49 0.8265 0.3176 20.58 0.8027 0.3317 23.08 0.8242 0.2568 24.47 0.8613 0.3001 HyperNeRF [16] 25.43 0.8798 0.1645 18.93 0.7709 0.2940 23.06 0.8097 0.2052 26.15 0.8897 0.1959 NeRF-DS [15] 25.78 0.8900 0.1472 20.54 0.8042 0.1996 23.19 0.8212 0.1867 25.72 0.8618 0.2047 Deformable-3DGS [7] 25.27 0.8682 0.1532 20.51 0.8090 0.2271 25.07 0.8446 0.1725 25.45 0.8619 0.1941 MotionGS [12] 25.49 0.8443 0.2193 20.19 0.7920 0.2685 24.89 0.8198 0.2465 25.62 0.8539 0.2415 DispFlow-GS 25.33 0.8685 0.1570 20.27 0.8045 0.2344 25.19 0.8459 0.1676 25.56 0.8644 0.1940
+> Cup As Basin Mean
+> Method PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> 3D-GS [1] 21.71 0.8304 0.2548 22.69 0.8017 0.2994 18.42 0.7170 0.3153 20.86 0.7816 0.2920 TiNeuVox [38] 19.71 0.8109 0.3643 21.26 0.8289 0.3967 20.66 0.8145 0.2690 21.61 0.8241 0.3195 HyperNeRF [16] 24.59 0.8770 0.1650 25.58 0.8949 0.1777 20.41 0.8199 0.1911 23.45 0.8488 0.1991 NeRF-DS [15] 24.91 0.8741 0.1737 25.13 0.8778 0.1741 19.96 0.8166 0.1855 23.60 0.8494 0.1816 Deformable-3DGS [7] 24.20 0.8816 0.1681 26.12 0.8814 0.1856 19.68 0.7927 0.1918 23.76 0.8485 0.1846 MotionGS [12] 24.23 0.8553 0.2109 26.02 0.8626 0.2256 19.79 0.7751 0.2426 23.75 0.8290 0.2364 DispFlow-GS 24.47 0.8876 0.1620 26.08 0.8770 0.1991 19.68 0.7914 0.1941 23.80 0.8485 0.1869
+
+Motion-based Metrics. Image-based metrics mainly mea-sure appearance and do not directly assess motion quality. We therefore introduce Deformation-Rendering Consistency (DRC) to measure whether predicted deformation aligns with rendering improvement. To avoid bias from evaluating solely with our proposed DRC, we also use MMAP, which follows the standard Average Precision (AP) evaluation protocol. 
+
+a) Deformation-Rendering Consistency (DRC): DRC measures whether deformation-induced motion improves re-construction. It does not aim to measure true motion corre-spondence, but rather whether predicted motion is concen-trated in regions where deformation reduces rendering error. For consecutive frames t−1 and t, let Ifrozen denote the render using the previous deformation field D(t−1) and 
+
+Ifull the render using the updated deformation D(t). The deformation gain is 
+
+∆E(p) = |Ifrozen (p) − Igt (p)| − | Ifull (p) − Igt (p)|, (9) where ∆E(p) > 0 indicates improved reconstruction. Let 
+
+ˆFdisp (p) ∈ [0 , 1] denote the normalized displacement flow. DRC is defined as 
+
+DRC = 
+
+P
+
+p ˆFdisp (p) 1[∆ E(p) > 0] 
+
+P
+
+p ˆFdisp (p) + ε ∈ [0 , 1] , (10) where higher DRC indicates stronger alignment between predicted motion and error-reducing deformation. 
+
+b) Motion Mask Average Precision (MMAP): MMAP evaluates motion localization using the standard AP eval-uation protocol. Let Mf (p) ∈ { 0, 1} denote the ground-truth motion label and ˆFdisp ,f (p) ∈ [0 , 1] the normalized displacement flow as per-pixel motion confidence. For each frame, AP is computed from the precision–recall curve by thresholding ˆFdisp ,f against Mf , and MMAP is the mean AP over all test frames. Higher MMAP indicates better align-ment between predicted motion and true dynamic regions. Both metrics require displacement flow and are evaluated on image pairs, consistent with the training procedure. 
+
+TABLE II QUANTITATIVE COMPARISON USING MOTION -BASED METRICS ON THE 
+
+NERF-DS DATASET PER SCENE .                                                                                      
+
+> Sieve Plate Bell Press Method MMAP ↑DRC ↑MMAP ↑DRC ↑MMAP ↑DRC ↑MMAP ↑DRC ↑
+> Deformable-3DGS [7] 0.4220 0.6320 0.7514 0.7088 0.8562 0.7608 0.7346 0.6994 MotionGS [12] 0.5905 0.6600 0.7149 0.7095 0.8236 0.7395 0.7398 0.6867 DispFlow-GS 0.8724 0.6957 0.9204 0.7573 0.8936 0.7769 0.9128 0.7133
+> Cup As Basin Mean
+> Method MMAP ↑DRC ↑MMAP ↑DRC ↑MMAP ↑DRC ↑MMAP ↑DRC ↑
+> Deformable-3DGS [7] 0.6066 0.6060 0.3566 0.6422 0.8205 0.6127 0.6497 0.6660 MotionGS [12] 0.6733 0.6132 0.3818 0.6516 0.8538 0.6193 0.6825 0.6685 DispFlow-GS 0.9356 0.7036 0.8449 0.6868 0.9308 0.6231 0.9015 0.7081
+
+B. Results 1) Results on the NeRF-DS dataset: Quantitative results are reported in Tab. I and Tab. II. DispFlow-GS achieves the best motion-based performance across all scenes ,improving mean MMAP and DRC over the photometric-only Deformable 3DGS [7] by approximately 39% and 
+
+6% , respectively, while PSNR changes by only about 0.1%. This indicates that the improvement brought by motion supervision is expressed primarily in the learned deformation rather than in conventional reconstruction quality. Qualita-tive results in Fig. 5 support this observation, where our method localizes deformation more consistently to dynamic regions and suppresses responses in static backgrounds. The 
+
+basin scene provides a particularly clear example: MotionGS produces visibly blurrier reconstructions while attaining the highest PSNR among the three deformable-3DGS methods, showing that a better image-based score does not necessarily correspond to more faithful motion modeling. This discrepancy reflects the different objectives of pho-tometric and motion supervision. Photometric optimization can improve appearance by allowing flexible deformation that explains the observed images, without requiring the resulting deformation to correspond to the actual dynamic regions. In contrast, motion supervision explicitly constrains where and how deformation should occur, which may restrict this photometric flexibility while producing more meaningful scene motion. Thus, substantial improvements in motion-aware deformation can occur with little change in image-based metrics , motivating the use of motion-specific metrics when evaluating motion-supervised dynamic reconstruction. TABLE III QUANTITATIVE COMPARISON ON THE HYPER NERF DATASET PER SCENE .                                                                                        
+
+> Chicken Banana Mean Method PSNR ↑SSIM ↑MMAP ↑DRC ↑PSNR ↑SSIM ↑MMAP ↑DRC ↑PSNR ↑SSIM ↑MMAP ↑DRC ↑
+> HyperNeRF [16] 27.40 0.630 ––22.10 0.720 ––24.80 0.680 ––TiNeuVox [38] 28.20 0.790 ––24.40 0.640 ––26.30 0.720 ––Deformable-3DGS [7] 23.58 0.646 0.529 0.729 25.16 0.831 0.749 0.760 24.37 0.738 0.639 0.744 MotionGS [12] 23.44 0.638 0.625 0.729 24.90 0.829 0.751 0.752 24.17 0.733 0.688 0.741 DispFlow-GS 23.66 0.649 0.664 0.743 24.97 0.830 0.774 0.758 24.31 0.739 0.719 0.750 cup
+> Deformable 3DGS MotionGS DispFlow-GS
+> basin
+> plate
+> Mask
+> Mask
+> Mask
+> Ground truth
+
+Fig. 5. Qualitative results on representative scenes of NeRF-DS dataset. 
+
+For each scene, the top row shows the rendered images, while the bottom row shows the corresponding Displacement Flow. 
+
+2) Results on the HyperNeRF dataset: We report results on the “chicken” and “banana” scenes in Tab. III, with qualitative comparisons in Fig. 6 for the “chicken” scene. We omit the remaining scenes because several HyperNeRF sequences contain noticeable camera-pose inaccuracies, as also reported in Deformable 3DGS [7]. Such errors can degrade deformation learning in deformable 3DGS methods and also affect intermediate-view rendering used for scene-motion estimation; corresponding failure cases are discussed in Sec. VI. DispFlow-GS consistently improves motion-aware performance on the evaluated scenes , achieving the highest MMAP on both scenes and the best average MMAP and DRC. Based on the mean results, MMAP improves by approximately 4.5% over MotionGS and 12.5% over photometric-only Deformable 3DGS, while image-based per-formance remains comparable. Qualitatively, our method also 
+
+produces deformation that is more concentrated around the moving object with fewer spurious responses in static regions, indicating that the proposed supervision generalizes beyond NeRF-DS while preserving reconstruction quality. 
+
+C. Ablation Study 
+
+We conduct ablations on NeRF-DS dataset to evaluate key components and design choices of our framework. Results are averaged across scenes and reported in Tabs. IV–VII. 
+
+Key components. Tab. IV evaluates Displacement Flow (DF), Motion Decomposition (MD), and Training Scheduling (TS). DF alone does not improve over the photometric baseline, indicating that changing the motion representation Deformable 3DGS  DispFlow-GS Ground truth  MotionGS 
+
+> Mask
+
+Fig. 6. Qualitative results on ‘chicken’ scene of the HyperNeRF dataset. 
+
+TABLE IV ABLATION ON KEY COMPONENTS : DISPLACEMENT FLOW (DF), MOTION DECOMPOSITION (MD), AND TRAINING SCHEDULING (TS). Method DF MD TS PSNR ↑ SSIM ↑ LPIPS ↓ MMAP ↑ DRC ↑                                 
+
+> Baseline 23.76 0.8485 0.1846 0.6497 0.6660 1✓23.63 0.8406 0.1941 0.6306 0.6455 2✓✓23.77 0.8462 0.1878 0.6817 0.6577 3✓✓23.62 0.8467 0.1902 0.9316 0.7261 Ours ✓✓✓23.80 0.8485 0.1869 0.9015 0.7081
+
+TABLE V ABLATION ON MOTION REPRESENTATIONS AND SUPERVISION TARGETS .Method PSNR ↑ SSIM ↑ LPIPS ↓ MMAP ↑ DRC ↑                    
+
+> Gaussian Flow + Indirect Scene Motion (MotionGS) 23.75 0.8290 0.2364 0.6825 0.6685 Gaussian Flow + Direct Scene Motion 23.85 0.8485 0.1846 0.6317 0.6673 Displacement Flow + Indirect Scene Motion 23.92 0.8498 0.1833 0.7258 0.6728 Displacement Flow + Direct Scene Motion (Ours) 23.80 0.8485 0.1869 0.9015 0.7081
+
+is insufficient when the supervision target still contains am-biguous motion. Once MD is introduced, MMAP increases by 47.7% and DRC by 12.5% over DF alone, showing that 
+
+motion decomposition is the key component that enables Displacement Flow to learn meaningful scene dynamics .Without TS, this stronger motion constraint slightly degrades reconstruction quality; introducing TS restores the image-based metrics to approximately the baseline level while retaining most of the motion improvement, resulting in the final balance between motion and appearance. 
+
+Motion representation and supervision target. Tab. Vfurther separates the effects of the motion representation and scene-motion target. Under the same indirect scene-motion supervision, replacing Gaussian Flow with Displacement Flow already improves MMAP, suggesting that it is better aligned with deformation learning. More importantly, switching from indirect to direct scene-motion estimation increases MMAP by 24.2% for Displacement Flow, whereas TABLE VI ABLATION ON FLOW BACKBONES , LOSS WEIGHTS , AND MOTION MASKS .Method PSNR ↑ SSIM ↑ LPIPS ↓ MMAP ↑ DRC ↑                                       
+
+> Different flow model (RAFT [39]) 23.78 0.8488 0.1847 0.9024 0.7083 Different flow model (MDFlow [40]) 23.73 0.8476 0.1865 0.8084 0.6824 Smaller motion loss weight ( α= 0.02) 23.78 0.8478 0.1873 0.8206 0.6866 Larger motion loss weight ( α= 0.5) 23.61 0.8464 0.1910 0.9269 0.7216 Motion decomposition in reverse order 23.87 0.8472 0.1892 0.5566 0.6473 Motion mask filtering 23.78 0.8475 0.1889 0.8629 0.7063 Ours (GMFlow [36]; α= 0.1; w/o mask) 23.80 0.8485 0.1869 0.9015 0.7081
+
+TABLE VII ABLATION STUDY ON MOTION NORMALIZATION STRATEGIES .Method PSNR ↑ SSIM ↑ LPIPS ↓ MMAP ↑ DRC ↑                    
+
+> Max-Absolute Normalization 23.75 0.8485 0.1869 0.8970 0.7041 Z-score Normalization 23.39 0.8388 0.2024 0.8926 0.6973 Interquartile Range Normalization 23.76 0.8483 0.1862 0.9254 0.7115 Min-Max Normalization (Ours) 23.80 0.8485 0.1869 0.9015 0.7081
+
+it reduces MMAP for Gaussian Flow. This result shows that 
+
+Displacement Flow and direct scene-motion supervision are complementary , with their combination giving the strongest motion-aware performance. 
+
+Motion supervision settings. Tab. VI examines the flow backbone, motion-loss weight, decomposition order, and motion-mask filtering. RAFT [39] gives nearly identical results to the default GMFlow [36], while MDFlow [40] performs worse, suggesting that flow-prior quality matters but the gains are not specific to GMFlow ; we retain GMFlow for fair comparison with MotionGS. Increasing the motion-loss weight improves motion metrics but sacrifices image quality, whereas reducing it weakens motion learning, supporting α = 0 .1 as a balanced setting. Most notably, re-versing the decomposition order reduces MMAP by approx-imately 38% , despite maintaining competitive image-based metrics. The decomposition order is therefore critical ,as estimating scene motion under the photometrically con-strained input viewpoint provides substantially more reliable supervision. Motion-mask filtering provides no consistent improvement, so it is omitted from the final model. 
+
+Normalization strategy. Tab. VII shows that our method is relatively insensitive to the normalization strat-egy. Interquartile-range normalization achieves the highest MMAP and DRC, but only modestly outperforms min-max, which gives slightly better image-based performance. We therefore adopt min-max for its simplicity and balanced performance across image- and motion-based metrics. VI. D ISCUSSION AND LIMITATIONS 
+
+Potential for Robotics. Robotic perception and spatial reasoning in dynamic environments require separating ego-motion from scene motion for reliable scene understanding. Our framework addresses this ambiguity by isolating scene motion under a fixed viewpoint and learning deformation concentrated on dynamic regions. Such motion-aware rep-resentations could support dynamic SLAM, navigation, and manipulation, where distinguishing persistent structure from transient motion is important. Our results also show that motion fidelity can improve substantially while image-based metrics remain nearly unchanged, suggesting that rendering quality alone may overlook properties relevant to robotic perception and spatial reasoning. Together, these results Deformable 3DGS DispFlow-GS Ground truth MotionGS 
+
+> 3D printer broom
+
+Fig. 7. Failure cases on the HyperNeRF dataset. 
+
+highlight the potential of motion-aware deformable 3DGS for robotic dynamic scene understanding and spatial reasoning. 
+
+Failure Cases. Failure cases occur in the “3D printer” 
+
+and “broom” scenes of HyperNeRF (see Fig. 7), mainly due to inaccurate camera poses, as also reported in Deformable-3DGS [7]. This leads to poor reconstruction of dynamic regions, such as the filament in “3D printer” 
+
+and the broom in “broom” . Since our Displacement Flow supervision estimates scene motion from intermediate-frame rendering, it is particularly sensitive to pose errors. 
+
+Limitations. Our framework is sensitive to optical-flow and camera-pose errors, affecting deformation learning and intermediate-frame rendering. Moreover, supervising motion magnitude rather than exact pixel correspondence may limit precise trajectory recovery in complex dynamic scenes. VII. C ONCLUSION 
+
+In this paper, we revisited motion supervision in De-formable 3DGS and showed that Gaussian flow is funda-mentally limited by a domain mismatch with optical flow, weakening its ability to learn meaningful scene dynamics. We introduced Displacement Flow and scene–camera motion disentangling to provide more direct and domain-consistent supervision for deformation learning. Our experiments reveal a central finding: improved motion awareness does not necessarily translate into better photometric reconstruction or higher image-based metric scores. To better evaluate this discrepancy, we introduced Deformation–Rendering Con-sistency (DRC), which measures the alignment between predicted motion and rendering improvement. Together, these findings suggest that motion loss may offer limited benefit when image quality is the primary goal, whereas motion-aware deformation should be supervised and evaluated with motion-specific objectives and metrics. Building on these findings, future work will investigate task-oriented extensions of our motion disentangling and Displacement Flow for robotic dynamic scene understanding, with explicit integra-tion into mapping and spatial-reasoning frameworks. REFERENCES [1] B. Kerbl, G. Kopanas, T. Leimk¨ uhler, and G. Drettakis, “3d gaussian splatting for real-time radiance field rendering.,” ACM Trans. Graph. ,vol. 42, no. 4, pp. 139–1, 2023. [2] B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoor-thi, and R. Ng, “Nerf: Representing scenes as neural radiance fields for view synthesis,” Communications of the ACM , vol. 65, no. 1, pp. 99– 106, 2021. [3] A. Chen, Z. Xu, A. Geiger, J. Yu, and H. Su, “Tensorf: Tensorial radiance fields,” in European conference on computer vision , pp. 333– 350, Springer, 2022. [4] Z. Sun, J. Lo, and J. Hu, “Embracing dynamics: Dynamics-aware 4d gaussian splatting slam,” in 2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pp. 5331–5338, IEEE, 2025. [5] Y. Wang, J. Morris, L. Wu, T. A. Vidal-Calleja, and V. Ila, “Dynorecon: Dynamic object reconstruction for navigation,” in 2025 IEEE Inter-national Conference on Robotics and Automation (ICRA) , pp. 3305– 3311, IEEE, 2025. [6] G. Wu, T. Yi, J. Fang, L. Xie, X. Zhang, W. Wei, W. Liu, Q. Tian, and X. Wang, “4d gaussian splatting for real-time dynamic scene rendering,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 20310–20320, 2024. [7] Z. Yang, X. Gao, W. Zhou, S. Jiao, Y. Zhang, and X. Jin, “Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruc-tion,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition , pp. 20331–20341, 2024. [8] Z. Li, Z. Chen, Z. Li, and Y. Xu, “Spacetime gaussian feature splatting for real-time dynamic view synthesis,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pp. 8508–8520, 2024. [9] Z. Yang, Z. Pan, X. Zhu, L. Zhang, J. Feng, Y.-G. Jiang, and P. H. Torr, “4d gaussian splatting: Modeling dynamic scenes with native 4d primitives,” arXiv preprint arXiv:2412.20720 , 2024. [10] J. Luiten, G. Kopanas, B. Leibe, and D. Ramanan, “Dynamic 3d gaussians: Tracking by persistent dynamic view synthesis,” in 2024 International Conference on 3D Vision (3DV) , pp. 800–809, IEEE, 2024. [11] Q. Gao, Q. Xu, Z. Cao, B. Mildenhall, W. Ma, L. Chen, D. Tang, and U. Neumann, “Gaussianflow: Splatting gaussian dynamics for 4d content creation,” arXiv preprint arXiv:2403.12365 , 2024. [12] R. Zhu, Y. Liang, H. Chang, J. Deng, J. Lu, W. Yang, T. Zhang, and Y. Zhang, “Motiongs: Exploring explicit motion guidance for deformable 3d gaussian splatting,” Advances in Neural Information Processing Systems , vol. 37, pp. 101790–101817, 2024. [13] Z. Guo, W. Zhou, L. Li, M. Wang, and H. Li, “Motion-aware 3d gaussian splatting for efficient dynamic scene reconstruction,” IEEE Transactions on Circuits and Systems for Video Technology , 2024. [14] Y. Lin, Z. Dai, S. Zhu, and Y. Yao, “Gaussian-flow: 4d reconstruction with dynamic 3d gaussian particle,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 21136– 21145, 2024. [15] Z. Yan, C. Li, and G. H. Lee, “Nerf-ds: Neural radiance fields for dynamic specular objects,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 8285– 8295, 2023. [16] K. Park, U. Sinha, P. Hedman, J. T. Barron, S. Bouaziz, D. B. Goldman, R. Martin-Brualla, and S. M. Seitz, “Hypernerf: A higher-dimensional representation for topologically varying neural radiance fields,” arXiv preprint arXiv:2106.13228 , 2021. [17] K. Park, U. Sinha, J. T. Barron, S. Bouaziz, D. B. Goldman, S. M. Seitz, and R. Martin-Brualla, “Nerfies: Deformable neural radiance fields,” in Proceedings of the IEEE/CVF international conference on computer vision , pp. 5865–5874, 2021. [18] A. Pumarola, E. Corona, G. Pons-Moll, and F. Moreno-Noguer, “D-nerf: Neural radiance fields for dynamic scenes,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition ,pp. 10318–10327, 2021. [19] Z. Li, Q. Wang, F. Cole, R. Tucker, and N. Snavely, “Dynibar: Neural dynamic image-based rendering,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 4273– 4284, 2023. [20] W. Xian, J.-B. Huang, J. Kopf, and C. Kim, “Space-time neural irradiance fields for free-viewpoint video,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition ,pp. 9421–9431, 2021. [21] C. Gao, A. Saraf, J. Kopf, and J.-B. Huang, “Dynamic view synthesis from dynamic monocular video,” in Proceedings of the IEEE/CVF International Conference on Computer Vision , pp. 5712–5721, 2021. [22] A. Cao and J. Johnson, “Hexplane: A fast representation for dynamic scenes,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 130–141, 2023. [23] S. Fridovich-Keil, G. Meanti, F. R. Warburg, B. Recht, and A. Kanazawa, “K-planes: Explicit radiance fields in space, time, and appearance,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 12479–12488, 2023. [24] R. Shao, Z. Zheng, H. Tu, B. Liu, H. Zhang, and Y. Liu, “Tensor4d: Efficient neural 4d decomposition for high-fidelity dynamic recon-struction and rendering,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 16632–16642, 2023. [25] K. Katsumata, D. M. Vo, and H. Nakayama, “A compact dynamic 3d gaussian representation for real-time dynamic view synthesis,” in 
+
+European Conference on Computer Vision , pp. 394–412, Springer, 2024. [26] J. Lei, Y. Weng, A. W. Harley, L. Guibas, and K. Daniilidis, “Mosca: Dynamic gaussian fusion from casual videos via 4d motion scaffolds,” in Proceedings of the Computer Vision and Pattern Recognition Conference , pp. 6165–6177, 2025. [27] S. Sun, C. Zhao, Z. Sun, Y. V. Chen, and M. Chen, “Splatflow: Self-supervised dynamic gaussian splatting in neural motion flow field for autonomous driving,” in Proceedings of the Computer Vision and Pattern Recognition Conference , pp. 27487–27496, 2025. [28] J. Sun, H. Jiao, G. Li, Z. Zhang, L. Zhao, and W. Xing, “3dgstream: On-the-fly training of 3d gaussians for efficient streaming of photo-realistic free-viewpoint videos,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pp. 20675– 20685, 2024. [29] L. Xie, J. Julin, K. Niinuma, and L. A. Jeni, “Gaussian splatting lucas-kanade,” arXiv preprint arXiv:2407.11309 , 2024. [30] S. Doll, N. Hanselmann, L. Schneider, R. Schulz, M. Cordts, M. En-zweiler, and H. P. A. Lensch, “DualAD: Disentangling the dynamic and static world for end-to-end driving,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pp. 14728–14737, 2024. [31] J. Kim, J. Woo, U. Shin, J. Oh, and S. Im, “Flow4D: Leveraging 4d voxel network for lidar scene flow estimation,” IEEE Robotics and Automation Letters , vol. 10, no. 4, pp. 3462–3469, 2025. [32] A. Khoche, Q. Zhang, L. P. Sanchez, A. Asefaw, S. S. Mansouri, and P. Jensfelt, “SSF: Sparse long-range scene flow for autonomous driving,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) , pp. 6394–6400, IEEE, 2025. [33] Y. Liu, X. Chen, N. Wang, S. Andreev, A. Dvorkovich, R. Fan, and H. Lu, “Self-supervised diffusion-based scene flow estimation and motion segmentation with 4d radar,” IEEE Robotics and Automation Letters , vol. 10, no. 6, pp. 5895–5902, 2025. [34] Z. Yi, F. Neumann, G. von Wichert, and D. Burschka, “Moving object segmentation via 3d lidar data: A learning-free real-time online alternative,” in 2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pp. 12502–12509, IEEE, 2025. [35] L. Goli, S. Sabour, M. Matthews, M. A. Brubaker, D. Lagun, A. Jacobson, D. J. Fleet, S. Saxena, and A. Tagliasacchi, “RoMo: Robust motion segmentation improves structure from motion,” in 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , pp. 6155–6164, 2025. [36] H. Xu, J. Zhang, J. Cai, H. Rezatofighi, and D. Tao, “Gmflow: Learning optical flow via global matching,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition ,pp. 8121–8130, 2022. [37] A. Paszke, S. Gross, F. Massa, A. Lerer, J. Bradbury, G. Chanan, T. Killeen, Z. Lin, N. Gimelshein, L. Antiga, et al. , “Pytorch: An imperative style, high-performance deep learning library,” Advances in neural information processing systems , vol. 32, 2019. [38] J. Fang, T. Yi, X. Wang, L. Xie, X. Zhang, W. Liu, M. Nießner, and Q. Tian, “Fast dynamic radiance fields with time-aware neural voxels,” in SIGGRAPH Asia 2022 Conference Papers , pp. 1–9, 2022. [39] Z. Teed and J. Deng, “Raft: Recurrent all-pairs field transforms for optical flow,” in European conference on computer vision , pp. 402– 419, Springer, 2020. [40] L. Kong and J. Yang, “Mdflow: Unsupervised optical flow learning by reliable mutual knowledge distillation,” IEEE Transactions on circuits and systems for video technology , vol. 33, no. 2, pp. 677–688, 2022.

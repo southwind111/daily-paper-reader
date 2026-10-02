@@ -1,0 +1,2251 @@
+1
+M3GD: Multi-Modal Multi-View Geometric
+Diffusion for Camera–LiDAR Novel View Synthesis
+Yang Zhou1,∗, Jiuhong Xiao1,2,∗, Shizhao Ye2, Long Quang1,3, Carlos Nieto-Granda3, and Giuseppe Loianno2
+Abstract—Robotic novel view synthesis (NVS) must recover
+both visual appearance and metric 3D structure, yet most
+generative NVS methods rely only on images, overlooking LiDAR,
+a complementary sensor common on robotic platforms. We
+present M3GD, a Camera–LiDAR multimodal representation
+for generative NVS that composes independently pretrained 2D
+image and 3D point-cloud foundation models without sepa-
+rately pretraining a cross-modal translator. We show that, after
+camera projection, frozen LiDAR and image features exhibit
+substantial shared spatial structure, providing a natural cross-
+modal representation. M3GD conditions generation on LiDAR
+through this structure: it combines explicit geometry statistics
+with learned point-cloud descriptors into view-aligned packets
+on the image-latent grid, injected through a lightweight residual
+adapter into a multi-view flow-matching generator whose latent
+space, decoders, and training objective remain intact. On the
+GrandTour dataset, M3GD improves target-view RGB and depth
+synthesis over an image-only version of the same backbone.
+Ablations show that the gains come from pixel-aligned LiDAR
+content and that target-view LiDAR acts as a geometric query
+linking the requested view to source observations. Deployment on
+a ground robot demonstrates practical real-world operation, with
+a configurable quality–cost trade-off controlled by the number of
+Euler integration steps.
+I. Introduction
+Novel view synthesis (NVS), i.e., predicting the image a
+camera would capture from an unvisited viewpoint, turns
+recorded or mapped environments into reusable visual testbeds
+for robots. View-controllable rendering has been used to
+train or evaluate learning-based driving and drone policies
+in closed-loop simulation [1]–[3]. The underlying radiance-
+field representations also support photorealistic mapping for
+localization and geometric reconstruction [4], while synthe-
+sized viewpoints give teleoperators visual coverage beyond the
+physical camera layout of a robot [5]. Recent generative NVS
+systems have advanced rapidly by building on 2D image repre-
+sentations and multi-view diffusion models [6]–[8]. However,
+computer vision benchmarks usually pose NVS as RGB-to-
+RGB synthesis from posed images alone. Conversely, robotic
+deployment changes the input boundary: cameras are com-
+monly synchronized with calibrated LiDAR, metric structure is
+operationally important, and a LiDAR sweep near the queried
+∗These authors contributed equally to this work.
+1The authors are with New York University, New York, USA. email:
+{yangzhou, jx1190, lq2146}@nyu.edu.
+2The authors are with Department of Electrical Engineering and Computer
+Sciences, University of California, Berkeley, CA 94720, USA. email:
+{jiuhong.xiao, yeshizhao, loiannog}@berkeley.edu.
+3The authors are with the U.S. Army Combat Capabilities Development
+Command, Army Research Laboratory, Adelphi, MD 20783, USA. email:
+{long.p.quang.civ, carlos.p.nieto2.civ}@army.mil.
+pose may exist even when the target RGB image is unavailable.
+We treat such target-side LiDAR as a geometric query: it an-
+chors the requested viewpoint and local metric support without
+revealing the target appearance to be synthesized. This matters
+especially where RGB-only synthesis is difficult: texture-poor
+corridors, thin structures, harsh illumination, and long-range
+outdoor geometry. The core question is therefore not whether
+another sensor can be added, but whether pretrained 2D and
+3D representations can be composed so that visual appearance
+and metric structure help the same generative NVS model.
+Most existing NVS methods address only part of this
+problem. Generative approaches synthesize plausible target
+views from RGB observations and their associated camera
+poses [9]–[12], while feed-forward radiance-field and splatting
+methods reconstruct renderable scene representations from
+sparse images [6], [13]–[16]. A separate line of work employs
+depth or LiDAR to supervise view synthesis, but typically
+requires fitting or updating an object- or environment-specific
+representation before novel views can be queried [2], [17]–
+[19]. Together, these limitations motivate the RGB–LiDAR-
+conditioned generative NVS setting studied in this work. Given
+posed source RGB–LiDAR observations and a target query
+comprising a camera pose and synchronized LiDAR sweep, the
+goal is to predict the target-view RGB image and dense depth
+without fitting a scene-specific representation at deployment.
+The challenge in combining these sensing modalities stems
+from their heterogeneity. Images are dense, appearance-rich,
+and indexed by pixels whereas LiDAR data is sparse, un-
+ordered, and indexed by metric 3D coordinates. Image ev-
+idence carries texture, geometry, illumination, and semantic
+context, whereas LiDAR carries scale-accurate support, range,
+and free-space structure. Their learned representations also
+differ in spatial support, dimensionality, pretraining objective,
+and invariances. Naively, collapsing LiDAR to a dense depth
+map discards much of its support structure, while forcing a
+generative model to learn a full cross-modal translator turns
+fusion into an additional synthesis problem.
+This paper studies RGB–LiDAR fusion as a representation-
+composition problem. Collecting synchronized, calibrated
+multimodal robot data across diverse environments limits the
+scale available for training each NVS system from scratch,
+making it attractive to reuse visual and geometric priors
+learned from broader pretraining data. Rather than training
+image–point alignment explicitly [20]–[22] or rebuilding the
+NVS model around a new sensor stack, we ask whether
+a pair of independently trained 2D image and 3D point-
+cloud foundation representations is compatible after camera
+projection. If a projected 3D representation is legible to the
+arXiv:2609.30056v1  [cs.RO]  24 Sep 2026
+
+
+2
+image-latent space of a given generator, then LiDAR can enter
+NVS as spatially aligned metric evidence instead of being
+reduced to an auxiliary loss, a per-scene reconstruction prior,
+or a single hand-crafted depth image.
+We instantiate this perspective with M3GD, an RGB–
+LiDAR multimodal representation for generative NVS. We
+analyze a particular pairing of frozen Depth Anything 3 (DA3)
+image features and Utonia point-cloud features [23], [24] and
+find that they share substantial spatial structure after camera
+projection. Each M3GD LiDAR packet then combines two
+complementary representations derived from the same sweep
+on the same image-latent grid: explicit geometry statistics
+retain direct information about metric range, sampling support,
+and sensor timing, while pooled Utonia descriptors expose
+learned 3D structure from point-cloud pretraining. Their con-
+catenation provides a view-aligned representation between Li-
+DAR and the generative NVS backbone. The resulting design
+keeps the paper’s focus: how to combine dense appearance
+reasoning with both explicit and learned sparse 3D evidence
+without separately pretraining a cross-modal translator.
+Our contributions are therefore summarized as follows:
+• We identify a specific class of independently trained,
+frozen 2D image and 3D point-cloud foundation represen-
+tation pairs whose projected 3D features share substantial
+spatial structure with the 2D image latents. This cross-
+modal compatibility motivates their incorporation into an
+image-latent generative model.
+• We introduce M3GD, an RGB–LiDAR multimodal condi-
+tioning method for generative NVS that combines explicit
+geometry statistics with learned point-cloud foundation-
+model descriptors in a projected feature representation
+and injects it into an image-latent generative model
+trained with multimodal flow matching, without requiring
+separate pretraining of a cross-modal translator.
+• We evaluate M3GD on GrandTour and show that adding
+projected LiDAR packets improves RGB and depth syn-
+thesis over an image-only version.
+• We deploy M3GD on a wheeled ground robot with a
+different camera–LiDAR sensor suite in a real-world envi-
+ronment without any retraining on the target domain. This
+demonstrates that the learned conditioning generalizes
+across platforms, and establishes its practical relevance
+for robotic perception tasks.
+II. Related Works
+A. Generative Novel View Synthesis in Geometry-Aware La-
+tents
+Diffusion-based NVS initially matured around camera-
+conditioned image diffusion. Zero-1-to-3 [9] demonstrated that
+large pretrained 2D diffusion models encode viewpoint priors
+steerable by relative camera pose. SyncDreamer [10] improved
+multi-view consistency by denoising the joint distribution
+of target views. ZeroNVS [11] extended camera-conditioned
+priors from objects to full scenes. A second family couples
+generation with reconstruction: GeNVS [12] denoises through
+a latent 3D feature field, ReconFusion [25] regularizes per-
+scene NeRF optimization with a novel-view diffusion prior,
+and CAT3D [6] generates additional views for a downstream
+reconstruction pipeline. Although these methods introduce
+camera geometry, depth prediction, or internal 3D representa-
+tions, their scene input remains a single modality: RGB images
+and their associated poses. They establish that generation suits
+target-view ambiguity, but provide no conditioning pathway for
+measurements or learned features from a physical 3D sensor.
+Closer to our work, some methods move generation into
+a geometry-aware space. MVGD [7] jointly generates target-
+view RGB and scale-consistent depth from images and cor-
+responding poses via ray-conditioned multi-view geometric
+diffusion. GLD [8] goes further, diffusing directly in the frozen
+feature space of a geometric foundation model (DA3 [23] or
+VGGT [26]) with a DiT-style transformer [27], [28] trained
+under flow matching [29], [30]. This latent space already en-
+codes cross-view correspondence, and frozen decoders recover
+RGB and depth from synthesized latents. Crucially, GLD is
+an image-input-only baseline: it conditions on posed source
+RGB images and consumes no LiDAR or other measured
+3D point cloud. Therefore, its geometric awareness comes
+from image-derived features rather than direct 3D sensor
+observations. M3GD retains GLD’s generative backbone but
+extends its conditioning from unimodal to multimodal, taking
+source RGB images together with projected features from
+measured 3D LiDAR point clouds. Our contribution is thus
+not another single-modality geometry-aware latent but a cross-
+modal conditioning method that lets 2D appearance and 3D
+measurements jointly condition latent-space generative NVS
+without separately pretraining a cross-modal translator.
+B. Generalizable Feed-Forward View Synthesis
+Deterministic feed-forward methods are the strongest non-
+generative baseline class for sparse-view synthesis. Pixel-
+NeRF [13] and CAT3D [6] condition NeRFs [31] on projected
+source-view features. MVSNeRF [32] and GeoNeRF [33]
+strengthen geometric reasoning with plane-swept cost volumes.
+The explicit branch predicts renderable primitives directly:
+pixelSplat [14] regresses 3D Gaussians [34] from image pairs,
+MVSplat [15] anchors Gaussian centers with a cost-volume
+prior, and DepthSplat [16] couples feed-forward splatting
+with a pretrained monocular depth backbone. Query-based
+reconstruction transformers [35], [36] drop pixel alignment
+altogether. Trained on large multi-view datasets such as
+RealEstate10K [37] and DL3DV [38], all these feed-forward
+models derive geometry solely from images, treating vision as
+the single input modality. None of the approaches consumes
+a pretrained point-cloud representation at inference time, and
+none produces both RGB and depth from a shared pretrained
+image latent. We compare against MVSplat and DepthSplat
+as representative deterministic competitors (Section VI). In
+contrast, M3GD uses conditional diffusion in a shared image-
+latent space: rather than mapping RGB observations to a single
+renderable scene estimate, it iteratively denoises a target latent
+conditioned on both images and projected LiDAR foundation
+features. This generative formulation better suits sparse-view
+synthesis, where occlusions, disocclusions, and incomplete
+image geometry leave target appearance underdetermined: a
+
+
+3
+learned visual prior resolves those ambiguities without forcing
+a single feed-forward regression, and mutually informed RGB
+and depth are decoded from the synthesized latent.
+C. Depth and LiDAR Assisted View Synthesis
+Robotic view synthesis supports policy evaluation, sensor-
+data augmentation, and viewpoint-flexible teleoperation, so
+sensor coverage and turnaround time are both operational
+concerns. VISTA 2.0 [1] synthesizes novel RGB, 3D LiDAR,
+and event-camera observations from recorded trajectories for
+closed-loop autonomous-driving experiments. Radiance Fields
+for Robotic Teleoperation [5] instead trains NeRF or Gaussian-
+splatting representations online from live robot data so op-
+erators can inspect viewpoints the physical cameras miss.
+These systems establish the robotics value of novel views,
+but also expose a practical distinction: fast rendering from a
+reconstructed scene does not remove the time needed to build
+or update the scene representation.
+Most depth- and LiDAR-assisted rendering methods use
+geometry as supervision for per-scene optimization. DS-
+NeRF [17] supervises NeRF with sparse SfM depth, SparseN-
+eRF [39] distills depth ranking from noisy sensors, and
+RegNeRF [40] and DiffusioNeRF [41] regularize unseen-
+view appearance and geometry. Urban Radiance Fields [18]
+adds LiDAR losses for street-level NeRFs. Robotics systems
+extend this to multimodal reconstruction: NeuSim [42] fuses
+camera and LiDAR to reconstruct objects for sensor simu-
+lation, SiLVR [43] uses range constraints to improve large-
+scale LiDAR–visual NeRF geometry in texture-poor regions,
+and PINGS [4] couples a LiDAR-derived distance field with
+a Gaussian-splatting radiance field for incremental robotic
+mapping. Despite differing representations, these approaches
+construct, optimize, or update an object- or environment-
+specific model before novel views can be queried.
+Robotics also changes the input boundary: calibrated LiDAR
+is often a native observation rather than geometry inferred
+from images. The LiDAR-native NVS approaches such as
+NFL [44], LiDAR-NeRF [45], and LiDAR4D [46] synthesize
+LiDAR returns and emphasizes that LiDAR carries support
+structure destroyed when the sensor collapses into a single
+pseudo-depth map. Camera–LiDAR driving simulators such as
+UniSim [2] and NeuRAD [19] fuse both sensors to re-render
+driving scenes, but at the cost of per-scene optimization: each
+scene demands extra fitting before it can be queried, and the
+resulting representation is valid only for that scene. M3GD
+instead amortizes RGB–LiDAR fusion into a generalizable
+generative model and keeps LiDAR as a structured condition-
+ing signal: it avoids scene-specific fitting at deployment and
+moves LiDAR from an optimization loss or output modality
+into a reusable conditioning signal, available on both source
+views and target-view geometric queries.
+D. Geometric-Aware Foundation Models and Data Alignment
+Collecting a task-specific robotics dataset requires syn-
+chronized, calibrated multimodal sensors across representative
+environments, limiting the scale and diversity available for
+training each robotic NVS model from scratch. Robotics
+representation learning therefore increasingly borrows from
+broader pretraining data. HRP [47] distills affordances from
+internet-scale human video into representations for robot
+learning. Geometric image foundation models transfer broad
+visual and geometric priors: DUSt3R [48] regresses dense
+pointmaps, VGGT [26] jointly predicts cameras, depth, and
+point tracks from many views, CUT3R [49] adds a persistent
+state for streaming 3D perception, and the Depth Anything
+series [23], [50] provides robust transferable depth encoders.
+MapAnything [51] factorizes the reconstruction interface into
+rays, depth, pose, and scale, a perspective our asymmetric
+source/target packet design shares. On the 3D side, self-
+supervised point transformers [52], [53] have culminated in
+Utonia [24], a single point-cloud encoder across domains
+whose features have already proven useful for embodied rea-
+soning. These 2D and 3D models offer complementary priors
+learned from far broader data than a single robot collection.
+Our
+alignment
+study
+connects
+these
+families.
+Representation-similarity tools such as linear CKA [54]
+and SVCCA [55] typically compare networks trained on the
+same modality. We adress the cross-modality challenge by
+comparing projected Utonia LiDAR features against DA3 and
+DINOv2 [56] image features on spatially overlapping grids.
+To our knowledge, the substantial shared spatial structure we
+observe between independently trained 2D and 3D foundation
+encoders (Section VI-A), and its use for generative NVS,
+have not been reported before.
+This emergent structure differs from works that learn image–
+point alignment explicitly. Cross-modal distillation methods
+such as PPKT [57], SLidR [20], Seal [58], OpenScene [21],
+and CLIP2Scene [22] supervise a 3D encoder to repro-
+duce 2D (often CLIP) features, showing that alignment can
+be engineered. Robotics methods pursue similar engineered
+fusion mechanisms: SGR [59] combines semantics from a
+pretrained 2D model with depth-based 3D spatial reasoning,
+while F3RM [60] distills pretrained image features into a
+scene-specific 3D feature field for manipulation. We study a
+complementary question: whether two off-the-shelf encoders
+trained separately on different modalities and broader pretrain-
+ing corpora already share enough structure to be composed
+after projection. This is consistent with the Platonic Rep-
+resentation Hypothesis [61] that models trained on different
+data and objectives converge toward a shared world repre-
+sentation, and gives it a concrete robotics test: if projected
+3D features share spatial structure with the image latent, a
+robot can borrow complementary 2D and 3D priors through a
+lightweight learned conditioning pathway rather than pretrain
+a new aligned representation from limited task data. Relative
+to both geometric foundation models and explicit image–point
+distillation, our contribution is twofold: we measure zero-
+shot 2D–3D representation similarity after projection, and turn
+that observation into an NVS conditioning method instead of
+separately pretraining an aligned encoder.
+III. Problem Statement and Preliminaries
+To ground the projected Camera–LiDAR conditioning used
+by M3GD, we first state the NVS problem, subsequently
+
+
+4
+LiDAR sweep P (BEV)
+Utonia enc.
+frozen
+per-point features
+Project π
+pool per cell
+RGB image I
+DA3 enc.
+frozen
+same 16×24 image-latent grid
+z = EDA3(I)
+h = pool(EUtonia(P))
+cell q
+nq = 0 (no LiDAR support)
+Fig. 1.
+Projected RGB–LiDAR representation. Frozen Utonia per-point
+descriptors are projected and pooled into the same H×W image-latent grid
+produced by the frozen DA3 encoder, so each cell q indexes both zq and hq
+(first three PCA components; hatched cells have no LiDAR support, nq=0).
+introduce the diffusion and flow-matching machinery used
+by our backbone, and finally summarize the 2D and 3D
+foundation representations composed by M3GD.
+A. Problem Setup
+We consider N posed source views {(Isrc
+i
+, Ksrc
+i , T src
+i
+)}N
+i=1,
+where Isrc
+i
+is the ith RGB image with camera intrinsics
+Ksrc
+i
+and camera-to-world pose T src
+i
+, each paired with a
+LiDAR observation P src
+i
+. We also consider M target cameras
+{(Ktgt
+j , T tgt
+j
+)}M
+j=1 for which LiDAR observations P tgt
+j
+may
+be available but RGB images are not. The goal is to predict
+the target-view RGB images Itgt
+j
+and dense depth maps Dtgt
+j ,
+defined at every pixel. When the role or index is immaterial,
+we drop the superscript and subscript and write I, P, etc.
+When source and target views are processed jointly, we index
+all V =N+M views by a single subscript v, with Vsrc and Vtgt
+denoting the source and target index sets, and write Iv and Pv
+for the image and LiDAR sweep of view v. Iv is an input only
+for v ∈Vsrc. For v ∈Vtgt, it is the quantity to be predicted. In
+our robotic setting, synchronized camera and LiDAR streams
+are recorded continuously, so a LiDAR sweep near the target
+timestamp can be available even when the corresponding RGB
+frame is not provided to the model. We treat this sweep as a
+geometric query: sparse metric evidence about the target view
+without providing either the held-out RGB image or the dense
+depth map to be predicted (Section IV-C).
+B. Diffusion and Flow Matching
+A diffusion model is a conditional generator that learns to
+recover a clean sample from a deliberately corrupted one [62]:
+a network is trained to predict a quantity pointing back toward
+the clean data distribution, such as the injected noise, the clean
+sample, or an equivalent velocity. Let z0 denote the repre-
+sentation to be generated and y the conditioning information.
+In pixel-space image generation, z0 is often the RGB image
+itself. In this paper, generation instead operates in a latent
+space, where z0 is a multi-view feature tensor later decoded
+into RGB and depth. Our backbone instantiates this generator
+with flow matching, a continuous-time objective [29], [30] that
+replaces the discrete denoising chain with a path between the
+clean latent z0 and a pure noise sample z1 ∼N(0, I), where I
+is the identity matrix over the flattened latent dimension. For
+the linear path used in GLD [8]
+zt = (1 −t)z0 + tz1,
+t ∈[0, 1].
+(1)
+The ideal velocity is simply the direction from data to noise
+ut = dzt
+dt = z1 −z0.
+(2)
+A network vθ(zt, t, y) with parameters θ is trained to predict
+this velocity under the conditional loss
+LFM = Ez0, z1, t
+h
+∥vθ(zt, t, y) −ut∥2
+2
+i
+.
+(3)
+At inference, sampling solves the ordinary differential equation
+dzt/dt = vθ(zt, t, y) backward from the noise z1 at t=1 to
+the clean latent z0 at t=0, typically with an Euler solver.
+In our work, the conditioning variable y contains the source
+images, camera geometry, and projected LiDAR packets. The
+model therefore does not hallucinate a scene from scratch: it
+learns a conditional vector field that moves an initially random
+target-view latent toward the latent consistent with the robot’s
+observations, and the conditioning variable guides that field.
+C. 2D and 3D Foundation Feature Backbones
+M3GD composes a dense image-latent backbone with a
+sparse point-cloud backbone.
+On the 2D side, DA3 [23] is a visual-geometry foundation
+model predicting spatially consistent geometry from one or
+more visual inputs, with or without known camera poses.
+M3GD uses not its final depth prediction but the encoded
+dense image-token representation learned before decoding.
+Specifically, the encoder maps each image to a spatial feature
+grid whose cells stay aligned with local image regions, and
+its depth, ray, and multi-view objectives make those cells
+geometry-aware as well as appearance-aware.
+These properties motivate our use of DA3 as the image-
+side latent space for integrating projected point-cloud features,
+a choice we validate against alternative image backbones in
+Section VI-A2.
+On the 3D side, Utonia [24] is a self-supervised point
+transformer [52], [53] trained as a single encoder across het-
+erogeneous point-cloud domains including indoor and outdoor
+scenes, with no image-feature distillation or other image su-
+pervision. This breadth matters for robotic perception because
+raw point clouds differ sharply in scale, density, sampling
+pattern, coordinate convention, and optional auxiliary channels
+such as color or normals. Utonia learns geometry-first per-
+point descriptors that remain useful across domains rather than
+specializing to one sensor family. Given a LiDAR sweep P,
+the frozen encoder maps each 3D point to a learned feature
+attached to its metric location, written EUtonia(P).
+
+
+5
+(a) Observations
+(b) Projected multimodal representation
+(c) Geometric latent generation
+Posed source views
+RGB
+LiDAR
+RGB/LiDAR
+poses
+Target query
+camera pose
+LiDAR
+no target RGB
+DA3
+frozen image encoder
+image latent
+Project + stats
+direct LiDAR geometry
+g: explicit geom
+6 projected statistics
+Utonia
+frozen point encoder
+Project + pool
+u: learned descriptor
+LiDAR packet [g; u]
+residual adapter
+shared grid
+source tokens
+RGB + LiDAR
+target tokens
+noise + LiDAR query
+Multi-View
+Flow Matching
+K Euler steps
+target latent
+RGB
+depth
+image appearance
+metric geometry
+generation
+Fig. 2. Overview of M3GD. (a) Posed source views provide RGB, LiDAR, and sensor poses, while the target query supplies only a camera pose and LiDAR;
+target RGB is never observed. (b) The frozen DA3 encoder maps source images to image latents. From the same LiDAR sweep, camera projection constructs
+explicit geometry statistics, while the frozen Utonia encoder supplies learned per-point descriptors that are pooled into the corresponding image-latent cells;
+their concatenation forms the per-view LiDAR packet. Fig. 1 details this projected RGB–LiDAR representation. A zero-initialized residual adapter composes
+this packet with the DA3 grid cell by cell. (c) The resulting source tokens (RGB + LiDAR) and target tokens (noise + LiDAR query) enter the multi-view
+flow matching network, which integrates the learned velocity field for K Euler steps to produce the target latent; frozen decoders recover RGB and depth.
+Arrow colors distinguish the image-appearance (blue), metric-geometry (teal), and generation (purple) pathways.
+IV. Methodology
+A. Overview
+M3GD composes 2D and 3D representations through a
+projected RGB–LiDAR conditioning pathway (Fig. 1). The
+frozen DA3 encoder maps the RGB image I to an H×W
+latent grid z, the space in which the inherited GLD backbone
+generates novel views. In parallel, the frozen Utonia encoder
+assigns a descriptor to every point of the LiDAR sweep P,
+and the camera projection π pools these descriptors into the
+cells of a second grid h with the same layout. Every cell q
+thus pairs an image latent zq with a geometry descriptor hq,
+while cells without LiDAR support (hatched) carry hq = 0;
+camera projection alone supplies this correspondence, with
+neither backbone fine-tuned. Each view-aligned LiDAR packet
+extends h with explicit geometry statistics from the same
+projected points, and a lightweight residual adapter mixes it
+into the DA3 grid cell by cell, exposing spatially indexed 3D
+evidence to the generator while keeping the GLD image latent
+space, decoders, camera conditioning, and training objective
+unchanged (Fig. 2). Section VI-A later evaluates whether
+the frozen image features and projected point-cloud features
+share measurable spatial structure on this common support.
+We first specify the inherited GLD backbone and M3GD’s
+operating point (Section IV-B), then present the three parts
+of our method: a projected RGB–LiDAR representation (Sec-
+tion IV-C), residual LiDAR conditioning (Section IV-D), and
+flow-matching training with a configurable inference-step bud-
+get (Section IV-E). Concrete dimensions, channel definitions,
+and training hyperparameters are isolated in Section V-A.
+B. Image-Latent Generative Backbone
+M3GD builds on GLD [8], an image-input-only NVS
+framework that generates DA3 image latents rather than RGB
+images directly. We specify the inherited latent representation
+and conditioning mechanism because M3GD retains GLD’s
+generative pipeline and modifies its per-view conditioning
+feature in Section IV-D.
+Latent representation and readout. GLD first fixes the
+space in which generation occurs using one frozen encoder
+and two frozen decoders
+z = EDA3(I) ∈RC×H×W ,
+ˆI = DRGB(z),
+ˆD = DPT(z),
+(4)
+where z is a latent grid of H×W cells aligned with the image
+patch grid and carrying C channels respectively, DRGB is a
+frozen MAE decoder, DPT is a frozen depth decoder [63],
+and ˆ· denotes a model prediction throughout.
+The DA3 encoder in eq. (4) exposes a hierarchy of four
+feature levels, indexed 0–3 from shallowest to deepest. Because
+the frozen encoder can deterministically propagate a shallower
+feature map to deeper levels, generation needs only to cover the
+hierarchy up to a chosen boundary level. GLD reports its best
+quality by explicitly synthesizing levels 0 and 1 in a cascade:
+a level-1 model first generates the deeper latent, and a level-0
+model then generates the shallower latent conditioned on the
+level-1 prediction. M3GD instead adopts a single-model oper-
+ating point suited to onboard robot deployment and synthesizes
+only level 0. This avoids a second generative stage and places
+LiDAR conditioning at the latent level directly synthesized by
+the model; the representation analysis in Section VI-A also
+identifies level 0 as the strongest overall match to projected
+Utonia features. Section VI-E quantifies the deployment cost
+of synthesizing the deeper level.
+Multi-view generative conditioning. GLD trains a multi-
+view diffusion transformer [27], [28] to synthesize the joint
+latent of all V views (Section III-A) at the selected level.
+The clean latent of the flow-matching formulation is the stack
+of image encodings, z0 = {EDA3(Iv)}V
+v=1, and z1 provides
+the initial noise. Synthesis is conditional on the observed
+
+
+6
+image evidence, camera geometry, and the source or target
+role of each view. Image evidence is carried by a per-view
+conditioning feature cv ∈RC×H×W defined on the same grid
+as z, while rv ∈{0, 1} marks the view role as source or target
+view. The conditioning variable of eq. (3) is therefore
+y =
+ {cv}V
+v=1, {(Kv, Tv)}V
+v=1, {rv}V
+v=1
+
+,
+(cv, rv) =
+( EDA3(Iv), 0
+
+,
+v ∈Vsrc
+ 0, 1
+
+,
+v ∈Vtgt .
+(5)
+The conditioning feature is concatenated with zt,v along the
+channel axis, giving the per-view network input [ cv ; zt,v ] ∈
+R2C×H×W . For v ∈Vtgt, this input reduces to [ 0 ; zt,v ],
+where 0 is the all-zero tensor with the same shape as cv.
+Camera geometry (Kv, Tv) is not concatenated with this input.
+Instead, each view’s Pl¨ucker ray embeddings and broadcast
+role scalar rv are patch-embedded and added to the token
+sequence, while Projective Positional Encoding (PRoPE) [64]
+uses the same intrinsics and extrinsics within the multi-view
+3D self-attention [6] to couple the V independently noised
+latents as views of the same scene. The network output
+vθ(zt, t, y) is a velocity with the same shape as z0. M3GD
+builds on this multi-view generative backbone and extends
+its single-modality conditioning to a multimodal one: the per-
+view conditioning feature cv is extended with spatially aligned
+LiDAR evidence on every view, so that target views receive
+metric 3D evidence, and the multi-view attention couples both
+sensing modalities across all V views (Section IV-D).
+C. Projected RGB–LiDAR Representation
+The projected RGB–LiDAR representation provides the con-
+nection between the LiDAR observation and the image-latent
+NVS backbone. For each source or target view, a calibrated
+LiDAR sweep follows two parallel complementary paths:
+an explicit path that summarizes the metric measurements
+supporting each image-latent cell, and a learned path that pools
+frozen Utonia [24] per-point descriptors into the same cells.
+Sweep selection and projection. For a view with image
+timestamp τ, we select the LiDAR sweep P = {pk} whose
+timestamp τP is nearest τ, which minimizes camera–LiDAR
+mismatch, and record the signed offset ∆τ = τP −τ in
+seconds. Each point pk is transformed into the camera frame
+through the calibrated LiDAR-to-camera chain (composed via
+the odometry frame) and projected with the camera intrinsics
+K, yielding image-plane coordinates πk and camera-frame
+depth dk. The support set of image-latent cell q is
+Sq = { k : πk ∈cell q, dk > 0 } ,
+nq = |Sq|.
+(6)
+Projection performs no visibility reasoning: every in-frustum
+point with positive depth contributes to its cell, including
+points from mutually occluding surfaces (Section VII).
+Explicit geometry statistics. With the mean cell depth ¯dq =
+1
+nq
+P
+k∈Sq dk, the explicit component gq ∈R6 of an occupied
+cell (nq>0) is
+gq =
+
+mq, log(1+ ¯dq), ¯d−1
+q , log(1+nq), Vark∈Sq(dk), ∆τ
+
+,
+(7)
+where mq is the validity indicator, equal to 1 in occupied cells,
+and the variance is taken over the raw depths dk. The offset
+∆τ is a per-view scalar broadcast into every occupied cell.
+Empty cells (nq=0) carry gq = 0.
+Learned point descriptors and packet. The learned com-
+ponent averages the frozen Utonia descriptors of the support-
+ing points, and the packet concatenates both components
+hq = 1
+nq
+X
+k∈Sq
+EUtonia(P)k,
+ℓq = [ gq; hq ],
+(8)
+where EUtonia(P)k ∈RCu is the descriptor of point k, so
+hq ∈RCu. Stacking ℓq over the H×W latent grid yields the
+per-view packet ℓ∈R(6+Cu)×H×W . Cells with nq=0 are zero
+in every channel of both components.
+The two components provide complementary views of the
+same measurement. The explicit component gq preserves
+metric range together with the sparsity, density, local depth
+variation, and timing of the projected sensor support. The
+learned component hq supplies a pretrained descriptor of the
+3D points contributing to that cell. Camera projection supplies
+their shared spatial index, while the residual adapter learns
+how to mix their channels with the image latent.
+Target-view LiDAR as a geometric query. A target packet
+is computed by exactly the procedure above: sweep selection,
+projection, and eqs. (6)–(8) do not depend on whether the view
+is a source or a target. What differs is how the packet enters
+the model. A source packet is mixed with the view’s image
+latent, whereas a target view has no image latent, so its packet
+is the only observation-dependent conditioning of that view
+(Section IV-D). The construction therefore assumes only that
+the platform’s LiDAR stream covers the queried timestamp,
+On the robot (Section VI-F), it is the sweep nearest the query
+timestamp on the logged stream. The query is appearance-free
+by construction, since the explicit channels are computed from
+projected point locations alone and Utonia receives only 3D
+coordinates. Nor does it hand over the depth output: the packet
+lives on the coarse H×W grid and is empty wherever no point
+projects, whereas Dtgt
+j
+is required at every pixel (Section V-A).
+D. Residual LiDAR Conditioning
+For every view v, GLD receives the channel-wise concate-
+nation of the conditioning feature and the view’s noisy latent.
+Camera poses and intrinsics enter separately through GLD’s
+native camera conditioning (Pl¨ucker ray embeddings and
+PRoPE-encoded multi-view attention, Section IV-B), which
+M3GD leaves unchanged. In image-only GLD, the condition-
+ing feature is the cv of eq. (5): the encoded image EDA3(Iv)
+on a source view and the all-zero tensor on a target view, so
+a target view carries no observation-dependent conditioning
+beyond its camera geometry. M3GD replaces cv by the residual
+update:
+˜cv = cv + ϕ
+ [ cv ; ℓv ; rv ]
+
+,
+(9)
+where ℓv is the view’s LiDAR packet, rv is the role scalar
+of eq. (5) broadcast over the grid as a single channel, and
+ϕ : R(C+6+Cu+1)×H×W →RC×H×W is a zero-initialized
+residual adapter, so ˜cv retains the shape of cv and the per-
+view transformer input [ ˜cv ; zt,v ] ∈R2C×H×W is unchanged
+
+
+7
+in shape from image-only GLD. For v
+∈Vtgt, eq. (9)
+reduces to ˜cv = ϕ([ 0; ℓv; 1 ]), so the packet is the only
+observation-dependent conditioning aside from camera geom-
+etry. M3GD therefore substitutes ˜cv for cv in eq. (5), giving
+y =
+ {˜cv}V
+v=1, {(Kv, Tv)}V
+v=1, {rv}V
+v=1
+
+and leaving the
+other two components untouched. Because ˜cv depends on
+neither the noisy latent nor the flow time t, the adapter is
+evaluated once per synthesis query and reused across all
+integration steps.
+At initialization, the model is exactly the pretrained image-
+only GLD, and the optimizer opens the LiDAR pathway only
+as far as it reduces the synthesis loss, a conservative design
+in the spirit of zero-initialized control branches [65]. The role
+map let a single shared adapter behave differently on source
+views, where the packet accompanies a real image latent, and
+target views, where it does not.
+The adapter is intentionally local and lightweight, so it
+cannot by itself solve cross-view reasoning. Whatever use
+is made of the packets’ spatial structure must happen inside
+the existing multi-view attention. This keeps the conditioning
+pathway minimal and makes the ablations of Section VI
+interpretable as statements about what the generative model
+extracts from the packets, not about adapter capacity. The same
+consideration motivates the Zero control of Section VI-D2,
+which keeps the adapter but removes LiDAR content.
+E. Flow-Matching Training and Variable-Step Inference
+Objective. M3GD retains GLD’s linear-path flow-matching
+objective with velocity prediction (Section III-B). The pro-
+jected LiDAR packets modify only the conditioning variable
+y, so M3GD does not introduce a second prediction objective.
+The clean latent z0 ∈RV ×C×H×W is the stack of the
+eq. (4) encodings over all V views at level 0, including the
+target views whose images supply the training supervision but
+never the conditioning input, and during training we sample
+intermediate noisy latents along the linear path of eq. (1).
+Because the transformer denoises all V view latents jointly,
+the loss of eq. (3) by default also supervises the source
+views, whose clean latents the network already receives as
+conditioning. Our default recipe instead scores only the target-
+view entries of the joint latent
+Ltgt
+FM = Ez0,z1,t
+hΩtgt ⊙
+ vθ(zt, t, y) −(z1 −z0)
+2
+2
+i
+, (10)
+where Ωtgt is a binary mask selecting the entries of the joint
+latent with v ∈Vtgt. Section VI-D1 compares this target-only
+loss with the all-view variant and finds that the target-only one
+performs slightly better.
+Conditioning dropout and guidance. During training, the
+camera conditioning and the LiDAR packets are independently
+replaced by their null values with probability 0.1 each, fol-
+lowing Classifier-Free Guidance (CFG). The LiDAR null is
+the all-zero packet, the same value an empty cell already
+takes in eq. (8), so a nulled view looks like a view in which
+no point projected anywhere. Because the model sees such
+packets on a fraction of training views, it learns to synthesize
+without LiDAR as well, and a sweep can simply be omitted
+at deployment when none is available. The Zero control of
+Section VI-D2 trains a separate model on this all-zero input
+for every view and thereby measures the no-LiDAR floor. At
+inference we apply classifier-free guidance with a jointly nulled
+condition
+vcfg
+θ (zt, t) = vθ(zt, t, ∅)+s
+ vθ(zt, t, y)−vθ(zt, t, ∅)
+
+, (11)
+where ∅nulls the camera conditioning and all LiDAR packets
+simultaneously while retaining the source image latents, and
+s=1.5.
+Inference. All V view latents are initialized from noise
+z1 ∼N(0, I) and integrated jointly: a K-step Euler solver
+applies the guided velocity of eq. (11) from t=1 to t=0 with
+step size 1/K. The source-view latents are generated alongside
+the targets and discarded. Each target’s generated level-0 latent
+is then propagated through the remaining frozen DA3 encoder
+blocks to the deeper feature levels, from which the frozen
+decoders recover RGB and depth. All choices of K use the
+same model and weights: reducing K lowers the number of
+network evaluations, while increasing it more finely resolves
+the learned flow trajectory. In particular, K=1 applies one
+Euler update to the same learned velocity field. Section VI-G
+measures this quality–cost trade-off on the robot platform.
+V. Experimental Setup
+This section fixes the protocol shared by all experiments in
+Section VI: implementation (Section V-A), dataset and metrics
+(Section V-B), baselines (Section V-C), and the real-robot
+platform (Section V-D).
+A. Implementation Details
+Backbones. We leverage the released GLD checkpoint [8],
+whose frozen encoder and decoders are described in Sec-
+tion IV-B. Each DA3 feature level synthesized by the diffu-
+sion model is a 1536-channel map (C=1536) on the image
+patch grid. LiDAR points are encoded by the released Utonia
+model [24], kept frozen and maps point coordinates to 1224-
+channel per-point features (Cu=1224).
+LiDAR-to-grid
+conditioning. All cameras follow the
+OpenCV convention. Each sweep is encoded by Utonia once,
+and its per-point features are shared by all simultaneous views
+that select it; projection and pooling remain per-view. Points
+are projected with intrinsics matching the dataloader’s crop-
+and-resize and pooled onto the DA3 latent grid, of size
+H×W=16×24 cells for the 224×336 evaluation images, so a
+fully supported packet constrains 384 cells against the 75,264
+pixels at which depth is predicted, and cells without projected
+points are empty. The explicit component g contains the six
+channels of eq. (7) and the learned component h contains the
+1224 pooled Utonia channels, so the packet ℓ= [g; h] is a
+1230×H×W conditioning tensor.
+Residual adapter. We inject LiDAR conditioning at DA3-
+Base level-0, which is both the level synthesized by the image
+diffusion backbone and the strongest overall match in the
+representation analysis of Section VI-A2. LiDAR conditioning
+therefore enters at the same level at which generation occurs;
+the deeper feature levels are reconstructed only after sampling,
+when the frozen encoder propagates the generated level-0
+
+
+8
+latent (Section IV-E). The adapter ϕ is a two-layer 1×1
+convolution with SiLU activation and a zero-initialized final
+layer, with channels 1230 + 1536 + 1 →256 →1536. The
+extra channel is the source/target role map. It adds ∼1.1M
+parameters, roughly 0.2% of the transformer.
+Training and inference. We fine-tune from the released
+GLD checkpoint with AdamW for 50k optimization steps at
+global batch size 32, constant learning rate 5×10−5, bf16
+precision, EMA decay 0.9995, and the independent camera
+and LiDAR conditioning dropout of Section IV-E. Each clip
+provides V =4 shuffled views for both training and evaluation,
+with 1–3 source views per example during training and 2
+at evaluation, and frame gaps of 1–20 frames at the native
+camera rate. Inference follows the guided Euler procedure of
+Section IV-E with a K=50-step flow-matching schedule; the
+deployment study varies K without retraining. All unlisted
+settings follow the GLD defaults.
+B. Dataset and Evaluation Metrics
+Dataset. We use GrandTour [66], an ANYmal-D quadruped
+carrying the Boxi sensor payload that traverses indoor facil-
+ities, urban outdoor scenes, and natural terrain. GrandTour
+suits M3GD on three counts. Its Boxi payload provides
+the hardware-synchronized, calibrated camera–LiDAR streams
+and reliable poses (RTK-GNSS and total-station tracking)
+that packet construction requires; as the largest open-access
+legged-robotics dataset, it offers the scale for fine-tuning and
+the environment diversity our evaluation draws from; and its
+ego-centric 6-DoF viewpoints match our deployment setting
+(Section V-D), whereas driving datasets such as nuScenes [67]
+pair camera and LiDAR only under near-planar road motion
+and internet-scale NVS collections provide no LiDAR at all.
+We use the three HDR cameras (front, left, right) and the
+motion-undistorted Hesai LiDAR. We train and evaluate in
+temporal mode, where source and target views are sampled
+from a single camera stream. Packet construction and view-
+sampling details follow Section V-A.
+As GrandTour provides no official train/evaluation split,
+we partition its 48 recordings into 40 for training and 8 for
+evaluation, with no recording overlap between the two splits.
+Training uses all three HDR cameras (front, left, right) and
+the LiDAR; evaluation uses the front camera and LiDAR only,
+with two conditioning and two target views per clip and 300
+clips sampled per recording (2,400 clips in total). Each target
+view may use its co-located LiDAR observation as the LiDAR
+query defined in Section IV-C. The target RGB image is never
+provided to the model. The evaluation recordings span eight
+representative scenarios, namely ice cave, alpine snow, urban
+plaza, forest, industrial bunker, warehouse/garage, railway, and
+construction, yielding a diverse benchmark that stresses both
+texture-rich and geometry-dominant settings.
+Data for the representation study. The representation-
+compatibility study of Section VI-A involves no training, so it
+is not bound to the split above: it uses all 48 recordings and all
+three HDR camera streams, 599,922 images in total. Of these,
+599,774 are processed; the remaining 148 contain fewer than
+three valid LiDAR-supported cells and are excluded.
+Fig. 3. Clearpath Warthog platform used for the real-robot deployment.
+Evaluation metrics. We assess synthesized views along
+three axes: 2D appearance, 2D geometry (depth), and 3D
+reconstruction. All metrics are computed on target views only,
+since source views are model inputs, and are averaged over
+the target views of the 2,400 evaluation clips at a fixed seed.
+Where noted, we additionally report a hard subset of n=1,407
+clips whose maximum camera baseline between views ex-
+ceeds 1 m. For appearance, we report PSNR, SSIM [68],
+and LPIPS [69] on the rendered RGB. For depth, GrandTour
+provides no dense ground-truth depth, and several baselines
+emit no depth at all, so we evaluate all methods through a
+single frozen estimator: each rendered target view ˆItgt
+j
+is re-
+encoded by the frozen DA3 encoder EDA3 and decoded by the
+DPT head (Section V-A), and we compare DPT(EDA3(ˆItgt
+j
+))
+against the pseudo-ground truth DPT(EDA3(Itgt
+j
+)) using ab-
+solute relative error (AbsRel), RMSE, and the inlier ratio
+δ<1.25 [70]. Because depth is derived uniformly from ren-
+dered RGB rather than read from any method’s native output,
+these numbers quantify appearance–geometry self-consistency
+rather than absolute metric depth. For 3D reconstruction, we
+lift each target view to 3D using this per-view depth and its
+camera, and measure cross-view consistency via MEt3R [71]
+and 3D reprojection error [72].
+C. Baselines
+We compare against representative NVS methods from two
+paradigms, all operating from sparse-view input to match our
+task setting
+• Diffusion-based approaches: Matrix3D [73], MVGen-
+Master [74], and GLD [8], the latter both off-the-shelf and
+fine-tuned on the GrandTour training set at DA3 level 0.
+Throughout the tables, ∗marks a model fine-tuned on the
+GrandTour training set and † trained on the DA3 level-0
+feature, so the fine-tuned baseline is written GLD∗†
+• Feed-forward splat-based approaches: MVSplat [15],
+DepthSplat [16], and PixelSplat [14].
+D. Real-Robot Platform
+For deployment and runtime experiments, we use a wheeled
+ground robot, a Clearpath Warthog (Fig. 3), carrying a cali-
+brated MultiSense S27 RGB-D sensor and a 360-degree Ouster
+LiDAR. The onboard computer is a Neousys RGS-8805GC
+with an NVIDIA RTX A6000 GPU. Runtime is measured
+in a persistent loaded process over four timed queries after
+one warm-up query. Because the model jointly decodes all
+N + M views, latency and memory cover the complete
+
+
+9
+call; latency per target amortizes that call over the M held-
+out targets. CUDA synchronization brackets source encoding,
+flow generation, and output decoding. We use peak PyTorch
+reserved memory as the primary GPU-memory metric because
+it is the memory held by PyTorch’s CUDA caching allocator
+and therefore unavailable to other processes.
+VI. Results
+Under the protocol of Section V, we first test the
+representation-level premise of M3GD (Section VI-A). We
+then present the baseline comparison and mechanism ablations
+(Sections VI-B and VI-D), qualitative analysis (Section VI-C),
+and the deployment-recipe, real-robot, and runtime results
+(Sections VI-E–VI-G).
+A. Projected 2D–3D Representation Compatibility
+Having established M3GD’s projected LiDAR conditioning
+pathway, we test its representation-level premise: whether inde-
+pendently trained image and point-cloud foundation encoders
+organize corresponding scene regions similarly after camera
+projection. Projection places both representations on the same
+image-latent grid, so corresponding cells describe the same
+scene region; however, the feature vectors at those cells live
+in independently learned spaces of different dimensions and
+need not be similar in any coordinate-wise sense. Utonia
+is pretrained purely on point clouds, with no image-feature
+distillation or other image supervision (Section III-C), so any
+measured compatibility with DA3 emerges without explicit
+image–point alignment training.
+All quantities in this study are computed per image; we omit
+the image index. Let Q = {q : nq > 0} denote the image-grid
+cells with valid projected LiDAR support under the support
+sets of eq. (6), z(l)
+q
+the image-encoder feature at cell q, and
+hq the pooled point descriptor of eq. (8). On these shared
+cells, we form the image-feature field at DA3 level l and the
+projected Utonia field
+Z(l) = [ z(l)
+q ]q∈Q ∈R|Q|×Cl,
+U = [ hq ]q∈Q ∈R|Q|×Cu,
+(12)
+The question is one of compatibility between two learned
+feature spaces, the image features z(l)
+q
+and the point-cloud
+features hq, so of the packet ℓq = [ gq; hq ] of eq. (8) only the
+learned component enters the study: the explicit component
+gq is a handcrafted vector of depth statistics rather than a
+learned representation, so there is no feature space on its side
+to compare. Since Cl̸ = Cu in general, we measure agreement
+in the spatial relations encoded across shared cells rather than
+comparing features entry-wise. We summarize this structural
+compatibility with
+A(Z, U) =
+
+ρPCA, CKA, SVCCA20,
+Jaccard10, ρaff
+
+.
+(13)
+1) GrandTour Protocol and Diagnostics: We instantiate
+eqs. (12)–(13) on GrandTour [66], chosen for the reasons
+given in Section V-B and whose scale additionally supports
+population-level alignment statistics, on the image set de-
+scribed there; the 16 × 24 image-latent grid of the 224 × 336
+RGB
+DA3-Base Level-0 PCA
+Utonia PCA
+DINOv2 PCA
+Fig. 4.
+Qualitative feature-structure visualization on GrandTour. For each
+camera image, we show the RGB input, the DA3-Base level-0 PCA pseudo-
+color map, projected Utonia features, and DINOv2 final-layer image features.
+For each image, DA3-Base, Utonia, and DINOv2 features are independently
+projected to three local PCA components on the shared valid grid cells.
+The Utonia and DINOv2 coordinates are aligned to DA3-Base level-0 using
+orthogonal Procrustes. Black regions in the Utonia column indicate cells
+without valid projected LiDAR support. Projected Utonia features recover
+large-scale geometric partitions similar to DA3-Base level-0 on LiDAR-
+supported cells, while DINOv2 provides an image-only reference.
+images (Section V-A) provides the common spatial support for
+cross-modal comparison.
+For each image, we compute: (i) DA3-Base [23] encoder
+features from levels 0–3; (ii) DINOv2 [56] final-layer patch
+features as an image-only reference; (iii) VGGT image features
+as an additional geometry-aware image-backbone reference;
+and (iv) frozen Utonia [24] per-point features from the asso-
+ciated LiDAR sweep. The Utonia features are projected into
+the camera view and average-pooled onto the same grid. All
+comparisons are restricted to cells in Q.
+We evaluate three comparison groups. First, DA3-Base
+levels 0–3 are compared against Utonia to measure level-wise
+compatibility. Second, DA3-Base level-0–Utonia is compared
+against DINOv2–Utonia and VGGT–Utonia to test whether
+DA3 is more or less compatible with Utonia than alternative
+image backbones. Third, DA3-Base level-0–Utonia is com-
+pared with DA3-Base level-0–DINOv2, which provides an
+image-only reference scale rather than a competing condition-
+ing signal.
+For ρPCA, we independently project each representation in
+each image to three local PCA components, align the pseudo-
+color coordinates with orthogonal Procrustes, and report their
+mean channel correlation. This diagnostic summarizes low-
+dimensional spatial consensus rather than raw-feature equiv-
+alence. On the same supported cells before PCA, we com-
+pute linear CKA [54], mean SVCCA correlation over up to
+20 available directions [55], Jaccard@10 agreement between
+cosine-nearest-neighbor sets, and the correlation ρaff between
+pairwise cosine-affinity matrices. Table I reports macro aver-
+ages over all successfully processed images; when fewer than
+
+
+10
+TABLE I
+Feature-structure similarity on GrandTour. All metrics are computed on shared 16 × 24 image-grid cells with valid projected LiDAR support.
+The study covers 599,774 successfully processed images from 48 recordings and three HDR camera streams. Best and second-best are
+highlighted within each comparison block.
+Feature pair
+PCA ch. corr. ↑
+CKA ↑
+SVCCA-20 ↑
+Jaccard@10 ↑
+Affinity corr. ↑
+DA3-Base feature level vs. Utonia
+DA3-Base level-0–Utonia
+0.6412
+0.6590
+0.6040
+0.3551
+0.5737
+DA3-Base level-1–Utonia
+0.6212
+0.6451
+0.5911
+0.3402
+0.5997
+DA3-Base level-2–Utonia
+0.6347
+0.5459
+0.5789
+0.3460
+0.5372
+DA3-Base level-3–Utonia
+0.6426
+0.4688
+0.5796
+0.3565
+0.4580
+Image backbone comparison vs. Utonia
+DA3-Base level-0–Utonia
+0.6412
+0.6590
+0.6040
+0.3551
+0.5737
+DINOv2–Utonia
+0.6155
+0.6363
+0.5792
+0.2690
+0.5659
+VGGT–Utonia
+0.6398
+0.4284
+0.5826
+0.3497
+0.3424
+Cross-modal alignment vs. image-only reference
+DA3-Base level-0–Utonia
+0.6412
+0.6590
+0.6040
+0.3551
+0.5737
+DA3-Base level-0–DINOv2
+0.6973
+0.7314
+0.6793
+0.3544
+0.6501
+ten non-self neighbors are available, Jaccard uses the available
+set. Representative PCA visualizations appear in Fig. 4.
+2) Findings: DA3-Base level-0 is the most compatible
+feature level. Among the DA3-Base hierarchy, level-0 shows
+the strongest overall compatibility with projected Utonia fea-
+tures. It achieves the highest CKA and SVCCA-20, while
+ranking second on PCA channel correlation, Jaccard@10, and
+affinity correlation. Although higher levels are competitive on
+isolated low-dimensional or neighborhood diagnostics, their
+raw-feature-space alignment is weaker, especially in CKA.
+This result is consistent with conditioning M3GD at level 0.
+DA3 is the strongest tested image-side match to Utonia.
+Under the same grid and LiDAR-supported cells, DA3-Base
+level-0 obtains the highest CKA, SVCCA-20, Jaccard@10,
+and affinity correlation among the image backbones compared
+against Utonia. The PCA visualizations in Fig. 4 likewise show
+that projected Utonia and DA3 features often partition co-
+located scene regions similarly. These results place DA3 ahead
+of DINOv2 and VGGT for the tested Utonia pairing.
+Cross-modal similarity is substantial but not image–
+image equivalence. As expected, the image-only DA3-Base
+level-0–DINOv2 reference is stronger than the cross-modal
+DA3-Base level-0–Utonia pair on most raw-feature diagnos-
+tics, including CKA, SVCCA-20, and affinity correlation. The
+cross-modal pair nevertheless remains on the same broad scale
+and slightly exceeds the image-only reference on Jaccard@10.
+We therefore interpret the evidence as shared spatial and
+geometric structure between the tested independently trained
+encoders, not coordinate-wise feature equivalence.
+Implication. These findings support the representation-
+compatibility premise underlying M3GD and are consistent
+with exposing projected Utonia features to the generator at
+DA3-Base level-0. M3GD does not separately pretrain a cross-
+modal translator or introduce an auxiliary alignment objective;
+its residual adapter is learned end-to-end through the NVS
+objective. Representation compatibility and downstream utility
+are separate questions: the baseline comparison (Section VI-B)
+and the mechanism ablations (Section VI-D2) test whether real
+projected LiDAR packets improve synthesis beyond adapter
+capacity alone.
+B. Baseline Comparison
+Table II compares M3GD with diffusion-based and feed-
+forward splat-based NVS methods on the GrandTour evalua-
+tion split. The fine-tuned GLD row is the closest image-only
+baseline: it uses the same robot data and image-latent backbone
+but does not use the projected LiDAR representation.
+2D appearance. Across the eight metrics, M3GD ranks first
+on seven—with GLD∗† matching its best reprojection error
+at the reported precision—and second on MEt3R. On 2D
+appearance it improves over every baseline, but the margin
+over GLD∗† is modest. Since the two rows share backbone,
+training data and DA3 level-0 features and differ only in
+projected-LiDAR conditioning, this isolates the effect of Li-
+DAR on aggregate pixel fidelity, which is incremental. The
+feed-forward splat baselines trail both diffusion families: the
+strongest splat PSNR (PixelSplat) is 3.6 dB below M3GD.
+2D geometry. The depth metrics show a larger relative gap:
+M3GD lowers AbsRel by 16% (0.145 vs. 0.173) and RMSE
+by 11% (0.314 vs. 0.354), and raises the δ<1.25 inlier ratio
+from 0.777 to 0.810, while all three splat baselines exceed 0.31
+AbsRel and 0.76 RMSE. Because all numbers are computed
+uniformly from the rendered RGB via the RGB readout (see
+Depth readout comparison below), the improvement reflects
+sharper geometry-relevant structure in the synthesized views
+and is consistent with M3GD’s access to target-view LiDAR
+geometry that image-only baselines cannot exploit.
+3D reconstruction. M3GD ties GLD∗† for the lowest
+reprojection error at the reported precision (0.059) and slightly
+outperforms the strongest splatting result, PixelSplat at 0.061.
+On MEt3R, M3GD ranks second, behind Matrix3D and
+slightly ahead of GLD∗†. Because MEt3R measures cross-
+view consistency rather than image fidelity, Matrix3D’s strong
+MEt3R score despite its low PSNR and SSIM suggests that
+consistent but visually under-detailed predictions can perform
+well on this metric. The near tie between M3GD and GLD∗†
+indicates that LiDAR conditioning improves per-view geom-
+etry more clearly than cross-view agreement. Depth readout
+comparison. The depth columns of Table II depend on a
+readout choice, which we validate here. GLD’s native readout
+feeds the synthesized latent ˆz0, a sample in the frozen DA3
+encoder space (Section IV-B), to DA3’s DPT head (DPT(ˆz0)).
+
+
+11
+TABLE II
+Baseline comparison on the GrandTour evaluation split (2,400 clips). ↑/↓indicate that higher/lower is better; best and second-best per column
+are highlighted. ∗fine-tuned on the GrandTour training set; † trained on the DA3 level-0 feature.
+2D Appearance
+2D Geometry (Depth)
+3D Reconstruction
+Method
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+AbsRel ↓
+RMSE ↓
+δ<1.25 ↑
+MEt3R ↓
+Reproj. ↓
+Diffusion-based methods
+Matrix3D [73]
+16.90
+0.374
+0.502
+0.282
+0.570
+0.587
+0.184
+0.071
+MVGenMaster [74]
+17.45
+0.406
+0.446
+0.285
+0.568
+0.629
+0.243
+0.072
+GLD [8]
+17.92
+0.414
+0.450
+0.303
+0.602
+0.592
+0.283
+0.064
+GLD∗† [8]
+21.62
+0.531
+0.302
+0.173
+0.354
+0.777
+0.191
+0.059
+Splat-based methods
+MVSplat [15]
+18.57
+0.450
+0.484
+0.318
+0.769
+0.475
+0.212
+0.062
+DepthSplat [16]
+17.98
+0.415
+0.505
+0.355
+0.836
+0.436
+0.234
+0.066
+PixelSplat [14]
+18.69
+0.449
+0.497
+0.320
+0.768
+0.472
+0.234
+0.061
+M3GD∗† (Ours)
+22.33
+0.549
+0.283
+0.145
+0.314
+0.810
+0.189
+0.059
+TABLE III
+Depth readout comparison, using identical latent predictions as
+Table II. The native readout scores depth decoded directly from the
+synthesized latent (GLD-default); the RGB readout first decodes to
+RGB and re-encodes through the DA3 encoder (protocol of Table II).
+Both are scored against the same pseudo-ground truth. Notation
+follows Table II; best within each readout.
+Method
+AbsRel ↓
+RMSE ↓
+δ<1.25 ↑
+Native readout (GLD-default)
+GLD
+0.358
+0.747
+0.478
+GLD∗†
+0.248
+0.500
+0.565
+M3GD∗† (Ours)
+0.227
+0.472
+0.579
+RGB readout (protocol of Table II)
+GLD
+0.303
+0.602
+0.592
+GLD∗†
+0.173
+0.354
+0.777
+M3GD∗† (Ours)
+0.145
+0.314
+0.810
+Our RGB readout instead decodes to RGB and re-encodes
+through the frozen encoder (DPT(EDA3(DRGB(ˆz0)))), the
+only readout defined for the RGB-only baselines. Table III
+compares the two on identical latent predictions.
+The RGB readout reports uniformly lower error for
+M3GD∗†. We attribute this to smoothing rather than a more
+accurate readout: re-encoding projects the prediction onto the
+estimator’s natural-image manifold, suppressing latent synthe-
+sis error, whereas the native readout exposes it directly and
+is therefore the stricter protocol. Crucially, the ranking is
+unchanged: M3GD∗† leads on all three metrics under both
+readouts, with GLD∗† second and GLD last, so the gap isolates
+the projected-LiDAR conditioning either way. Finally, since
+several baselines lack a native depth readout, we adopt the
+RGB readout for all methods to ensure a fair comparison.
+Inference cost. Table IV reports the sampling cost of
+the diffusion methods. M3GD is not only the most accurate
+method in Table II but also the cheapest to run, with the
+lowest latency and the lowest peak reserved memory of all
+diffusion methods. The cleanest comparison is against GLD,
+which shares M3GD’s resolution and sampling budget: M3GD
+is 1.7× faster and uses 33% less memory, largely because
+GLD’s native two-stage cascade evaluates the denoiser twice
+TABLE IV
+Sampling cost of the diffusion methods on the GrandTour evaluation
+split. All methods use N=2 source views and M=2 target views.
+Latency is measured per target pair over the full sampling procedure,
+including the VAE decode to RGB and, for GLD, both stages of its
+native cascade; for M3GD it also includes generation of the LiDAR
+packet. Values are averaged over three runs (± standard deviation);
+peak reserved GPU memory is measured on a single NVIDIA RTX
+A5000, following the protocol of Table VII. Best per column.
+Method
+Latency (s) ↓
+Memory (GiB) ↓
+Matrix3D [73]
+77.7 ± 0.1
+11.0
+MVGenMaster [74]
+10.3 ± 0.1
+10.5
+GLD [8]
+17.3 ± 0.8
+9.7
+M3GD∗† (Ours)
+10.2 ± 0.2
+6.5
+per sampling step whereas M3GD samples in a single pass.
+Matrix3D and MVGenMaster run in their original configu-
+rations at higher resolutions (512×512 and 384×576 against
+336×224), and Matrix3D additionally samples once per target
+view; even so, M3GD is 7.6× faster than Matrix3D, matches
+MVGenMaster’s latency within run-to-run variation, and uses
+roughly 40% less memory than either. The reported M3GD
+latency is moreover conservative: it includes projecting the
+target-view LiDAR and running the frozen Utonia encoder,
+both of which execute once per clip and amortize over all
+M target views. In a streaming deployment the packet can
+be computed as the scan arrives rather than at query time,
+lowering the per-query cost further.
+C. Qualitative Analysis
+Qualitative comparison. Fig. 5 visualizes both RGB pre-
+dictions and their corresponding DA3 depth estimates. Under
+sparse robot-view inputs, splatting methods often produce
+warped or ghosted renderings around nearby structures and
+moving objects, and these artifacts are reflected in distorted
+depth maps. Diffusion-based baselines can synthesize plau-
+sible RGB images, but their depth estimates often reveal
+viewpoint hallucinations or geometry that is inconsistent with
+the requested target view. The fine-tuned image-only GLD∗†
+baseline is substantially stronger, but it remains limited to
+appearance and camera conditioning. By using the target-view
+
+
+12
+Fig. 5.
+Qualitative RGB and depth comparison on the GrandTour evaluation split. For each scene, the two source images are shown on the left. The middle
+block compares RGB predictions, and is organized into three rows: feed-forward splatting baselines DepthSplat [16], MVSplat [15], and PixelSplat [14];
+diffusion-based baselines Matrix3D [73] and MVGenMaster [74] together with the original GLD model [8]; and GLD∗†, our GrandTour-fine-tuned image-only
+GLD baseline, followed by M3GD and the ground-truth target view. The right block shows the corresponding DA3 depth estimates for the same predicted
+views and the ground-truth target depth, using the same method layout. Compared with splatting and image-only generative baselines, M3GD better preserves
+target-view appearance and produces depth maps that more closely follow the ground-truth scene geometry in challenging robot-captured scenes.
+
+
+13
+TABLE V
+Effect of LiDAR conditioning across training modes (multi-step,
+level-0 latent). Best per column. ‡ Off-the-shelf: frozen released
+GLD checkpoint, no LiDAR adapter. § As ‡, with the LiDAR adapter
+trained. tgt-only scores the loss on the target-view latents only, not
+on the jointly denoised source views. ¶ Classifier-free LiDAR
+(cfg-dropout 0.1); at evaluation a single CFG scale of 1.5 is applied to
+the joint camera+LiDAR condition.
+Training mode
+LiDAR
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+freeze
+✗‡
+17.39
+0.380
+0.468
+✓§
+19.11
+0.434
+0.394
+scratch
+✗
+21.53
+0.520
+0.311
+✓
+22.16
+0.534
+0.295
+fine-tune
+✗
+21.56
+0.525
+0.303
+✓
+22.22
+0.542
+0.285
+fine-tune
+(tgt-only loss)
+✗
+21.62
+0.531
+0.302
+✓
+22.27
+0.548
+0.287
+✓(cfg)¶
+22.33
+0.549
+0.283
+LiDAR packet as a geometric query, M3GD better anchors the
+target-view layout when the source images are ambiguous or
+do not reveal the target-facing surface. This effect is visible in
+both the RGB predictions and the DA3 depth visualizations,
+consistent with the larger depth gains in Table II and the
+LiDAR conditioning ablations in Table V.
+D. Mechanism Ablations
+Our mechanism ablations examine three questions: whether
+LiDAR conditioning helps across training modes (Sec-
+tion VI-D1), whether the gain requires real per-sample Li-
+DAR content rather than merely the added conditioning path-
+way, and which part of the packet carries the signal (both
+in Section VI-D2). We keep these ablations separate from
+deployment-recipe choices (Section VI-E).
+1) LiDAR Conditioning and Training Mode: Table V re-
+ports appearance quality as we vary the training mode and
+LiDAR conditioning. The freeze/no-LiDAR row is therefore
+not directly comparable to the GLD row of Table II (17.39
+vs. 17.92), which runs GLD’s native two-stage cascade. Three
+findings stand out. First, LiDAR conditioning improves ev-
+ery metric in every training mode, with per-mode PSNR
+gains ranging from +0.63 to +1.72 dB; projected LiDAR
+geometry is thus a consistently useful signal for synthesis.
+Second, the gain is largest under the freeze setting (+1.72 dB
+PSNR, +0.054 SSIM, −0.074 LPIPS), where the backbone
+is fixed and only the LiDAR adapter is trainable. Because the
+frozen backbone cannot adapt its appearance representation,
+this improvement is attributable to the LiDAR signal itself
+rather than to added model capacity, cleanly isolating LiDAR’s
+contribution. Third, LiDAR does not substitute for backbone
+adaptation: although it lifts the frozen model substantially
+(17.39 →19.11 PSNR), the absolute quality stays well below
+the trained variants, so the strongest results still require up-
+dating the backbone. Among the trained modes, fine-tuning
+from the pretrained GLD checkpoint slightly outperforms
+training from scratch (22.22 vs. 22.16 PSNR with LiDAR),
+and scoring the loss on the target views only, rather than on
+TABLE VI
+Effect of LiDAR input mode on the hard subset (maximum camera
+baseline between views >1 m, n=1,407; Section V-B). Each row is a
+separately trained model under the default recipe of Section VI-D1;
+only the LiDAR input changes. Highlighting follows Table II.
+LiDAR input mode
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+Full (real packet)
+21.00
+0.476
+0.314
+Geom-only
+20.90
+0.471
+0.319
+Zero
+20.37
+0.455
+0.336
+Learnable param
+20.37
+0.455
+0.336
+No LiDAR (floor)
+20.31
+0.455
+0.336
+all jointly denoised views (tgt-only), gives a further improve-
+ment (22.27). Training the LiDAR branch with classifier-free
+dropout adds a final increment, yielding our best configuration
+at 22.33 / 0.549 / 0.283 (PSNR / SSIM / LPIPS). We therefore
+adopt fine-tuning with a target-only loss and classifier-free
+LiDAR conditioning as our default recipe.
+2) LiDAR Input Mode: Table VI separates the effect of
+the LiDAR packet content from the effect of the added
+conditioning pathway. To sharpen the comparison, this ablation
+is evaluated on the hard subset (Section V-B): a large camera
+baseline implies substantial ego-motion within the clip, which
+is precisely the regime where projected LiDAR conditioning
+has room to act. Each row is a separately trained model under
+the default recipe (multi-step, target-only fine-tune, classifier-
+free LiDAR). Only the LiDAR input supplied during train-
+ing and evaluation changes. Two controls remove per-sample
+content at different strengths: Zero feeds all-zero packets, so
+the LiDAR pathway receives no signal and effectively never
+trains, whereas Learnable param replaces the packet with a
+shared, data-independent learned tensor of the same shape—a
+capacity-matched control whose input pathway does train but
+which carries no per-sample information. Geom-only zeroes
+the learned 3D foundation feature (Utonia), isolating the hand-
+crafted geometric statistics.
+Both controls land essentially at the no-LiDAR floor: 20.37
+for both Zero and Learnable param vs. 20.31 PSNR, with
+SSIM and LPIPS matching the floor exactly. The +0.69 dB
+gain of the full packet (21.00 vs. 20.31) is therefore driven by
+real, per-sample LiDAR content, not by extra parameters, extra
+input channels, or a learned input bias, which the capacity-
+matched control rules out. Geom-only (20.90) recovers most of
+the full-packet gain, indicating that geometric statistics alone
+preserve the bulk of the improvement in this subset, with the
+learned feature contributing a small additional margin.
+Generalization across scene types. Fig. 6 shows M3GD
+predictions with examples ordered from indoor scenes through
+semi-open structures to outdoor environments. Across this
+range, the synthesized views preserve dominant geometric
+structures—walls, ground planes, rails, shelves, corridors, ve-
+hicles, and vegetation—while inferring plausible appearance
+from only two source images. This behavior is consistent
+with the intended role of the target-view LiDAR conditioning
+packet as a geometric anchor: the predicted layout remains
+stable even where the sparse and sometimes ambiguous source
+observations constrain appearance only weakly. Remaining
+
+
+14
+Source
+Prediction
+Ground Truth
+Source
+Prediction
+Ground Truth
+Source
+Prediction
+Ground Truth
+Fig. 6.
+Qualitative visualization of M3GD on GrandTour evaluation samples. Each group follows the actual evaluation layout: two observed source views, two
+M3GD target-view predictions, and the corresponding ground-truth target views. M3GD synthesizes targets from sparse source images and target-view LiDAR
+geometry; target RGB is never provided. Examples are ordered from indoor scenes to semi-open structures and outdoor environments, showing that M3GD
+preserves dominant scene layout and reconstructs plausible target-view appearance across diverse and geometrically challenging robot-captured environments.
+Source 0
+Source 1
+GLD∗† [8]
+Raw LiDAR
+Downsampled LiDAR
+Geom-only
+M3GD
+Ground Truth
+Fig. 7.
+Qualitative examples highlighting the effect of target-view LiDAR conditioning. Each row shows two source images, the image-only GLD∗† baseline,
+the raw target-view LiDAR projection, our downsampled LiDAR representation, the geometry-only (geom-only) variant, M3GD, and the ground-truth target
+image. These examples contain large source-target viewpoint changes where RGB-only conditioning is ambiguous and GLD∗† often fails to infer the target-
+facing surface. The LiDAR-conditioned geom-only model recovers the dominant scene layout more accurately, while M3GD further improves appearance
+fidelity and local details such as boxes, road surfaces, walls, and vehicles by combining LiDAR geometry with Utonia features.
+artifacts concentrate around fine structures, reflective regions,
+and dynamic objects, precisely where that constraint is weak-
+est. Nevertheless, the synthesized target views remain ge-
+ometrically coherent in challenging indoor, semi-open, and
+outdoor robot-captured scenes, supporting the quantitative
+improvements reported in Table II.
+Effect of LiDAR conditioning. Fig. 7 isolates the contribu-
+tion of target-view LiDAR conditioning on examples with large
+source–target viewpoint changes, in which target-facing walls,
+road regions, vehicles, shelves, and open corridors are only
+
+
+15
+Source 0
+Source 1
+Ground Truth
+Our RGB
+Our Depth
+GLD RGB
+GLD Depth
+Q1-RGB
+T1
+Q1-LiDAR
+T2
+Q2-RGB
+T1
+Q2-LiDAR
+T2
+Fig. 8.
+Qualitative results for two real-robot queries Q1 (rows 1–2) and Q2 (rows 3–4), using K = 10 Euler steps, N = 2 source views, and M = 2
+target views. Each query forms a two-row block: in the first two columns, the upper row shows the two source RGB images and the lower row shows their
+corresponding projected LiDAR point clouds. The remaining columns show the ground-truth RGB, M3GD synthesized RGB, our RGB readout depth, GLD
+synthesized RGB, and GLD RGB readout depth (defined in Section VI-B) for target T1 in the upper row and target T2 in the lower row.
+weakly visible, or invisible, in the source views. In this regime,
+the image-only GLD∗† baseline often synthesizes plausible
+but incorrectly placed content, reflecting the ambiguity of
+inferring the target view from RGB observations alone. The
+LiDAR columns of the figure show the signal that resolves
+this ambiguity: the raw projection of the target-view sweep
+carries the geometry available at the queried pose, and its
+downsampled form on the image-latent grid is the compact
+version the packet delivers to the model. Conditioned on this
+signal, the geom-only variant already recovers the dominant
+target-view structure more accurately than the image-only
+baseline, confirming that the explicit geometry statistics act as
+a geometric anchor. Geometry alone, however, does not resolve
+appearance: geom-only outputs can still miss texture, material
+detail, and fine object appearance. The full packet closes this
+gap by adding the downsampled Utonia descriptors, yielding
+sharper local details such as boxes, walls, road surfaces,
+vegetation, and vehicles. This qualitative behavior is consistent
+with the LiDAR conditioning ablations in Table VI.
+E. Deployment Recipe Ablations
+After the ablations isolate why the RGB–LiDAR repre-
+sentation helps, we choose the practical operating point for
+robot deployment: the Euler integration-step budget K and
+the number M of jointly synthesized target views. These
+recipe choices are not the main scientific claim, they fix the
+quality–cost trade-off under the deployment budget. The level-
+0 design itself is a stated choice of Section IV, motivated by
+the alignment result and the deployment budget and Table VII
+supports it from the cost side. The resulting quality, latency,
+and memory scaling across integration-step and target-view
+counts are reported in Section VI-G.
+F. Real-World Robot Deployment
+The ablations above isolate the mechanism on held-out
+recordings. We close by exercising the full conditioning path-
+way in the loop on a physical robot, in exactly the regime
+Section III-A describes. The Warthog platform of Section V-D
+(Fig. 3) drives a route while logging its camera and LiDAR
+streams. To synthesize the view at a chosen pose along
+the traversal, we take a short window of past, time-aligned
+camera–LiDAR pairs as conditioning views, project the Li-
+DAR sweep temporally nearest the target query’s timestamp
+into the target view to form the target packet (Section IV-C,
+no target RGB is used), and predict the target-view RGB and
+depth with the same flow model used in the aforementioned
+experiments. We emphasize that this model is deployed as is:
+it is trained on GrandTour only and is neither retrained nor
+fine-tuned on any data from the Warthog, so the deployment
+is a zero-shot transfer to a new robot platform, sensor suite,
+and environment. The representative outputs shown below use
+K=10 Euler integration steps. Every input the model needs is
+a byproduct of the robot’s normal operation, available at the
+moment it needs the synthesized view.
+The two selected queries, Q1 and Q2, lie on a wooded
+portion of the route about half a minute apart; each predicts
+RGB and depth at two held-out poses, T1 and T2, logged two
+seconds apart, from two conditioning views recorded within a
+few meters of them. Unlike the benchmark recordings, these
+inputs contain deployment artifacts visible in the projected
+point clouds, including LiDAR shadows caused by viewpoint
+occulsion and residual camera-LiDAR misalignment due to
+imperfect temporal synchronization. Fig. 8 shows the outputs.
+Nevertheless, they reproduce the behavior observed on held-
+out GrandTour recordings: the synthesized views follow the
+requested camera poses, and the decoded depth preserves the
+dominant layout supported by the projected LiDAR, including
+the ground plane, tree trunks, and large background structure.
+The point of this demonstration is not a new aggregate
+metric or controlled robustness benchmark. It is evidence
+that the conditioning signal required by M3GD is available
+from the synchronized camera–LiDAR stream of a physical
+robot, remains useful in the presence of ordinary sensing
+artifacts, and transfers to a previously unseen platform and
+sensor configuration without any target-domain retraining.
+
+
+16
+TABLE VII
+On-robot quality, latency, and memory scaling on the Warthog platform with two fixed source views (N = 2). Quality is averaged over 30
+queries; latency and peak GPU reserved memory are measured over four synchronized post-warm-up queries.
+Configuration
+M3GD Quality
+M3GD Computational Cost
+Steps K
+Targets M
+PSNR (dB) ↑
+SSIM ↑
+LPIPS ↓
+Latency (s) ↓
+Lat./Target (s) ↓
+Mem. (GiB) ↓
+1
+2
+14.13
+0.279
+0.889
+3.13 ± 0.44
+1.56 ± 0.22
+4.22
+5
+2
+15.86
+0.281
+0.480
+3.63 ± 0.45
+1.81 ± 0.22
+5.70
+5
+3
+15.65
+0.280
+0.489
+3.77 ± 0.45
+1.26 ± 0.15
+5.96
+5
+4
+15.54
+0.276
+0.494
+3.91 ± 0.44
+0.98 ± 0.11
+6.11
+10
+2
+15.84
+0.270
+0.476
+4.26 ± 0.44
+2.13 ± 0.22
+5.80
+10
+3
+15.67
+0.270
+0.481
+4.54 ± 0.45
+1.51 ± 0.15
+6.05
+10
+4
+15.58
+0.267
+0.483
+4.83 ± 0.44
+1.21 ± 0.11
+6.25
+20
+2
+15.74
+0.262
+0.478
+5.50 ± 0.44
+2.75 ± 0.22
+5.97
+20
+3
+15.59
+0.261
+0.481
+6.08 ± 0.45
+2.03 ± 0.15
+6.29
+20
+4
+15.51
+0.259
+0.481
+6.69 ± 0.44
+1.67 ± 0.11
+6.50
+G. Onboard Runtime Tradeoff
+Table IV establishes that M3GD’s single-pass design is
+more efficient than GLD’s native two-stage cascade. We next
+characterize deployment runtime and GPU memory utilization
+on our robot setup across an out-of-distribution route, varying
+the number of Euler integration steps K ∈{1, 5, 10, 20} and
+the number of jointly synthesized target views M ∈{2, 3, 4}.
+Changing K modifies only the inference solver, and every op-
+erating point uses the same trained weights. We evaluate K=1
+at M=2 and the full M ∈{2, 3, 4} sweep for K ∈{5, 10, 20},
+yielding the 10 operating points per runtime branch reported
+in Table VII. All points hold N
+= 2 fixed, and source
+observations and shared target frames do not change as M
+increases. Hardware and the timing protocol are described in
+Section V-D.
+For K = 10, N = 2, M = 2, M3GD peaks at 5.80 GiB
+and spans 4.22–6.50 GiB across the sweep. The step sweep
+demonstrates an inference-budget trade-off, where a single
+Euler step gives the lowest M3GD latency (3.13 s for two
+targets), but its LPIPS degrades to 0.889. Five steps raise
+PSNR to 15.86 dB and SSIM to 0.281, reduce LPIPS to 0.480,
+and require 3.63 s, while additional steps increase latency
+without improving the appearance metrics on this route. Jointly
+synthesizing more targets increases total latency and memory,
+but amortizes computation: for M3GD at K=10, latency per
+target falls from 2.13 s at M=2 to 1.21 s at M=4. Thus when
+a robot requires multiple queried views from the same source
+context, M3GD can reuse shared computation, such as LiDAR
+encoding, across targets rather than paying a full generation
+cost for each view.
+Together, Tables IV and VII support complementary claims.
+Table IV shows that LiDAR conditioning does not require a
+heavier diffusion architecture: M3GD achieves its evaluation
+gains while avoiding GLD’s multi-stage cascade. Notably, Li-
+DAR conditioning shifts computational cost upfront and yields
+substantial savings when predicting multiple views. Table VII
+shows that the same M3GD design provides selectable quality,
+latency, and memory operating points.
+VII. Limitations and Future Works
+Temporal staleness. M3GD selects the LiDAR sweep near-
+est each image timestamp, but the current evaluation does not
+isolate the effect of camera–LiDAR delay. A controlled time-
+offset ablation and explicit modeling of timing uncertainty in-
+side the generative network can be interesting future directions
+to explore.
+Per-cell averaging mixes surfaces. Pooling all points that
+project into a latent cell averages across depth layers near ob-
+ject boundaries and thin structures. Front-surface-only pooling,
+depth-sorted visibility weighting, or multi-layer packets are
+natural refinements. We deliberately kept the residual adapter
+minimal to make the ablations attributable.
+Scale and scope of evaluation. Both the NVS benchmark
+and the representation study use GrandTour recordings from
+one robot platform (ANYmal-D). Extending the evaluation
+to wide-baseline cross-camera synthesis, other platforms, and
+driving datasets would probe how far the measured DA3–
+Utonia structure transfers across domains; the packet interface
+itself is platform-agnostic. We will release our code and eval-
+uation protocols to facilitate these extensions. The comparison
+against feed-forward splatting baselines is matched in fine-
+tuning data but cannot perfectly equalize pretraining corpora
+across methods.
+Dynamic scenes. Packets assume the time-nearest sweep
+describes the scene at the image timestamp. Fast-moving
+objects violate this even at small ∆t; neither the packet schema
+(beyond the variance channel) nor the model addresses object
+motion explicitly.
+Inference budget and deployment hardware. Reducing
+the Euler integration budget lowers latency, but single-step
+sampling substantially degrades LPIPS on the deployment
+route. The reported runtimes were measured on a robot
+equipped with an RTX A6000 as described in Section V-D,
+so they should not be interpreted as guaranteed real-time
+performance on smaller onboard computers. Adaptive solvers
+and accelerated flow sampling are promising directions for
+improving this quality–cost trade-off.
+
+
+17
+VIII. Conclusion
+We presented M3GD, a robotic novel view synthesis ap-
+proach that composes independently trained 2D image and
+3D point-cloud foundation models through projection, without
+pretraining a cross-modal translator. The key observation is
+that, after camera projection, frozen point-cloud features share
+substantial spatial structure with frozen image-foundation la-
+tents. This makes a simple RGB–LiDAR packet viable: the
+generative backbone keeps its latent space, decoders, camera
+conditioning, and training objective, while each view receives
+spatially aligned 3D evidence on the grid it already uses for
+synthesis.
+On GrandTour, M3GD improves target-view RGB and depth
+synthesis over an image-only version of the same backbone,
+with the largest gains on depth metrics. Ablations show that the
+benefit comes from real, pixel-aligned LiDAR content rather
+than adapter capacity, and that the target-view packet acts as
+a geometric query linking the requested view to the source
+observations without revealing target appearance. On a ground
+robot with a different sensor suite, the same GrandTour-trained
+model runs without retraining, and the number of Euler steps
+trades latency for perceptual quality. Together, these results
+suggest a practical pattern for robotic perception: once 2D and
+3D foundation representations are projected into a shared view-
+local frame, a lightweight conditioning pathway can expose
+their complementary knowledge to a generative model without
+rebuilding the synthesizer around a new modality.
+References
+[1] A. Amini, T.-H. Wang, I. Gilitschenski, W. Schwarting, Z. Liu, S. Han,
+S. Karaman, and D. Rus, “VISTA 2.0: An open, data-driven simulator
+for multimodal sensing and policy learning for autonomous vehicles,”
+in IEEE International Conference on Robotics and Automation (ICRA),
+2022, pp. 2419–2426.
+[2] Z. Yang, Y. Chen, J. Wang, S. Manivasagam, W.-C. Ma, A. J. Yang,
+and R. Urtasun, “UniSim: A neural closed-loop sensor simulator,” in
+IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2023, pp. 1389–1399.
+[3] Q. Chen, N. Gao, S. Huang, J. Low, T. Chen, J. Sun, and M. Schwager,
+“GRaD-Nav++: Vision-language model enabled visual drone naviga-
+tion with gaussian radiance fields and differentiable dynamics,” IEEE
+Robotics and Automation Letters, vol. 11, no. 2, pp. 1418–1425, 2026.
+[4] Y. Pan, X. Zhong, L. Jin, L. Wiesmann, M. Popovic, J. Behley, and
+C. Stachniss, “PINGS: Gaussian splatting meets distance fields within
+a point-based implicit neural map,” in Robotics: Science and Systems
+(RSS), 2025.
+[5] M. Wilder-Smith, V. Patil, and M. Hutter, “Radiance fields for robotic
+teleoperation,” in IEEE/RSJ International Conference on Intelligent
+Robots and Systems (IROS), 2024, pp. 13 861–13 868.
+[6] R. Gao, A. Ho ly´nski, P. Henzler, A. Brussee, R. Martin-Brualla, P. Srini-
+vasan, J. T. Barron, and B. Poole, “CAT3D: Create anything in 3D
+with multi-view diffusion models,” in Advances in Neural Information
+Processing Systems (NeurIPS), 2024.
+[7] V. Guizilini, M. Z. Irshad, D. Chen, G. Shakhnarovich, and R. Ambrus,
+“Zero-shot novel view and depth synthesis with multi-view geometric
+diffusion,” in Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2025, pp. 764–776.
+[8] W. Jang, S. Jeon, J. Han, J. Choi, M. Kwon, S. Kim, S. Xie, and S. Liu,
+“Repurposing geometric foundation models for multi-view diffusion,” in
+European Conference on Computer Vision (ECCV), 2026.
+[9] R. Liu, R. Wu, B. Van Hoorick, P. Tokmakov, S. Zakharov, and
+C. Vondrick, “Zero-1-to-3: Zero-shot one image to 3D object,” in
+IEEE/CVF International Conference on Computer Vision (ICCV), 2023,
+pp. 9264–9275.
+[10] Y. Liu, C. Lin, Z. Zeng, X. Long, L. Liu, T. Komura, and W. Wang,
+“SyncDreamer: Generating multiview-consistent images from a single-
+view image,” in International Conference on Learning Representations
+(ICLR), 2024.
+[11] K. Sargent, Z. Li, T. Shah, C. Herrmann, H.-X. Yu, Y. Zhang, E. R.
+Chan, D. Lagun, L. Fei-Fei, D. Sun, and J. Wu, “ZeroNVS: Zero-
+shot 360-degree view synthesis from a single image,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2024,
+pp. 9420–9429.
+[12] E. R. Chan, K. Nagano, M. A. Chan, A. W. Bergman, J. J. Park, A. Levy,
+M. Aittala, S. De Mello, T. Karras, and G. Wetzstein, “Generative
+novel view synthesis with 3D-aware diffusion models,” in IEEE/CVF
+International Conference on Computer Vision (ICCV), 2023.
+[13] A. Yu, V. Ye, M. Tancik, and A. Kanazawa, “pixelNeRF: Neural radiance
+fields from one or few images,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2021, pp. 4578–4587.
+[14] D. Charatan, S. L. Li, A. Tagliasacchi, and V. Sitzmann, “pixelSplat:
+3D gaussian splats from image pairs for scalable generalizable 3D
+reconstruction,” in IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), 2024, pp. 19 457–19 467.
+[15] Y. Chen, H. Xu, C. Zheng, B. Zhuang, M. Pollefeys, A. Geiger, T.-
+J. Cham, and J. Cai, “MVSplat: Efficient 3D gaussian splatting from
+sparse multi-view images,” in European Conference on Computer Vision
+(ECCV), 2024.
+[16] H. Xu, S. Peng, F. Wang, H. Blum, D. Barath, A. Geiger, and
+M. Pollefeys, “DepthSplat: Connecting gaussian splatting and depth,”
+in IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2025, pp. 16 453–16 463.
+[17] K. Deng, A. Liu, J.-Y. Zhu, and D. Ramanan, “Depth-supervised NeRF:
+Fewer views and faster training for free,” in IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), 2022, pp. 12 882–
+12 891.
+[18] K. Rematas, A. Liu, P. P. Srinivasan, J. T. Barron, A. Tagliasacchi,
+T. Funkhouser, and V. Ferrari, “Urban radiance fields,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2022,
+pp. 12 932–12 942.
+[19] A. Tonderski, C. Lindstr¨om, G. Hess, W. Ljungbergh, L. Svensson, and
+C. Petersson, “NeuRAD: Neural rendering for autonomous driving,” in
+IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2024, pp. 14 895–14 904.
+[20] C. Sautier, G. Puy, S. Gidaris, A. Boulch, A. Bursuc, and R. Marlet,
+“Image-to-lidar self-supervised distillation for autonomous driving data,”
+in IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2022, pp. 9891–9901.
+[21] S. Peng, K. Genova, C. M. Jiang, A. Tagliasacchi, M. Pollefeys,
+and T. Funkhouser, “OpenScene: 3D scene understanding with open
+vocabularies,” in IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), 2023, pp. 815–824.
+[22] R. Chen, Y. Liu, L. Kong, X. Zhu, Y. Ma, Y. Li, Y. Hou, Y. Qiao, and
+W. Wang, “CLIP2Scene: Towards label-efficient 3D scene understanding
+by CLIP,” in IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), 2023, pp. 7020–7030.
+[23] H. Lin, S. Chen, J. H. Liew, D. Y. Chen, Z. Li, G. Shi, J. Feng,
+and B. Kang, “Depth Anything 3: Recovering the visual space from
+any views,” in International Conference on Learning Representations
+(ICLR), 2026.
+[24] Y. Zhang, X. Wu, Y. Yang, X. Fan, H. Li, Y. Zhang, Z. Huang, N. Wang,
+and H. Zhao, “Utonia: Toward one encoder for all point clouds,” in
+International Conference on Machine Learning (ICML), 2026.
+[25] R. Wu, B. Mildenhall, P. Henzler, K. Park, R. Gao, D. Watson,
+P. P. Srinivasan, D. Verbin, J. T. Barron, B. Poole, and A. Ho ly´nski,
+“ReconFusion: 3D reconstruction with diffusion priors,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2024,
+pp. 21 551–21 561.
+[26] J. Wang, M. Chen, N. Karaev, A. Vedaldi, C. Rupprecht, and D. Novotny,
+“VGGT: Visual geometry grounded transformer,” in IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition (CVPR), 2025, pp.
+5294–5306.
+[27] W. Peebles and S. Xie, “Scalable diffusion models with transformers,” in
+IEEE/CVF International Conference on Computer Vision (ICCV), 2023,
+pp. 4172–4182.
+[28] B. Zheng, N. Ma, S. Tong, and S. Xie, “Diffusion transformers with
+representation autoencoders,” in International Conference on Learning
+Representations (ICLR), 2026.
+[29] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le,
+“Flow matching for generative modeling,” in International Conference
+on Learning Representations (ICLR), 2023.
+
+
+18
+[30] N. Ma, M. Goldstein, M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden,
+and S. Xie, “SiT: Exploring flow and diffusion-based generative models
+with scalable interpolant transformers,” in European Conference on
+Computer Vision (ECCV), 2024, pp. 23–40.
+[31] B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoor-
+thi, and R. Ng, “NeRF: Representing scenes as neural radiance fields for
+view synthesis,” in European Conference on Computer Vision (ECCV),
+2020, pp. 405–421.
+[32] A. Chen, Z. Xu, F. Zhao, X. Zhang, F. Xiang, J. Yu, and H. Su,
+“MVSNeRF: Fast generalizable radiance field reconstruction from multi-
+view stereo,” in IEEE/CVF International Conference on Computer
+Vision (ICCV), 2021, pp. 14 124–14 133.
+[33] M. M. Johari, Y. Lepoittevin, and F. Fleuret, “GeoNeRF: Generalizing
+NeRF with geometry priors,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2022, pp. 18 365–18 375.
+[34] B. Kerbl, G. Kopanas, T. Leimk¨uhler, and G. Drettakis, “3D gaussian
+splatting for real-time radiance field rendering,” ACM Transactions on
+Graphics, vol. 42, no. 4, 2023.
+[35] W. Chen, C. Zheng, G. Zhang, A. Vedaldi, and D. Cremers, “NOVA3R:
+Non-pixel-aligned visual transformer for amodal 3D reconstruction,” in
+International Conference on Learning Representations (ICLR), 2026.
+[36] C. Peng, Q. Herau, J. Yang, Y. Xie, Y. Hu, W. Zheng, M. Strong,
+M. Tomizuka, and W. Zhan, “UniQueR: Unified query-based feedfor-
+ward 3D reconstruction,” arXiv preprint arXiv:2603.22851, 2026.
+[37] T. Zhou, R. Tucker, J. Flynn, G. Fyffe, and N. Snavely, “Stereo
+magnification: Learning view synthesis using multiplane images,” ACM
+Transactions on Graphics, vol. 37, no. 4, 2018.
+[38] L. Ling, Y. Sheng, Z. Tu, W. Zhao, C. Xin, K. Wan, L. Yu, Q. Guo,
+Z. Yu, Y. Lu, X. Li, X. Sun, R. Ashok, A. Mukherjee, H. Kang, X. Kong,
+G. Hua, T. Zhang, B. Benes, and A. Bera, “DL3DV-10K: A large-
+scale scene dataset for deep learning-based 3D vision,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2024,
+pp. 22 160–22 169.
+[39] G. Wang, Z. Chen, C. C. Loy, and Z. Liu, “SparseNeRF: Distilling depth
+ranking for few-shot novel view synthesis,” in IEEE/CVF International
+Conference on Computer Vision (ICCV), 2023, pp. 9031–9042.
+[40] M. Niemeyer, J. T. Barron, B. Mildenhall, M. S. M. Sajjadi, A. Geiger,
+and N. Radwan, “RegNeRF: Regularizing neural radiance fields for view
+synthesis from sparse inputs,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2022, pp. 5470–5480.
+[41] J. Wynn and D. Turmukhambetov, “DiffusioNeRF: Regularizing neural
+radiance fields with denoising diffusion models,” in IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition (CVPR), 2023, pp.
+4180–4189.
+[42] Z. Yang, S. Manivasagam, Y. Chen, J. Wang, R. Hu, and R. Urtasun,
+“Reconstructing objects in-the-wild for realistic sensor simulation,” in
+IEEE International Conference on Robotics and Automation (ICRA),
+2023, pp. 11 661–11 668.
+[43] Y. Tao and M. Fallon, “SiLVR: Scalable LiDAR-visual radiance field
+reconstruction with uncertainty quantification,” IEEE Transactions on
+Robotics, vol. 42, pp. 98–114, 2026.
+[44] S. Huang, Z. Gojcic, Z. Wang, F. Williams, Y. Kasten, S. Fidler,
+K. Schindler, and O. Litany, “Neural LiDAR fields for novel view
+synthesis,” in IEEE/CVF International Conference on Computer Vision
+(ICCV), 2023, pp. 18 190–18 200.
+[45] T. Tao, L. Gao, G. Wang, Y. Lao, P. Chen, H. Zhao, D. Hao, X. Liang,
+M. Salzmann, and K. Yu, “LiDAR-NeRF: Novel LiDAR view synthesis
+via neural radiance fields,” in ACM International Conference on Multi-
+media (ACM MM), 2024, pp. 390–398.
+[46] Z. Zheng, F. Lu, W. Xue, G. Chen, and C. Jiang, “LiDAR4D: Dynamic
+neural fields for novel space-time view LiDAR synthesis,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2024,
+pp. 5145–5154.
+[47] M. K. Srirama, S. Dasari, S. Bahl, and A. Gupta, “HRP: Human
+affordances for robotic pre-training,” in Robotics: Science and Systems
+(RSS), 2024.
+[48] S. Wang, V. Leroy, Y. Cabon, B. Chidlovskii, and J. Revaud, “DUSt3R:
+Geometric 3D vision made easy,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2024, pp. 20 697–20 709.
+[49] Q. Wang, Y. Zhang, A. Holynski, A. A. Efros, and A. Kanazawa,
+“Continuous 3D perception model with persistent state,” in IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), 2025,
+pp. 10 510–10 522.
+[50] L. Yang, B. Kang, Z. Huang, Z. Zhao, X. Xu, J. Feng, and H. Zhao,
+“Depth anything V2,” in Advances in Neural Information Processing
+Systems (NeurIPS), vol. 37, 2024, pp. 21 875–21 911.
+[51] N. Keetha, N. M¨uller, J. Sch¨onberger, L. Porzi, Y. Zhang, T. Fischer,
+A. Knapitsch, D. Zauss, E. Weber, N. Antunes, J. Luiten, M. Lopez-
+Antequera, S. Rota Bul`o, C. Richardt, D. Ramanan, S. Scherer, and
+P. Kontschieder, “MapAnything: Universal feed-forward metric 3D re-
+construction,” in International Conference on 3D Vision (3DV), 2026.
+[52] X. Wu, L. Jiang, P.-S. Wang, Z. Liu, X. Liu, Y. Qiao, W. Ouyang,
+T. He, and H. Zhao, “Point transformer V3: Simpler, faster, stronger,”
+in IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2024, pp. 4840–4851.
+[53] X. Wu, D. DeTone, D. Frost, T. Shen, C. Xie, N. Yang, J. Engel,
+R. Newcombe, H. Zhao, and J. Straub, “Sonata: Self-supervised learning
+of reliable point representations,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2025, pp. 22 193–22 204.
+[54] S. Kornblith, M. Norouzi, H. Lee, and G. Hinton, “Similarity of
+neural network representations revisited,” in International Conference
+on Machine Learning (ICML), 2019.
+[55] M. Raghu, J. Gilmer, J. Yosinski, and J. Sohl-Dickstein, “SVCCA:
+Singular vector canonical correlation analysis for deep learning dynamics
+and interpretability,” in Advances in Neural Information Processing
+Systems (NeurIPS), vol. 30, 2017, pp. 6076–6085.
+[56] M. Oquab, T. Darcet, T. Moutakanni, H. Vo, M. Szafraniec, V. Khalidov,
+P. Fernandez, D. Haziza, F. Massa, A. El-Nouby, M. Assran, N. Ballas,
+W. Galuba, R. Howes, P.-Y. Huang, S.-W. Li, I. Misra, M. Rabbat,
+V. Sharma, G. Synnaeve, H. Xu, H. Jegou, J. Mairal, P. Labatut,
+A. Joulin, and P. Bojanowski, “DINOv2: Learning robust visual features
+without supervision,” 2024.
+[57] Y.-C. Liu, Y.-K. Huang, H.-Y. Chiang, H.-T. Su, Z.-Y. Liu, C.-T.
+Chen, C.-Y. Tseng, and W. H. Hsu, “Learning from 2D: Contrastive
+pixel-to-point knowledge transfer for 3D pretraining,” arXiv preprint
+arXiv:2104.04687, 2021.
+[58] Y. Liu, L. Kong, J. Cen, R. Chen, W. Zhang, L. Pan, K. Chen,
+and Z. Liu, “Segment any point cloud sequences by distilling vision
+foundation models,” in Advances in Neural Information Processing
+Systems (NeurIPS), vol. 36, 2023, pp. 37 193–37 229.
+[59] T. Zhang, Y. Hu, H. Cui, H. Zhao, and Y. Gao, “A universal semantic-
+geometric representation for robotic manipulation,” in Conference on
+Robot Learning (CoRL), ser. Proceedings of Machine Learning Research,
+vol. 229, 2023, pp. 3342–3363.
+[60] W. Shen, G. Yang, A. Yu, J. Wong, L. P. Kaelbling, and P. Isola,
+“Distilled feature fields enable few-shot language-guided manipulation,”
+in Conference on Robot Learning (CoRL), ser. Proceedings of Machine
+Learning Research, vol. 229, 2023, pp. 405–424.
+[61] M. Huh, B. Cheung, T. Wang, and P. Isola, “The platonic representation
+hypothesis,” in International Conference on Machine Learning (ICML),
+2024.
+[62] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic mod-
+els,” in Advances in Neural Information Processing Systems (NeurIPS),
+vol. 33, 2020, pp. 6840–6851.
+[63] R. Ranftl, A. Bochkovskiy, and V. Koltun, “Vision transformers for dense
+prediction,” in IEEE/CVF International Conference on Computer Vision
+(ICCV), 2021.
+[64] R. Li, B. Yi, J. Liu, H. Gao, Y. Ma, and A. Kanazawa, “Cameras
+as relative positional encoding,” in Advances in Neural Information
+Processing Systems (NeurIPS), 2025.
+[65] L. Zhang, A. Rao, and M. Agrawala, “Adding conditional control to
+text-to-image diffusion models,” in IEEE/CVF International Conference
+on Computer Vision (ICCV), 2023, pp. 3813–3824.
+[66] J. Frey, T. Tuna, F. Fu, K. Patterson, T. Xu, M. Fallon, C. Ca-
+dena, and M. Hutter, “GrandTour: A legged robotics dataset in the
+wild for multi-modal perception and state estimation,” arXiv preprint
+arXiv:2602.18164, 2026.
+[67] H. Caesar, V. Bankiti, A. H. Lang, S. Vora, V. E. Liong, Q. Xu, A. Kr-
+ishnan, Y. Pan, G. Baldan, and O. Beijbom, “nuScenes: A multimodal
+dataset for autonomous driving,” in IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2020, pp. 11 618–11 628.
+[68] Z. Wang, A. C. Bovik, H. R. Sheikh, and E. P. Simoncelli, “Image
+quality assessment: From error visibility to structural similarity,” IEEE
+Transactions on Image Processing, vol. 13, no. 4, pp. 600–612, 2004.
+[69] R. Zhang, P. Isola, A. A. Efros, E. Shechtman, and O. Wang, “The
+unreasonable effectiveness of deep features as a perceptual metric,” in
+IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2018, pp. 586–595.
+[70] D. Eigen, C. Puhrsch, and R. Fergus, “Depth map prediction from a
+single image using a multi-scale deep network,” in Advances in Neural
+Information Processing Systems (NeurIPS), 2014, pp. 2366–2374.
+[71] M. Asim, C. Wewer, T. Wimmer, B. Schiele, and J. E. Lenssen, “MEt3R:
+Measuring multi-view consistency in generated images,” in IEEE/CVF
+
+
+19
+Conference on Computer Vision and Pattern Recognition (CVPR), 2025,
+pp. 6034–6044.
+[72] H. Du, J. Ye, X. Cong, R. Li, J. Ni, A. Agarwal, Z. Zhou, Z. Li,
+R. Balestriero, and Y. Wang, “VideoGPA: Distilling geometry priors
+for 3D-consistent video generation,” in International Conference on
+Machine Learning (ICML), 2026.
+[73] Y. Lu, J. Zhang, T. Fang, J.-D. Nahmias, Y. Tsin, L. Quan, X. Cao,
+Y. Yao, and S. Li, “Matrix3D: Large photogrammetry model all-in-one,”
+in IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), 2025, pp. 11 250–11 263.
+[74] C. Cao, C. Yu, S. Liu, F. Wang, X. Xue, and Y. Fu, “MVGenMaster:
+Scaling multi-view generation from any image via 3D priors enhanced
+diffusion model,” in IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), 2025, pp. 6045–6056.

@@ -1,0 +1,1465 @@
+Eulerian Motion Reconstruction for Water Scenery
+Chuhan Chen1,∗
+Yen-Chi Cheng2
+Ayush Saraf3
+Rajvi Shah3
+Tuotuo Li3
+Johannes Kopf3
+Chen Gao3,†
+Hung-Yu Tseng3,†
+Deva Ramanan1
+Matthew O’Toole1
+Changil Kim3
+1Carnegie Mellon University
+2University of Illinois Urbana-Champaign
+3Meta
+sally-chen.github.io/eulersplats/
+Casual monocular video 
+3D reconstruction of 
+water sceneries 
+t
+3D infinite looping animation
+3D tracking 
+Figure 1. Given a casual monocular video of a watery scene, we propose a pipeline to reconstruct a cyclic 4D representation that allows
+for novel view synthesis, infinitely looping animations, and consistent 3D tracking of water particles.
+Abstract
+Reconstructing and animating water scenery from nature
+produces compelling and immersive visual experiences.
+Previous work examined this task from the perspective of
+2D video textures, with the goal of creating a looping video.
+In our work, we tackle the problem from a 3D perspective,
+creating a looping 4D dynamic reconstruction which can be
+interactively rendered from novel viewpoints from a single
+non-looping 2D source video. We represent motion as a 3D
+static Eulerian motion field that advects canonical Gaus-
+sian splats that are cyclically reborn at fixed time periods,
+supervised using rendering losses. To model non-periodic
+and stochastic dynamics present in real-world scenes, we
+∗Work was done while intern at Meta.
+†Now at Waymo.
+add a non-periodic, time-varying residual term to capture
+deviations from the static Eulerian motion field. We show
+quantitatively and qualitatively that our framework enables
+photorealistic animation of water scenes better than prior
+art.
+1. Introduction
+Water scenery is ubiquitous in nature, from lakes to flowing
+rivers and waterfalls. Capturing and reconstructing such dy-
+namics in a photorealistic manner allows virtual 3D worlds
+to come to life, creating immersive experiences. To enable
+the scalable creation of such experiences, we address the
+problem of creating 4D reconstructions from casual monoc-
+ular 2D video captures of water scenes. Modeling this type
+of motion in casual videos is challenging due to the con-
+stant introduction of new (water) particles and the complex
+arXiv:2609.38622v1  [cs.CV]  29 Sep 2026
+
+
+interplay between repetition and stochasticity.
+While rigid and non-rigid object motion has been exten-
+sively studied in 4D reconstruction [11, 28, 38, 39], such
+reconstructions tend to focus on scenes with persistent ob-
+jects, where dynamic objects tend to remain in the field of
+view and few objects enter/leave the field of view. Here,
+scene motion can be naturally modelled as spatial deforma-
+tion [28] from a canonical 3D reconstruction, often repre-
+sented as Gaussian splats [10] or a neural field [23, 25].
+However, water scenes are naturally modeled with fluid
+particles that rapidly flow into and out of view. We ad-
+dress this challenge with a periodic 4D scene model, i.e.,
+we model the 3D scene with a composition of dynamic par-
+ticles that are looped every L time steps. Our approach is
+inspired by work for creating looping 2D videos [7, 14, 31]
+but extended to 3D. In particular, previous methods for cre-
+ating looping 3D representations often make use of multi-
+ple video captures from multiple fixed viewpoints [20, 35].
+In contrast, we focus on the more challenging (but more
+scalable) setting of monocular video capture, where a sin-
+gle time instance is observed from only a single view.
+Our key contribution lies in a novel 4D representation
+that models water dynamics as a combination of periodic
+and non-periodic residual components. We represent mo-
+tion as a 3D static Eulerian motion field that advects canon-
+ical Gaussian splats, enabling the formation of a looping
+animation that captures the dominant periodic behavior.
+While many state-of-the-art methods rely on long-range
+2D particle tracks as input [11, 38], we initialize our repre-
+sentation with pairwise 2D optical flow, which tends to be
+much less error prone when tracking water particles. To cre-
+ate natural, seamless animation, we then advect the Gaus-
+sians using the Eulerian motion field through a novel simu-
+lation algorithm inspired from particle systems used in tra-
+ditional computer graphics, so that each Gaussian repeats
+at a random, different time.
+Importantly, to account for
+the intrinsic stochasticity and irregularities of water motion
+in real-world video captures, we introduce a residual term
+to capture non-periodic motion and appearance changes.
+Our model is trained end-to-end via a differentiable render-
+ing loss, ensuring photorealistic reconstruction and faithful
+temporal coherence. Once optimized, our representation al-
+lows creation of infinitely-long loopable 3D water anima-
+tions.
+Through both quantitative and qualitative evaluations,
+we demonstrate that our framework produces realistic and
+visually compelling animations of water scenes, outper-
+forming existing 4D reconstruction baselines in terms of re-
+construction and animation quality.
+In summary, we contribute:
+• A novel 4D looping representation for reconstructing
+real-world water scenes that may be non-periodic and
+stochastic.
+• An efficient model for dynamic scene motion that consists
+of a static (non–time-varying) Eulerian motion field, ini-
+tialized from off-the-shelf 2D optical flow and supervised
+with an ODE solver using a standard rendering loss.
+• A novel Gaussian simulation technique that advects
+Gaussians through the Eulerian motion field seamlessly.
+• A time-varying residual appearance term for modeling
+non-periodic appearance variations in real-world scenes.
+2. Related Work
+Our work sits at the intersection of research areas: looping
+2D video generation for scenes containing water scenery,
+and 3D reconstruction and novel-view synthesis for dy-
+namic scenes. Below, we briefly review both topics.
+Looping Video Cinemagraph.
+There is a unique line of
+work that tackles water scenery as a looping video texture.
+Specifically, from 2D videos, [31] identifies visually simi-
+lar frames and creates loops by transitioning between them;
+[13, 14] optimize for per-pixel start times and loop periods,
+aiming to maximize spatiotemporal coherence. More re-
+cently, there has been work that moves this problem to 3D
+where they take multiview asynchronous videos and recon-
+struct a loopable 3D representation by temporally merging
+asynchronous videos from nearby views [35] and building
+a view-consistent looping Multi-Tile Video [20] represen-
+tation based on Multiplane Image [44] but using a loop-
+ing loss to accommodate the non-periodic nature of water.
+While also trying to reconstruct a 3D looping representa-
+tion, our work takes in monocular capture. Another line of
+work builds video loops from single images in 2D, lever-
+aging image based priors like optical flow and monocular
+depth predictors [7, 8], as well as physical simulation [4]
+and user input [22]. Inspired by Holynski et al. [7], we
+model water motion as an Eulerian motion field but in 3D,
+and tackle the task of reconstructing motion from input
+video which is different from animating from a single im-
+age.
+Novel View Synthesis for Dynamic Scenes.
+Novel View
+Synthesis (NVS) aims to render unseen perspectives from
+limited input viewpoints. For dynamic scenes, this requires
+a 4D representation that captures both geometry and time-
+varying motion. They are best captured using synchronized
+multi-view recordings, but they are often feasible only in
+studio environments [19]. With progress in neural render-
+ing leveraging differentiable representations such as Neural
+Radiance field [23] and Gaussian Splatting [10], monocu-
+lar input has become feasible, though the problem remains
+severely under-constrained due to simultaneous camera and
+scene motion. To address this, some approaches incorpo-
+rate additional sensors like time of flight sensors [1, 33],
+while others rely on learned geometric priors [5, 37] or
+
+
+impose hand-crafted motion representation and regulariz-
+ers [11, 26, 27, 34, 36, 38], which typically only apply to
+simple and low frequency dynamics and persistent objects
+where there is minimum introduction of new objects. In
+contrast, water can exhibit high frequency and complex dy-
+namics, where off-the-shelf geometry or motion priors used
+in previous works can fail (e.g., [9, 42]). Additionally, be-
+cause of the continuous flow of water, there is frequent in-
+troduction of new particles to the scene and disappearing of
+old particles.
+Feed-forward 4D reconstruction.
+Feed-forward 4D re-
+construction methods predict dynamic 3D/4D representa-
+tions directly from monocular video, avoiding costly per-
+scene optimization. Approaches such as L4GM [29], DGS-
+LRM [16], 4DGT [41], 4D-LRM [21], and MoVieS [15]
+jointly model geometry, appearance, and motion, often
+using dynamic or 4D Gaussians and supporting novel-
+view and novel-time rendering. Their main advantages are
+fast inference and cross-scene generalization, though their
+learned motion priors are typically trained on object-centric
+or general dynamic scenes difficult to generalize to highly
+stochastic phenomena such as fluids. Compute constraints
+also prevent them from processing large number of frames
+for sufficient scene coverage. A complementary direction
+is generative novel view synthesis, where methods such
+as TrajectoryCrafter [43], CogNVS[3] and Vista4D [17]
+use video diffusion models, guided by geometry and tar-
+get camera trajectories, to synthesize novel-view videos.
+These methods can produce visually strong results by hal-
+lucinating unseen content and correcting reconstruction er-
+rors, but they generally output a requested video in the
+same time horizon rather than a persistent editable and time-
+interpolatable 4D scene representation.
+3. Method
+Our goal is to reconstruct a loopable dynamic representa-
+tion of a water scene from a monocular video of T frames
+that captures the scene from different view points and times.
+The dynamics of water exhibit unique characteristics. The
+movement of water particles follows a consistent trend
+when passing through each location in the scene across
+time, e.g., the flow is fast at the top of a waterfall, and slows
+in the pool at the bottom. We model the water particles
+with a canonical set of Gaussian splats [10], and the motion
+of water particles when passing through each location in the
+scene with a static Eulerian motion field (Sec. 3.1). Through
+such a motion field, the positions of canonical Gaussians are
+advected repeatedly over a fixed cycle, and looped using
+our simulation algorithm (Sec. 3.2). Although water parti-
+cles follow a steady flow through a specific location in the
+scene, their motion at different time steps is stochastic. We
+model such stochasticity with a residual deformation field
+that models residual offsets in Gaussian position, opacity,
+and color within and across cycles (Sec. 3.3).
+We design a multi-stage approach to learn these compo-
+nents, as shown in Fig. 2, where we first initialize canon-
+ical Gaussians and the Eulerian motion field separately
+(Sec. 3.4), and optimize the three components jointly end-
+to-end using rendering losses (Sec. 3.5). The remainder of
+this section describes the details of our proposed approach.
+3.1. Scene Representation
+Our scene is represented by a set of N 3D Gaussian splats
+in a canonical space:
+{Gn}N
+n=1, where each Gaussian
+Gn = (Xn, Sn, Rn, On, Cn) is defined by its 3D position
+Xn = (x, y, z)n, scale Sn, orientation Rn, opacity On
+and color Cn. We represent the motion of water bodies
+in the scene using an implicit 3D Eulerian motion field
+V(x, y, z) that is fixed for all time. Intuitively, V(x, y, z)
+is the velocity of a water particle when it reaches the point
+X = (x, y, z) in the scene. Importantly, V(X) is initialized
+to be the 3D unprojection of optical flow between two
+adjacent frames.
+3.2. Looping by Forward Euler Integration
+To animate our scenes, we take our canonical Gaussian
+splats and motion field as input, and compute the 3D path
+that each Gaussian follows over time. Normally, there is an
+endless supply of particles flowing through the scene, re-
+quiring an equal number of Gaussians. Instead, we use a
+loopable representation to model the flow, where the rep-
+resentation repeats itself after cycle length L. Specifically,
+Gaussians respawn to the beginning of their path every L
+steps. To compute the 3D path each Gaussian follows over
+1 cycle, we advect the canonical Gaussian splats forward
+in time using our Eulerian motion field. Specifically, we
+obtain splat locations at future times t by forward Euler in-
+tegration using the velocity field V:
+Xn,t = Xn,t−1 + V(Xn,t−1)
+∀t ∈{0, · · · , L}. (1)
+Note it is possible to continue advecting the Gaussians for-
+ward in time indefinitely to model how water truly flows,
+but this will eventually lead to a scene that is empty of
+Gaussians since they are advected out of the scene. Instead,
+we respawn (or loop) the Gaussians after every L (“cycle
+length”) frames at their canonical position, which results
+in an infinitely-long 4D dynamic scene. The naive way to
+make the Gaussians loop is to make all the Gaussians re-
+spawn at the same time, but this produces visual artifacts
+since relocating all Gaussians at once causes a visible dis-
+continuity in the animation; see Fig. 3(a)). Instead, we ran-
+domly sample the time at which each Gaussian starts mov-
+ing from a uniform distribution [0, L], which allows each
+Gaussian to loop by following their distinct schedule and
+
+
+Stage 3: Looping Dynamic Reconstruction of Frame i
+Stage 1: Static Reconstruction
+Stage 2: Motion Field Pretraining
+3DGS
+Input video
+Canonical GS
+Alg. 1
+Frame i GS
+Frame i GS + residual
+D
+⊕
+L1 + SSIM
+2D Optical flow
+Render Depth
+Static Eulerian 
+motion field V 
+3D scene flow pairs
+X
+canonical pos.
+tn
+cycle index
+pn
+cycle number
+ΔX, ΔC, ΔO
+Non-periodic 
+residual field At inference: pn = 0,
+tn = 0…L (periodic)
+Captured image
+Rendered image
+Figure 2. Method Overview. (Stage 1) Given a monocular input video, we first create a static reconstruction in the form of Canonical
+Gaussian Splats (Sec. 3.4). (Stage 2) We use depth computed from the static reconstruction and camera poses to lift predicted 2D optical
+flow to 3D, and use (3D position, 3D scene flow) pairs at every frame to pre-train a static Eulerian motion field (Sec. 3.4). (Stage 3) To
+synthesize input images at each time step, we advect Canonical Gaussian Splats using our motion field through forward Euler integration
+with our looping algorithm (Sec. 3.2, Alg. 1) and additionally apply a non-periodic residual field D to account for the non-periodic nature
+of water (Sec. 3.3). Advected splats are rendered into synthesized images; they are compared to the ground truth via rendering losses that
+are back-propagated to optimize Canonical Gaussian Splat parameters and the motion field (Sec. 3.5). Given the trained loopable model,
+we can generate infinite looping animations by repeating every L frames using Alg. 2 and setting pn = 0.
+i = 0
+i = 5
+i = 10
+i = 15
+≡i=0
+i = 20
+≡i=5
+i = 25
+≡i=10
+all snap back
+together (jump)
+reset (all)
+reset (all)
+(a) Naive: shared start time T start=0 ⇒all Gaussians reset together ⇒jump artifact
+i = 0
+i = 5
+i = 10
+i = 15
+≡i=0
+i = 20
+≡i=5
+i = 25
+≡i=10
+(b) Ours: random T start ∼Uniform[0, L] ⇒resets staggered across the cycle ⇒smooth flow
+Figure 3. Why per-Gaussian random start times? Five Gaus-
+sians at different canonical positions (dashed circles) are advected
+by a downward Eulerian motion field V (gray arrows) with cycle
+length L=15. Each is tn = (i−t0
+n) mod L steps below its canon-
+ical (rebirth) position and snaps back on rebirth (tn=0). (a) With
+a shared start time, every Gaussian has the same tn = i mod L
+and resets simultaneously at i = 0, 15, . . . : the whole scene
+moves as one rigid clump (red band) and teleports back to the
+top in a single frame (jump artifact). (b) With random start times
+(t0
+n = 0, 3, 6, 9, 12 for the red, blue, green, violet, orange Gaus-
+sians) the resets are staggered across the cycle, so at any frame
+only a few Gaussians reset while the rest flow smoothly.
+respawn at different times, producing a more natural flow
+of Gaussians throughout the scene (refer to Fig. 3(b)). In
+Algorithm 1 Reconstructing frame i (training).
+Time complexity: O(NL) to advance each of N Gaussians up to L Euler
+steps from its canonical position.
+Require: Canonical Gaussian positions {X0
+n}N
+n=1, start
+times {t0
+n}N
+n=1, flow field V, cycle length L
+1: for n = 1 to N do
+2:
+// Compute cycle index t for Gaussian n at frame i.
+3:
+t ←
+ i −t0
+n
+
+mod L
+4:
+// Take t steps from the canonical position X0
+n.
+5:
+Xn ←Propagate
+ X0
+n, V, t
+
+6: end for
+7: Subroutine Propagate(X, V, t):
+8: for k = 1 to t do
+9:
+// one forward-Euler step, cf. Eq. 1
+10:
+X ←X + V(X)
+11: end for
+12: return X
+this way, we create a “conveyor belt” of dynamic Gaussian
+splats that repeat every L time steps. We provide a detailed
+description of our looping algorithm during training time in
+Alg. 1 and inference time in Alg. 2.
+3.3. Non-periodic Deformations
+The above looping model will generate periodic scenes
+that exactly repeat every L frames, while real-world source
+videos will naturally contain non-periodic and even stochas-
+
+
+Algorithm 2 Reconstructing all L frames (inference).
+Time complexity: O(NL) to initialize the first frame plus O(N) per sub-
+sequent frame.
+Require: Canonical Gaussian positions {X0
+n}N
+n=1, start
+times {t0
+n}N
+n=1, flow field V, cycle length L
+1: for i = 1 to L do
+2:
+for n = 1 to N do
+3:
+t ←
+ i −t0
+n
+
+mod L
+4:
+if i = 1 then
+5:
+// Initialize position for first frame with cycle index t
+6:
+Xn ←Propagate
+ X0
+n, V, t
+
+7:
+end if
+8:
+if t = 0 then
+9:
+// Reset to canonical position
+10:
+Xn ←X0
+n
+11:
+else
+12:
+// Advance by one step
+13:
+Xn ←Xn + V(Xn)
+14:
+end if
+15:
+end for
+16: end for
+tic content. This presents a challenge when attempting to
+optimize a looping model on non-looping data. To account
+for this, we learn a time-varying residual deformation field
+D(Xn, tn, pn) that predicts additive offsets to Gaussian po-
+sition Xn, Gaussian color Cn and opacity On for the pnth
+cycle in the input video (cycle number) and cycle index
+tn. Concretely, for Gaussian Gn at frame i with start time
+T start
+n
+, we factor its elapsed time since birth into a within-
+cycle cycle index tn and a cycle number pn:
+tn =
+ i −T start
+n
+
+mod L,
+pn =
+ i −T start
+n
+L
+
+. (2)
+The cycle index tn is the same quantity used in Alg. 1 (the
+number of forward integration steps since Gn’s most recent
+rebirth), while the cycle number pn counts how many full
+cycles Gn were completed in the input video. These offsets
+predicted by D are not integrated over time (as velocity-
+based positional “offsets” in Eq. 1), but rather are added to
+a Gaussian’s canonical position, color, and opacity to fit the
+difference between the periodic scene representation with
+each input frame. The residual field D records the differ-
+ences in Gaussian parameters across cycles during recon-
+struction to better fit a training video; its cycle number is
+set to 0 during inference time so that residuals from the first
+cycle are used to ensure our 4D animations remain periodic.
+3.4. Initialization
+Without careful initialization, we find that jointly optimiz-
+ing Gaussian splats, the Eulerian motion field, and the resid-
+ual deformation field can easily produce local minima (as
+shown in Sec. 5.4). We initialize the canonical splat re-
+construction {Gn}N
+n=1 by fitting a static reconstruction to
+the input video frames with associated camera poses (in-
+ferred via standard SFM toolboxes), ignoring any motion.
+To initialize the Eulerian motion field V, we run off-the-
+shelf optical flow predictor [24] on pairs of input frames.
+We then lift these 2D optical flow vectors to 3D by using
+the rendered depth from the static reconstruction. This pro-
+duces a collection of pseudo ground-truth scene flow vec-
+tors {V′(X)} at various locations in the scene, which forms
+{(X, V′(X))} pairs used to pretrain the Eulerian motion
+field V.
+3.5. Joint Training
+After separately initializing {Gn}N
+n=1 and V, we jointly
+train all of {Gn}N
+n=1, V, and D using rendering losses.
+Specifically, we randomly sample a frame i from the in-
+put video, propagate the canonical Gaussian splats through
+V to their distinct target cycle index using Alg. 1. We then
+query the non-periodic residual field D with the cycle index
+and cycle number corresponding to i, and add the residual
+terms to each Gaussian property. We rasterize the Gaus-
+sians using frame i’s viewpoint to render the reconstructed
+frame i and calculate L1 and SSIM losses between the re-
+constructed and input frame. Additionally, we apply L2 reg-
+ularizer on the residual field D so that it remains small.
+4. Implementation
+Both the Eulerian motion field V and residual deformation
+field D are implemented using triplanes [45], where the fea-
+ture MLP for V takes only positional features while for D
+the feature MLP additionally takes in sinusoid-encoded cy-
+cle index and cycle number. We use an implementation of
+RayGS [30] for Gaussian splatting. We first train static re-
+construction using canonical Gaussians splats {Gn}N
+n=1 for
+10k iterations. We identify dynamic Gaussians by learning
+a per-Gaussian dynamic mask from input water segmenta-
+tion masks. We fine-tune the Gaussians along with V and D
+for another 20k iterations. We choose cycle length L = 15
+for best representation of water dynamics and global ap-
+pearance (refer to ablation of different L in Sec. 5.4)).
+Datasets
+Due to the lack of monocular dataset dedicated
+to water scenery, we capture 7 scenes in various environ-
+ments.
+Each video records a scene at the resolution of
+1168 × 880 at 30 fps for about 25 seconds with transla-
+tions and rotations to provide enough parallax.
+We use
+COLMAP [32] to reconstruct sparse point cloud and esti-
+mate camera parameters. Details on the dataset are included
+in the supp. material.
+
+
+Ground Truth
+Ours
+MoSca
+AmbGS
+4DGS
+MoVieS
+Figure 4. Qualitative comparison of reconstruction compared to baselines. Our method produces much sharper result than the baselines
+in the water regions. While MovieS appears sharp in row2, its overall view synthesis quality is poor ( refer to videos in the supp. material).
+Full image
+Water region
+Method
+PSNR ↑SSIM ↑LPIPS ↓FID ↓KID ↓FVD ↓
+PSNR ↑SSIM ↑LPIPS ↓FID ↓KID ↓FVD ↓
+MoVieS [15]
+15.19
+0.331
+0.524
+100.87 0.027 1564.90
+15.35
+0.291
+0.526
+87.21
+0.014 1157.00
+MoSca [11]
+19.87
+0.509
+0.565
+117.54 0.037
+828.87
+23.31
+0.723
+0.577
+104.51 0.024
+534.47
+4DGS [39]
+23.01
+0.693
+0.397
+84.00
+0.026
+634.19
+25.71
+0.803
+0.436
+87.58
+0.022
+417.40
+AmbGS [34]
+22.52
+0.706
+0.344
+61.32
+0.014
+536.55
+25.49
+0.806
+0.392
+69.15
+0.014
+314.24
+Ours
+23.05
+0.716
+0.315
+39.63
+0.007
+210.01
+25.37
+0.798
+0.375
+46.50
+0.008
+156.69
+Table 1. Quantitative comparison of methods. ↓(↑) indicates lower (higher) is better. We report metrics over the full image as well as
+restricted to the water region, which isolates the dynamic content our method targets. FID, KID and FVD follow the distribution-based
+evaluation protocol of Lift4D [18]. Our method achieves the best overall reconstruction accuracy in comparison to the baselines and leads
+the baselines in spatial and temporal distribution alignment by a large margin.
+5. Results
+In this section, we present the results of our method with
+both quantitative and qualitative evaluation. Please see our
+supp. material for rendered results.
+5.1. Quantitative Comparison
+Evaluation data.
+Because of the lack of multiview test
+data, we follow [34] and hold out 3 segments of 30 consec-
+utive frames per scene from the input video during training,
+and evaluate exclusively on these held-out segments so as
+to not measure only interpolation between training frames.
+Baselines.
+We compare our method against four cat-
+egories that (1) relies on dense view coverage and a
+deformation field (AmbGS [34]); (2) relies on image-
+based priors such as 2D tracking and monocular depth
+(MoSca [11]); (3) represents dynamics with generic 4D
+primitives (4DGS [39]); and (4) reconstructs scene geom-
+etry, appearance, and motion with a feed-forward 4D ap-
+proach (MoVieS [15]). Because MoSca [11] fails for im-
+ages bigger than 600×600 resolution in our experiment,
+we upsample its result to compare with other methods
+(see Tab. 1 and Fig. 4). Additionally, since MoVieS [15]
+was originally designed for reconstruction from sparse-view
+short videos and run into memory issues with dense input
+frames, we downsample the input frames to 170 with half
+resolution to fit into a single A6000 GPU, while providing
+sufficient coverage and frame rate for the method to recon-
+struct both geometry and motion of the scene; we also up-
+sample its result to compare with other methods (see Tab. 1
+and Fig. 4).
+Full-reference (FR) metrics.
+We report standard per-
+frame reconstruction quality with PSNR, SSIM and LPIPS.
+Since water motion is highly stochastic, it is impossible to
+
+
+4DGS [39]
+95.4% 98.9% 98.3%
+Appearance
+Motion
+Reference
+MoSca [11]
+100.0% 99.4% 100.0%
+Appearance
+Motion
+Reference
+MoVieS [15]
+98.9% 99.4% 100.0%
+Appearance
+Motion
+Reference
+AmbGS [34]
+86.3%
+98.9% 96.6 %
+Appearance
+Motion
+Reference
+Figure 5.
+User study.
+Bar height is the percentage of times
+users rated our method’s visual quality higher than the compet-
+ing method (“Winrate”), for three settings: Appearance (camera
+moves, scene frozen), Motion (camera fixed, scene advances), and
+Reference (both advance, shown alongside the real footage). Ag-
+gregated over 25 participants and 7 scenes (2100 judgments). Our
+method was preferred over all baseline methods in all settings.
+fully capture its dynamics with traditional metrics, and met-
+rics like PSNR and SSIM can favor blurry reconstruction
+[3]. We thus also report distribution-based image quality
+with FID, KID and video quality with FVD following the
+protocol of [3, 18, 40]. All metrics are reported both on the
+full image and restricted to the water region, which isolates
+the dynamic content our method targets.
+Aggregated metrics across all scenes, compared against
+baselines, are presented in Tab. 1.
+Our method outper-
+forms the baselines on most metrics, especially LPIPS and
+distributional metrics (FID, KID and FVD) by a big mar-
+gin showing our method’s capability of reconstructing nat-
+ural and detailed water appearance and motion. We further
+demonstrate this via a user study and qualitative evaluation
+in the next sections, as well as video results in our supple-
+mentary material.
+5.2. User Study
+We conduct a perceptual user study. We use all 7 scenes of
+our dataset and, following [34], for each render two videos
+per method: (i) with time fixed at the held-out anchor frame
+while the camera follows the input trajectory, which evalu-
+ates reconstructed geometry and appearance; and (ii) with
+the camera fixed at the held-out anchor viewpoint while
+time advances, which evaluates reconstructed motion. We
+also include a third reference setting where both camera and
+time advance over the held-out test frames, shown along-
+side the ground-truth reference held-out footage. Each page
+presents our result side-by-side with one baseline in all three
+settings, with left/right order randomized per row and clips
+served anonymously. Based on responses from 25 partic-
+ipants (2100 judgments in total), Fig. 5 reports the rate at
+which our result was preferred (i.e. “winrate”). Our method
+is preferred in 97.6% of all judgments, beating every base-
+line in every setting. The margin is smallest against Am-
+bGS [34] on appearance (86.3%), consistent with it being
+the strongest prior method on our data; in the motion set-
+ting the gap widens to 98.9%, indicating that our advantage
+lies primarily in the recovered dynamics rather than in static
+appearance.
+Ours
+4DGS
+AmbGS
+MoSca
+MoVieS
+Figure 6. Scene flow comparison. We visualize tracks formed
+by canonical Gaussian Splats by iteratively querying our Eulerian
+motion field with residual applied, on two scenes (rows), against
+4DGS [39], AmbGS [34], MoSca [11] and MoVieS [15]. For the
+baselines, which do not expose an explicit Eulerian motion field,
+we extract the corresponding tracks by querying each method’s
+own motion representation at the same set of points and time steps.
+Our Eulerian motion field yields long, coherent trajectories that
+follow natural water flow, whereas the baselines produce short,
+incoherent, or near-static tracks.
+Cycle length
+PSNR ↑SSIM ↑LPIPS ↓FID ↓KID ↓FVD ↓
+L = 35
+22.78
+0.702
+0.329
+42.18
+0.008
+247.76
+L = 25
+22.87
+0.708
+0.321
+39.35
+0.007
+210.96
+L = 15 (ours)
+23.05
+0.716
+0.315
+39.63
+0.007
+210.01
+Table 2. Cycle-length ablation. Effect of the cycle length L on
+reconstruction quality. Metrics follow the same protocol as Tab. 3.
+5.3. Qualitative Comparison
+We show visual comparison with baselines against ground
+truth image in Fig. 4.
+Overall, our method captures the
+most detail in the water regions.
+While AmbGS recon-
+structs most of the static part of the scene, its periodic
+motion model is too restrictive and cannot fit to our input
+video. MoSca relies strongly on image-based priors such
+as 2D tracking which frequently fail for water scenery. Al-
+though 4DGS employs a flexible deformation-field based
+motion model which can fit to motion from input images
+to some degree, it does not produce natural water motion.
+While MoVieS can reconstruct good details, it often fails
+on parts of the scene with poor coverage and cannot pick
+up the fast but subtle water motion. Fig. 6 compares the
+recovered scene flow against the baselines, visualizing the
+projected 3D tracks obtained by advecting canonical Gaus-
+sians through each method’s motion representation. We also
+show motion in time samples of generated fixed view video
+from a novel view in Fig. 7 compared to the baselines. It can
+be demonstrated that the baseline methods struggle to re-
+construct highly detailed and stochastic water motion, while
+our method reconstructs rich and detailed motion. Please
+refer to the supp. material to examine both the details and
+naturalness of water motion that we reconstruct with our
+method in comparison to baselines.
+5.4. Ablations
+We perform a qualitative and quantitative ablation study to
+evaluate the contribution of each component in our frame-
+work; see Tab. 3 and Fig. 8. We conduct experiments where
+
+
+4DGS
+AmbGS
+MoSca
+Ours
+t = 0
+t = 5
+t = 10
+t = 0
+t = 5
+t = 10
+t = 0
+t = 5
+t = 10
+t = 0
+t = 5
+t = 10
+Figure 7. Visualizing temporal progression of water. We compare our method to the baselines at different time steps. Our method
+reproduces natural flow of water, while 4DGS [39] AmbGS [34] and MoSca [11] only demonstrate slight shift in color over time.
+Method
+PSNR ↑SSIM ↑LPIPS ↓FID ↓KID ↓FVD ↓
+w/o Eulerian motion field
+23.42
+0.733
+0.319
+50.86
+0.011
+422.66
+w/o flow initialization
+22.50
+0.704
+0.325
+55.44
+0.012
+473.29
+w/o non-periodic residual
+22.97
+0.713
+0.321
+47.22
+0.010
+309.37
+Static reconstruction
+23.11
+0.723
+0.319
+60.88
+0.015
+522.97
+w/o Alg. 1
+22.86
+0.702
+0.329
+47.01
+0.010
+334.30
+Full model
+23.05
+0.716
+0.315
+39.63
+0.007
+210.01
+Table 3. Ablations of our method. Each row removes a single
+component of our full model or replaces it with a static recon-
+struction. Best per column is highlighted in red (bold) and second
+best in orange.
+we remove flow initialization (Sec. 3.4), so that our mo-
+tion field is optimized from scratch; remove the residual de-
+formation field that predicts non-periodic position, opacity
+and color offsets (Sec. 3.3); and lastly remove our Eule-
+rian motion field, so that the motion is only represented by
+the residual deformation field. Tab. 3 shows that our full
+model achieves the best perceptual and distributional met-
+rics compared to the models without each of the compo-
+nents. Fig. 8 shows that the full model produces coherent
+water-following trajectories while without the Eulerian mo-
+tion field or flow initialization, only small amount of mo-
+tion is reconstructed and without the non-periodic residual,
+reconstructed motion is less stochastic corresponding to the
+limited capability of our static Eulerian motion field. Per-
+component reconstruction visualizations for these ablations
+are provided in the supplementary (Fig. C2). This set of
+ablation studies highlights our insight that it is essential to
+leverage an Eulerian motion field to represent water motion
+as it allows us to benefit from the highly-effective initializa-
+tion from optical flow based on nearby frames.
+We further discuss the w/o Alg. 1 variant in Tab. 3, which
+removes the random per-Gaussian start times in Alg. 1 (all
+Gaussians reborn at t = 0). It performs much worse than
+the full model on the distributional and video-quality met-
+rics (FID/KID/FVD), confirming that staggering rebirths
+across the cycle helps hide the discontinuity introduced by
+looping. Fig. 9 visualizes this effect via spatiotemporal x–t
+slices on two scenes, where without random per-Gaussian
+start times there is an obvious discontinuity across loops.
+We additionally ablate the cycle length L, which controls
+Full model
+w/o Eulerian motion field
+w/o flow init
+w/o residual
+Figure 8. Ablation track visualization. Tracks formed by it-
+eratively querying each ablation variant’s motion representation
+on two scenes, shown at the final frame of a 15-frame propaga-
+tion. The full model produces coherent water-following trajecto-
+ries; model with the Eulerian motion field or flow initialization
+removed barely reconstructs and water flow motion, and remov-
+ing the non-periodic residual produces less natural and stochastic
+tracks.
+the temporal span of a single loop. Fig. 10 compares three
+settings qualitatively and Tab. 2 reports the corresponding
+metrics.
+While using larger L allows representing more
+diverse motion, it also leads to poorer convergence hence
+lower overall reconstruction quality. We adopt L = 15,
+which best balances the range of motion within a cycle
+against reconstruction sharpness.
+6. Discussion
+Limitations and future work
+While our proposed
+pipeline reconstructs motion of water sceneries realistically,
+it can fail for large water surfaces with reflections, which
+are common in rivers, lakes, and oceans. The reason is
+that, without any explicit modeling of reflections, the Gaus-
+sian Splatting algorithm reconstructs fake geometry at the
+bottom of the water surface to reproduce the appearance
+changes caused by reflections, and as a result, the water sur-
+face is reconstructed as a hazy volume with incorrect depth.
+Since our model requires unprojecting optical flow to 3D
+using depth from the static reconstruction to initialize our
+Eulerian motion field, incorrect depth of the water surface
+would make it fail. We hope to leverage monocular depth-
+based SFM tools such as MegaSam[12] as well as physics-
+based modeling of reflections such as [6] combined with our
+method to extend our pipeline to more diverse water scenes.
+
+
+Ours
+x
+t
+w/o Alg. 1
+x
+t
+Ours
+x
+t
+w/o Alg. 1
+x
+t
+(a) GT
+(b) sampled row
+(c) XT slice
+Figure 9. Random start time prevents ”looping artifacts” For
+each scene we fix the camera, advance time for 60 frames (4 peri-
+ods with 15 frames in each period), and stack a single horizontal
+scanline (red, in the sampled-row frames (b)) into an x–t image
+(c); time runs downward. GT (a) is the reference. Without random
+start times (bottom row per scene, “w/o Alg. 1”) the Gaussians
+pulse as one body, resulting in the slice being crossed by horizontal
+bands that span the full width at a single instant at loop boundaries.
+With random start times (top row per scene, “Ours”) water parti-
+cles spread stochastically across loops. Per-frame metrics barely
+register this (−0.19 dB PSNR), while FVD rises significantly.
+L = 15
+L = 25
+L = 35
+t = 1
+t = 5
+Figure 10. Effect of changing cycle length L = (15, 25, 35).
+Columns vary the cycle length L; rows show two time steps in
+the loop. It can be observed that L=25 produces better dynamics
+(more variation in the waterfall states) compared to L=15, while
+L=35 results in blurrier overall reconstruction due to worse con-
+vergence.
+We show an example of an early attempt of reconstructing a
+lake scene in Fig. 11. Additionally, the constant assumption
+of our current Eulerian motion field limits its capability of
+representing stochastic and time-varying motion. We hope
+to extend our Eulerian motion field to be able to model time-
+varying motion by initializing a time-varying Eulerian mo-
+tion field from a static one, and we show preliminary results
+of this on reconstructing fire in Fig. 11.
+Figure 11.
+Extensions.
+With the help of SFM tools such as
+MegaSam [12], our method can be extended to reconstruct mo-
+tion of water surfaces, e.g., lakes. We also demonstrate that our
+Eulerian motion field can represent other media such as fire by ex-
+tending it to a time-varying model.
+Conclusion
+This paper proposes a novel pipeline to re-
+construct and animate dynamics of water sceneries from a
+casual monocular video by learning a static Eulerian motion
+field that advects Gaussian Splats in a loopable representa-
+tion. Experiments verify the effectiveness of our approach
+in reconstructing such motion over the baselines through
+qualitative and quantitative comparisons.
+
+
+Supplementary Material
+Eulerian Motion Reconstruction for Water Scenery
+A. Overview
+This supplementary material provides additional details and
+results that complement the main paper:
+• Additional implementation details (Sec. B), covering ex-
+perimental setup (Sec. B.1), hyperparameters and archi-
+tecture (Sec. B.2), and dataset capture details (Sec. B.3).
+• Additional ablations and results (Sec. C), including per-
+component reconstruction visualisations (Sec. C.1).
+• User study interface and instructions (Sec. D).
+We strongly encourage the reader to view the accompany-
+ing video results in the supplementary webpage, which best
+convey the reconstructed water dynamics.
+B. Additional Implementation Details
+Here we provide additional implementation details that
+complement the main paper. We elaborate on experimen-
+tal details (Sec. B.1), hyperparameters and architecture
+(Sec. B.2), and dataset capture details (Sec. B.3).
+B.1. Experiment Details
+Water Segmentation Mask
+We use SAM 3 [2] to acquire
+per-frame water segmentation masks.
+Then along static
+Gaussian Splat training we also learn per-Gaussian dy-
+namic probability from the input water segmentation masks
+by rendering the probability into image along with color,
+and supervised using the segmentation masks with binary
+cross-entropy loss; the per-Gaussian dynamic probability
+is thresholded to identify dynamic Gaussians. We use a
+threshold of 0.2.
+The dynamic Gaussians are input into
+the Eulerian motion field V and residual deformation field
+D during training and animation while the static Gaussians
+are not. Dynamic and static Gaussians are concatenated to-
+gether for rendering the output image. We continue refining
+the dynamic mask during the dynamic training stage but up-
+date their values every 10 steps.
+Animation run time.
+Our looping formulation lets us
+reuse per-cycle propagation across all frames of a cycle at
+animation time, so rendering with Alg. 2 is significantly
+faster than with the training-time Alg. 1. Tab. B1 reports
+wall-clock timings on a single A6000 GPU, both for the
+pure deformation pass and end-to-end (deformation + ras-
+terization).
+B.2. Hyperparameters and Architecture
+Eulerian motion field V architecture.
+It’s a triplane
+with resolution of 128 per axis and 12 feature channels. The
+Alg. 1
+Alg. 2
+Speedup
+15 frames (L = 15, 1 cycle)
+Deformation only
+0.673 s (44.88 ms/frame)
+0.224 s (14.93 ms/frame)
+3.01×
+End-to-end (incl. raster)
+0.719 s (47.95 ms/frame)
+0.270 s (17.98 ms/frame)
+2.67×
+450 frames (L = 15, 30 cycles)
+Deformation only
+23.483 s (52.19 ms/frame)
+5.605 s (12.46 ms/frame)
+4.19×
+End-to-end (incl. raster)
+28.232 s (62.74 ms/frame)
+7.072 s (15.72 ms/frame)
+3.99×
+Table B1. Animation run time. Wall-clock time to render 15
+frames (L = 15, 1 cycle) and 450 frames (L = 15, 30 cycles),
+for both the pure deformation pass and end-to-end (deformation +
+rasterization), using the training-time propagation (Alg. 1) versus
+our inference-time propagation (Alg. 2). Reusing per-cycle propa-
+gations across all frames of a cycle yields a ∼3–4× speedup, with
+a larger gain as the number of cycles grows.
+queried features are decoded to a 3-D velocity vector using
+a MLP with width of 64, depth of 2 and a final linear pro-
+jection.
+Residual field D architecture.
+It’s a triplane with reso-
+lution of 128 per axis and 16 feature channels. The queried
+features are decoded to a 52-dimensional vector ( position,
+opacity, color residuals ) using a MLP with width of 128,
+depth of 2, and a final linear projection. In addition to posi-
+tional features, the MLP takes the positional-encoded cycle
+index t and cycle number p concatenated with the positional
+features.
+Optimization
+We use weights of 0.8, 0.2, and 0.001 for
+L1, SSIM, and L2 regularization losses on the respective
+offsets. Additionally, we use a weight of 0.5 for the binary
+cross-entropy loss on the per-Gaussian dynamic probability.
+It takes about 8 hours to train the model on each scene on 8
+A6000 GPUs.
+B.3. Dataset Details
+Here we clarify and provide additional details on the cap-
+tured water scenes used in our experiments.
+Figure B1
+shows one representative frame from each of the seven cap-
+tured water scenes, and Tab. B2 reports per-scene capture
+statistics.
+C. Additional Ablations and Results
+C.1. Component Ablation Visualization
+Figure C2 shows a per-component reconstruction compari-
+son on the acre scene, complementing the track visualiza-
+tion in the main paper (Fig. 8). The full model reconstructs
+
+
+(a) Greenacre Park
+750 frames (660/90)
+7.0 m baseline, 111◦
+(b) Garden
+750 frames (660/90)
+6.8 m baseline, 101◦
+(c) Parley Falls
+750 frames (660/90)
+8.4 m baseline, 83◦
+(d) Creek
+750 frames (660/90)
+3.4 m baseline, 93◦
+(e) Sculpture
+750 frames (660/90)
+10.4 m baseline, 105◦
+(f) Waterstep
+800 frames (710/90)
+12.1 m baseline, 101◦
+(g) Village Park
+750 frames (660/90)
+9.4 m baseline, 160◦
+Figure B1. The seven captured water scenes, each shown at the
+middle frame of its sequence. Captions give the number of frames
+(train/test), the maximum camera baseline, and the maximum rota-
+tion between viewing directions. Every scene is a hand-held fish-
+eye capture rectified to a pinhole camera; test frames are three
+held-out temporal segments per scene.
+the best dynamism of water with all the proposed compo-
+nents. Without initializing the motion field or learning a
+position-based deformation field from scratch converges to
+very small motion (water particles become blurry strands),
+while no non-periodic residual prevents our looping repre-
+Scene
+Frames Train Test Baseline
+Path Rotation Water
+Greenacre Park
+750
+660
+90
+7.0 m 15 m
+111◦
+34%
+Garden
+750
+660
+90
+6.8 m 11 m
+101◦
+39%
+Parley Falls
+750
+660
+90
+8.4 m 17 m
+83◦
+39%
+Creek
+750
+660
+90
+3.4 m 11 m
+93◦
+38%
+Sculpture
+750
+660
+90
+10.4 m 14 m
+105◦
+44%
+Waterstep
+800
+710
+90
+12.1 m 16 m
+101◦
+63%
+Village Park
+750
+660
+90
+9.4 m 17 m
+160◦
+34%
+Table B2. Per-scene capture statistics. Baseline is the maximum
+distance between any two camera centres, Path the total trajectory
+length, Rotation the maximum angle between any two optical axes,
+and Water the mean fraction of pixels inside the water mask.
+GT
+Full Model
+No initialization
+No non-periodic
+residual field
+No Eulerian
+motion field
+Figure C2. Component ablations. Our full model reconstructs
+the best dynamism of water with all the proposed components.
+Without initializing the motion field or learning a position-based
+deformation field from scratch converges to very small motion
+(water particles become blurry strands), while no opacity and color
+deformation prevents our looping representation from fitting to the
+non-looping input video, producing blurry results.
+sentation from fitting to the non-looping input video, pro-
+ducing blurry results.
+D. User Study Details
+Figure D3 shows (a) the instructions presented to each par-
+ticipant at the start of the study and (b) the three forced-
+choice questions asked on each comparison page (one per
+setting: appearance (fixed-time animation), motion(fixed-
+view animation), reference (reconstruction of held-out test
+frames compared to ground truth)).
+References
+[1] Benjamin Attal, Eliot Laidlaw, Aaron Gokaslan, Changil
+Kim, Christian Richardt, James Tompkin, and Matthew
+O’Toole. T¨orf: Time-of-flight radiance fields for dynamic
+scene view synthesis.
+In Advances in Neural Informa-
+tion Processing Systems (NeurIPS) 34, pages 26289–26301,
+2021. 2
+[2] Nicolas Carion, Laura Gustafson, Yuan-Ting Hu, Shoub-
+hik Debnath, Ronghang Hu, Didac Suris, Chaitanya Ryali,
+Kalyan Vasudev Alwala, Haitham Khedr, Andrew Huang,
+Jie Lei, Tengyu Ma, Baishan Guo, Arpit Kalla, Markus
+Marks, Joseph Greer, Meng Wang, Peize Sun, Roman
+R¨adle, Triantafyllos Afouras, Effrosyni Mavroudi, Kather-
+ine Xu, Tsung-Han Wu, Yu Zhou, Liliane Momeni, Rishi
+Hazra, Shuangrui Ding, Sagar Vaze, Francois Porcher, Feng
+
+
+Li, Siyuan Li, Aishwarya Kamath, Ho Kei Cheng, Piotr
+Doll´ar, Nikhila Ravi, Kate Saenko, Pengchuan Zhang, and
+Christoph Feichtenhofer. SAM 3: Segment anything with
+concepts. arXiv preprint arXiv:2511.16719, 2025. 10
+[3] Kaihua Chen, Tarasha Khurana, and Deva Ramanan. Re-
+construct, inpaint, test-time finetune: Dynamic novel-view
+synthesis from monocular videos. In Advances in Neural In-
+formation Processing Systems (NeurIPS), 2025. 3, 7
+[4] Siming Fan, Jingtan Piao, Chen Qian, Kwan-Yee Lin, and
+Hongsheng Li. Simulating fluids in real-world still images.
+arXiv preprint arXiv:2204.11335, 2022. 2
+[5] Chen Gao, Ayush Saraf, Johannes Kopf, and Jia-Bin Huang.
+Dynamic view synthesis from dynamic monocular video. In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 5712–5721, 2021. 2
+[6] Chen Gao, Yipeng Wang, Changil Kim, Jia-Bin Huang,
+and Johannes Kopf. Planar reflection-aware neural radiance
+fields. In SIGGRAPH Asia 2024 Conference Papers. ACM,
+2024. 8
+[7] Aleksander Holynski, Brian L. Curless, Steven M. Seitz, and
+Richard Szeliski. Animating pictures with eulerian motion
+fields. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 5810–
+5819, 2021. 2
+[8] In-Hwan Jin, Haesoo Choo, Seong-Hun Jeong, Heemoon
+Park, Junghwan Kim, Oh joon Kwon, and Kyeongbo Kong.
+Optimizing 4d gaussians for dynamic scene video from sin-
+gle landscape images. In The Thirteenth International Con-
+ference on Learning Representations (ICLR), 2025. 2
+[9] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia
+Neverova, Andrea Vedaldi, and Christian Rupprecht. Co-
+Tracker: It is better to track together. In European Confer-
+ence on Computer Vision (ECCV), pages 18–35, 2024. 3
+[10] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨uhler,
+and George Drettakis.
+3d gaussian splatting for real-time
+radiance field rendering. ACM Transactions on Graphics, 42
+(4), 2023. 2, 3
+[11] Jiahui Lei, Yijia Weng, Adam Harley, Leonidas Guibas,
+and Kostas Daniilidis.
+Mosca: Dynamic gaussian fusion
+from casual videos via 4d motion scaffolds. arXiv preprint
+arXiv:2405.17421, 2024. 2, 3, 6, 7, 8
+[12] Zhengqi Li, Richard Tucker, Forrester Cole, Qianqian Wang,
+Linyi Jin, Vickie Ye, Angjoo Kanazawa, Aleksander Holyn-
+ski, and Noah Snavely. MegaSaM: Accurate, fast and robust
+structure and motion from casual dynamic videos. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition, 2025. 8, 9
+[13] Jing Liao, Mark Finch, and Hugues Hoppe. Fast computation
+of seamless video loops.
+ACM Transactions on Graphics
+(TOG), 34(6):1–10, 2015. 2
+[14] Zicheng Liao, Neel Joshi, and Hugues Hoppe. Automated
+video looping with progressive dynamism. ACM Transac-
+tions on Graphics (TOG), 32(4):1–10, 2013. 2
+[15] Chenguo Lin, Yuchen Lin, Panwang Pan, Yifan Yu, Tao
+Hu, Honglei Yan, Katerina Fragkiadaki, and Yadong Mu.
+MoVieS: Motion-aware 4d dynamic view synthesis in one
+second.
+In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), 2026. 3,
+6, 7
+[16] Chieh Hubert Lin, Zhaoyang Lv, Songyin Wu, Zhen Xu,
+Thu Nguyen-Phuoc, Hung-Yu Tseng, Julian Straub, Numair
+Khan, Lei Xiao, Ming-Hsuan Yang, Yuheng Ren, Richard
+Newcombe, Zhao Dong, and Zhengqin Li. DGS-LRM: Real-
+time deformable 3d gaussian reconstruction from monocular
+videos. In Advances in Neural Information Processing Sys-
+tems (NeurIPS), 2025. 3
+[17] Kuan Heng Lin, Zhizheng Liu, Pablo Salamanca, Yash
+Kant, Ryan Burgert, Yuancheng Xu, Koichi Namekata, Yi-
+wei Zhao, Bolei Zhou, Micah Goldblum, Paul Debevec, and
+Ning Yu. Vista4d: Video reshooting with 4d point clouds.
+In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2026. Highlight. 3
+[18] Yehonathan Litman, Xiaoxuan Ma, Manan Shah, Nicol´as
+Ugrinovic, Kris Kitani, Fernando De la Torre, and Shub-
+ham Tulsiani. Lift4D: Harmonizing single-view 3d estima-
+tion for 4d reconstruction in-the-wild. In SIGGRAPH Asia
+2026 Conference Papers, 2026. 6, 7
+[19] Stephen Lombardi,
+Tomas Simon,
+Gabriel Schwartz,
+Michael Zollhoefer, Yaser Sheikh, and Jason Saragih. Mix-
+ture of volumetric primitives for efficient neural rendering.
+ACM Transactions on Graphics, 40(4):1–13, 2021. 2
+[20] Li Ma, Xiaoyu Li, Jing Liao, and Pedro V. Sander.
+3d
+video loops from asynchronous input.
+arXiv preprint
+arXiv:2303.05312, 2023. 2
+[21] Ziqiao Ma, Xuweiyi Chen, Shoubin Yu, Sai Bi, Kai Zhang,
+Ziwen Chen, Sihan Xu, Jianing Yang, Zexiang Xu, Kalyan
+Sunkavalli, Mohit Bansal, Joyce Chai, and Hao Tan. 4d-lrm:
+Large space-time reconstruction model from and to any view
+at any time. In Advances in Neural Information Processing
+Systems, 2025. 3
+[22] Aniruddha Mahapatra and Kuldeep Kulkarni. Controllable
+animation of fluid elements in still images. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 3667–3676, 2022. 2
+[23] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik,
+Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. Nerf:
+Representing scenes as neural radiance fields for view syn-
+thesis. In Proceedings of the European Conference on Com-
+puter Vision (ECCV), pages 405–421, 2020. 2
+[24] Henrique Morimitsu.
+Pytorch lightning optical flow.
+https : / / github . com / hmorimitsu / ptlflow,
+2021. 5
+[25] Thomas M¨uller, Alex Evans, Christoph Schied, and Alexan-
+der Keller. Instant neural graphics primitives with a multires-
+olution hash encoding. ACM Trans. Graph., 41(4):102:1–
+102:15, 2022. 2
+[26] Keunhong Park, Utkarsh Sinha, Jonathan T. Barron, Sofien
+Bouaziz, Dan B. Goldman, Steven M. Seitz, and Ricardo
+Martin-Brualla. Nerfies: Deformable neural radiance fields.
+In Proceedings of the IEEE/CVF International Conference
+on Computer Vision (ICCV), 2021. 3
+[27] Keunhong Park, Utkarsh Sinha, Peter Hedman, Jonathan T.
+Barron, Sofien Bouaziz, Dan B. Goldman, Ricardo Martin-
+Brualla, and Steven M. Seitz.
+Hypernerf:
+A higher-
+dimensional representation for topologically varying neural
+
+
+radiance fields. ACM Transactions on Graphics (Proc. SIG-
+GRAPH Asia), 40(6), 2021. 3
+[28] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and
+Francesc Moreno-Noguer. D-NeRF: Neural radiance fields
+for dynamic scenes.
+In Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 10318–10327, 2021. 2
+[29] Jiawei Ren, Kevin Xie, Ashkan Mirzaei, Hanxue Liang, Xi-
+aohui Zeng, Karsten Kreis, Ziwei Liu, Antonio Torralba,
+Sanja Fidler, Seung Wook Kim, and Huan Ling.
+L4gm:
+Large 4d gaussian reconstruction model.
+In Advances in
+Neural Information Processing Systems, 2024. 3
+[30] Samuel Rota Bul`o, Nemanja Bartolovic, Lorenzo Porzi, and
+Peter Kontschieder. Hardware-rasterized ray-based gaussian
+splatting. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), 2025. 5
+[31] Arno Sch¨odl, Richard Szeliski, David H. Salesin, and Irfan
+Essa. Video textures. In Proceedings of the 27th Annual Con-
+ference on Computer Graphics and Interactive Techniques
+(SIGGRAPH), pages 489–498. ACM Press/Addison-Wesley
+Publishing Co., 2000. 2
+[32] Johannes
+Lutz
+Sch¨onberger
+and
+Jan-Michael
+Frahm.
+Structure-from-motion revisited.
+In Conference on Com-
+puter Vision and Pattern Recognition (CVPR), 2016. 5
+[33] Aarrushi Shandilya, Benjamin Attal, Christian Richardt,
+James Tompkin, and Matthew O’Toole.
+Neural fields for
+structured lighting. In Proceedings of the IEEE/CVF Inter-
+national Conference on Computer Vision (ICCV), 2023. 2
+[34] Meng-Li Shih, Jia-Bin Huang, Changil Kim, Rajvi Shah, Jo-
+hannes Kopf, and Chen Gao. Modeling ambient scene dy-
+namics for free-view synthesis. In Proceedings of the ACM
+SIGGRAPH Conference Papers ’24, 2024. 3, 6, 7, 8
+[35] Theo Thonat, Yagiz Aksoy, Miika Aittala, Sylvain Paris,
+Fr´edo Durand, and George Drettakis. Video-based rendering
+of dynamic stationary environments from unsynchronized
+inputs. Computer Graphics Forum, 40(4):73–86, 2021. 2
+[36] Edgar Tretschk, Ayush Tewari, Vladislav Golyanik, Michael
+Zollh¨ofer, Christoph Lassner, and Christian Theobalt. Non-
+rigid neural radiance fields: Reconstruction and novel view
+synthesis of a dynamic scene from monocular video.
+In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 12959–12970, 2021. 3
+[37] Qianqian Wang, Zhengqi Li, David Salesin, Noah Snavely,
+Brian Curless, and Janne Kontkanen. 3d moments from near-
+duplicate photos. In Proceedings of the IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition (CVPR),
+pages 3906–3915, 2022. 2
+[38] Qianqian Wang, Vickie Ye, Hang Gao, Weijia Zeng, Jake
+Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of mo-
+tion: 4d reconstruction from a single video. In International
+Conference on Computer Vision (ICCV), 2025. 2, 3
+[39] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng
+Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang.
+4d gaussian splatting for real-time dynamic scene render-
+ing. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 20310–
+20320, 2024. 2, 6, 7, 8
+[40] Yiming Xie, Chun-Han Yao, Vikram Voleti, Huaizu Jiang,
+and Varun Jampani.
+Sv4d: Dynamic 3d content genera-
+tion with multi-frame and multi-view consistency.
+In In-
+ternational Conference on Learning Representations (ICLR),
+2025. 7
+[41] Zhen Xu, Zhengqin Li, Zhao Dong, Xiaowei Zhou, Richard
+Newcombe, and Zhaoyang Lv. 4dgt: Learning a 4d gaussian
+transformer using real-world monocular videos. In Advances
+in Neural Information Processing Systems, 2025. 3
+[42] Lihe Yang, Bingyi Kang, Zilong Huang, Zhen Zhao, Xiao-
+gang Xu, Jiashi Feng, and Hengshuang Zhao. Depth any-
+thing v2. arXiv preprint arXiv:2406.09414, 2024. 3
+[43] Mark Yu, Wenbo Hu, Jinbo Xing, and Ying Shan.
+Tra-
+jectorycrafter: Redirecting camera trajectory for monocu-
+lar videos via diffusion models.
+In Proceedings of the
+IEEE/CVF International Conference on Computer Vision
+(ICCV), 2025. arXiv:2503.05638. 3
+[44] Tinghui Zhou, Richard Tucker, John Flynn, Graham Fyffe,
+and Noah Snavely.
+Stereo magnification: Learning view
+synthesis using multiplane images. ACM Transactions on
+Graphics (Proc. SIGGRAPH), 37(4), 2018. 2
+[45] Zi-Xin Zou, Zhipeng Yu, Yuan-Chen Guo, Yangguang Li,
+Ding Liang, Yan-Pei Cao, and Song-Hai Zhang. Triplane
+meets gaussian splatting: Fast and generalizable single-view
+3d reconstruction with transformers.
+In Proceedings of
+the IEEE/CVF conference on computer vision and pattern
+recognition, pages 10324–10335, 2024. 5
+
+
+(a) Instructions. Text shown to each of the 25 participants at the start of the study.
+(b) Questions. The three forced-choice questions asked on every comparison page, one per setting (Appearance, Motion, Reference).
+Figure D3. User-study interface. (a) instructions shown at the start of the study and (b) forced-choice questions asked on every comparison
+page.
