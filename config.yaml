@@ -25,3 +25,152 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
+  intent_profiles:
+    - tag: dr
+      description: 帮我查找动态三维重建的论文
+      enabled: true
+      paper_sources:
+        - arxiv
+      keywords:
+        - keyword: 4D reconstruction
+          keyword_cn: 四维重建
+          query: four-dimensional reconstruction of dynamic geometry over time
+        - keyword: 3dgs
+          keyword_cn: ''
+          query: '3'
+        - keyword: vggt
+          keyword_cn: ''
+          query: v
+        - keyword: dynamic 3D reconstruction
+          keyword_cn: 动态三维重建
+          query: reconstructing dynamic three-dimensional scenes from images or sensor data over time
+        - keyword: temporal 3D reconstruction
+          keyword_cn: 时序三维重建
+          query: temporal modeling for three-dimensional reconstruction of moving objects and scenes
+        - keyword: real-time dynamic reconstruction
+          keyword_cn: 实时动态重建
+          query: real-time reconstruction of dynamic 3D objects and scenes
+      intent_queries:
+        - query: papers on dynamic 3D reconstruction that recover time varying geometry from video or sensor sequences
+          query_cn: 从视频或传感器序列中恢复时变几何的动态三维重建论文
+          enabled: true
+          source: manual
+          note: ''
+        - query: methods for non rigid and deformable 3D reconstruction of moving objects
+          query_cn: 运动物体非刚性和可变形三维重建方法
+          enabled: true
+          source: manual
+          note: ''
+        - query: dynamic neural radiance fields and Gaussian splatting for reconstructing dynamic scenes
+          query_cn: 用于动态场景重建的动态神经辐射场和高斯泼溅
+          enabled: true
+          source: manual
+          note: ''
+        - query: real time dynamic scene reconstruction and scene flow estimation from image streams
+          query_cn: 从图像流进行实时动态场景重建和场景流估计
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-10-02T03:25:17.530Z'
+    - tag: spatial-ai
+      description: 帮我查找场景理解、空间智能的论文
+      enabled: true
+      paper_sources:
+        - arxiv
+      keywords:
+        - keyword: spatial intelligence
+          keyword_cn: 空间智能
+          query: spatial intelligence and spatial reasoning
+        - keyword: spatial reasoning
+          keyword_cn: 空间推理
+          query: spatial reasoning and spatial relation inference
+        - keyword: 3D scene understanding
+          keyword_cn: 三维场景理解
+          query: 3D scene understanding and reconstruction
+        - keyword: visual scene understanding
+          keyword_cn: 视觉场景理解
+          query: visual scene understanding from images and videos
+        - keyword: embodied spatial intelligence
+          keyword_cn: 具身空间智能
+          query: embodied spatial intelligence for agents
+        - keyword: spatial perception
+          keyword_cn: 空间感知
+          query: spatial perception and environment modeling
+      intent_queries:
+        - query: papers on scene understanding and spatial intelligence
+          query_cn: 关于场景理解与空间智能的论文
+          enabled: true
+          source: manual
+          note: ''
+        - query: methods for spatial reasoning and scene comprehension
+          query_cn: 空间推理与场景理解的方法
+          enabled: true
+          source: manual
+          note: ''
+        - query: models for 3D scene understanding and spatial perception
+          query_cn: 用于三维场景理解与空间感知的模型
+          enabled: true
+          source: manual
+          note: ''
+        - query: research on embodied spatial intelligence and scene interpretation
+          query_cn: 具身空间智能与场景解释的研究
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-10-02T03:27:23.891Z'
+    - tag: d-world
+      description: 帮我查找3dv、世界模型的论文
+      enabled: true
+      paper_sources:
+        - arxiv
+      keywords:
+        - keyword: world model
+          keyword_cn: 世界模型
+          query: research on world models for model-based planning and reinforcement learning
+        - keyword: 3D reconstruction
+          keyword_cn: 三维重建
+          query: methods for 3D reconstruction from images and point clouds
+        - keyword: 3D generation
+          keyword_cn: 三维生成
+          query: generative models for 3D content creation
+        - keyword: scene representation
+          keyword_cn: 场景表示
+          query: learning scene representations for 3D understanding and rendering
+        - keyword: video prediction
+          keyword_cn: 视频预测
+          query: video prediction and future frame generation
+        - keyword: model-based reinforcement learning
+          keyword_cn: 基于模型的强化学习
+          query: model-based reinforcement learning with learned world models
+      intent_queries:
+        - query: Find recent papers on 3D vision and world models for embodied AI.
+          query_cn: 查找关于具身智能中三维视觉和世界模型的近期论文。
+          enabled: true
+          source: manual
+          note: ''
+        - query: Survey papers on world models and their applications in reinforcement learning and robotics.
+          query_cn: 关于世界模型及其在强化学习和机器人领域应用的综述论文。
+          enabled: true
+          source: manual
+          note: ''
+        - query: Research combining 3D scene generation with world models for autonomous driving.
+          query_cn: 结合三维场景生成与世界模型的自动驾驶研究。
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-10-02T03:28:51.970Z'
+source_backends:
+  arxiv:
+    papers_table: arxiv_papers
+    use_vector_rpc: true
+    vector_rpc: match_arxiv_papers
+    vector_rpc_exact: match_arxiv_papers_exact
+    use_bm25_rpc: true
+    bm25_rpc: match_arxiv_papers_bm25
+    sync_table: arxiv_sync_status
+    sync_success_value: success
+    schema: public
+    kind: supabase
+    enabled: true
+    url: https://lyucdwgefyfbmaiopjbk.supabase.co
+    anon_key: sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq
