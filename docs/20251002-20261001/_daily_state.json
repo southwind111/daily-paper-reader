@@ -1,10 +1,26 @@
 {
   "date": "20251002-20261001",
   "date_label": "2025-10-02 ～ 2026-10-01",
-  "generated_at": "2026-10-02T03:48:45.801196+00:00",
+  "generated_at": "2026-10-02T07:04:56.879542+00:00",
   "recommend_exists": true,
   "run_count": 1,
   "papers": [
+    {
+      "paper_id": "2511.13719v4",
+      "route": "20251002-20261001/2511.13719v4",
+      "title": "Scaling Spatial Intelligence with Multimodal Foundation Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "面向空间智能专题，提供多模态基础模型规模化训练与多基准评测，并公开模型。",
+      "first_seen_at": "2026-10-02T07:04:50.735686+00:00",
+      "updated_at": "2026-10-02T07:04:50.735686+00:00"
+    },
     {
       "paper_id": "2605.12090v1",
       "route": "20251002-20261001/2605.12090v1",
@@ -36,6 +52,1558 @@
       "evidence": "",
       "first_seen_at": "2026-10-02T03:48:44.226713+00:00",
       "updated_at": "2026-10-02T03:48:44.226713+00:00"
+    },
+    {
+      "paper_id": "2609.33518v1",
+      "route": "20251002-20261001/2609.33518v1",
+      "title": "SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.879542+00:00",
+      "updated_at": "2026-10-02T07:04:56.879542+00:00"
+    },
+    {
+      "paper_id": "2609.19554v1",
+      "route": "20251002-20261001/2609.19554v1",
+      "title": "VABench: Measuring Embodied Spatial Intelligence through Visual Demonstrations, Active Perception, and Metric Control",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.800979+00:00",
+      "updated_at": "2026-10-02T07:04:56.800979+00:00"
+    },
+    {
+      "paper_id": "2609.07064v1",
+      "route": "20251002-20261001/2609.07064v1",
+      "title": "SpatialBlock: Enhancing Spatial Intelligence in LVLMs via Synthetic Block-Stacking Problem",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.719960+00:00",
+      "updated_at": "2026-10-02T07:04:56.719960+00:00"
+    },
+    {
+      "paper_id": "2609.03892v1",
+      "route": "20251002-20261001/2609.03892v1",
+      "title": "GraFT: A Training-Free Framework for Spatial Reasoning in Multimodal Large Language Models via 3D Scene Graphs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.642059+00:00",
+      "updated_at": "2026-10-02T07:04:56.642059+00:00"
+    },
+    {
+      "paper_id": "2608.22757v1",
+      "route": "20251002-20261001/2608.22757v1",
+      "title": "Object-Uni: A Unified Model for Object-Centric Spatial Understanding and Controllable Generation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.564567+00:00",
+      "updated_at": "2026-10-02T07:04:56.564567+00:00"
+    },
+    {
+      "paper_id": "2608.15788v1",
+      "route": "20251002-20261001/2608.15788v1",
+      "title": "ChainSpace: A Chained-Reasoning Paradigm for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.486777+00:00",
+      "updated_at": "2026-10-02T07:04:56.486777+00:00"
+    },
+    {
+      "paper_id": "2608.14138v1",
+      "route": "20251002-20261001/2608.14138v1",
+      "title": "SPARGen: Unifying Spatial Perception and Reasoning through Native Multimodal Generation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.409783+00:00",
+      "updated_at": "2026-10-02T07:04:56.409783+00:00"
+    },
+    {
+      "paper_id": "2608.12743v1",
+      "route": "20251002-20261001/2608.12743v1",
+      "title": "Spatial Memory Agent: Experience-Grounded Procedure Memory for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.333178+00:00",
+      "updated_at": "2026-10-02T07:04:56.333178+00:00"
+    },
+    {
+      "paper_id": "2608.10278v1",
+      "route": "20251002-20261001/2608.10278v1",
+      "title": "Chain of Spatial Thoughts: Modality-Agnostic Spatial Grounding for Vision Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.255846+00:00",
+      "updated_at": "2026-10-02T07:04:56.255846+00:00"
+    },
+    {
+      "paper_id": "2608.05747v1",
+      "route": "20251002-20261001/2608.05747v1",
+      "title": "GST-Bench: Can VLMs Develop Global Spatial Awareness from Video?",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.179785+00:00",
+      "updated_at": "2026-10-02T07:04:56.179785+00:00"
+    },
+    {
+      "paper_id": "2608.05242v2",
+      "route": "20251002-20261001/2608.05242v2",
+      "title": "Disentangling 3D Modeling from Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.103562+00:00",
+      "updated_at": "2026-10-02T07:04:56.103562+00:00"
+    },
+    {
+      "paper_id": "2608.01899v1",
+      "route": "20251002-20261001/2608.01899v1",
+      "title": "SpatioLM: Towards General Physical Spatial Intelligence in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:56.028315+00:00",
+      "updated_at": "2026-10-02T07:04:56.028315+00:00"
+    },
+    {
+      "paper_id": "2608.01709v1",
+      "route": "20251002-20261001/2608.01709v1",
+      "title": "SpatialQuery: Benchmarking Geometry-Grounded Multi-Instance Spatial Reasoning in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.953109+00:00",
+      "updated_at": "2026-10-02T07:04:55.953109+00:00"
+    },
+    {
+      "paper_id": "2607.22864v1",
+      "route": "20251002-20261001/2607.22864v1",
+      "title": "Spatial-IQ: Deconstructing Spatial Intelligence via Hierarchical Capability Tests",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.877251+00:00",
+      "updated_at": "2026-10-02T07:04:55.877251+00:00"
+    },
+    {
+      "paper_id": "2607.19228v1",
+      "route": "20251002-20261001/2607.19228v1",
+      "title": "IGGT4D: Streaming 4D Instance-Grounded Geometry Transformer",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.801939+00:00",
+      "updated_at": "2026-10-02T07:04:55.801939+00:00"
+    },
+    {
+      "paper_id": "2607.13454v2",
+      "route": "20251002-20261001/2607.13454v2",
+      "title": "GeoAnchor: Collaborative Reasoning via Latent Decomposition for 3D Spatial Understanding",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.727205+00:00",
+      "updated_at": "2026-10-02T07:04:55.727205+00:00"
+    },
+    {
+      "paper_id": "2607.01784v1",
+      "route": "20251002-20261001/2607.01784v1",
+      "title": "SpaceEra++: A Unified Framework Towards 3D Spatial Reasoning in Video",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.652941+00:00",
+      "updated_at": "2026-10-02T07:04:55.652941+00:00"
+    },
+    {
+      "paper_id": "2607.00881v1",
+      "route": "20251002-20261001/2607.00881v1",
+      "title": "OmniView-Space: Reinforcing Spatial Reasoning via Multi-Perspective Spatial Mapping",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.579640+00:00",
+      "updated_at": "2026-10-02T07:04:55.579640+00:00"
+    },
+    {
+      "paper_id": "2606.26535v1",
+      "route": "20251002-20261001/2606.26535v1",
+      "title": "From Hallucination to Grounding: Diagnosing Visual Spatial Intelligence via CRISP",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.505785+00:00",
+      "updated_at": "2026-10-02T07:04:55.505785+00:00"
+    },
+    {
+      "paper_id": "2606.20515v3",
+      "route": "20251002-20261001/2606.20515v3",
+      "title": "S-Agent: Spatial Tool-Use Elicits Reasoning for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.432774+00:00",
+      "updated_at": "2026-10-02T07:04:55.432774+00:00"
+    },
+    {
+      "paper_id": "2606.19915v1",
+      "route": "20251002-20261001/2606.19915v1",
+      "title": "SpatialSV: Internalizing Interpretable 3D Spatial Awareness in MLLMs via Task-Oriented Visual Supervision",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.359438+00:00",
+      "updated_at": "2026-10-02T07:04:55.359438+00:00"
+    },
+    {
+      "paper_id": "2606.19253v1",
+      "route": "20251002-20261001/2606.19253v1",
+      "title": "OneCanvas: 3D Scene Understanding via Panoramic Reprojection",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.286958+00:00",
+      "updated_at": "2026-10-02T07:04:55.286958+00:00"
+    },
+    {
+      "paper_id": "2606.15200v1",
+      "route": "20251002-20261001/2606.15200v1",
+      "title": "Keep It in Mind: User Centric Continual Spatial Intelligence Reasoning in Egocentric Video Streams",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.214978+00:00",
+      "updated_at": "2026-10-02T07:04:55.214978+00:00"
+    },
+    {
+      "paper_id": "2606.12830v1",
+      "route": "20251002-20261001/2606.12830v1",
+      "title": "Perceive, Interact, Reason: Building Tool-Augmented Visual Agents for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.143860+00:00",
+      "updated_at": "2026-10-02T07:04:55.143860+00:00"
+    },
+    {
+      "paper_id": "2606.11719v2",
+      "route": "20251002-20261001/2606.11719v2",
+      "title": "Ouroboros-Spatial: Closing the Data-Model Loop for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:55.062856+00:00",
+      "updated_at": "2026-10-02T07:04:55.062856+00:00"
+    },
+    {
+      "paper_id": "2606.10401v2",
+      "route": "20251002-20261001/2606.10401v2",
+      "title": "CoCoSI: Collaborative Cognitive Map Construction for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.991322+00:00",
+      "updated_at": "2026-10-02T07:04:54.991322+00:00"
+    },
+    {
+      "paper_id": "2606.08952v1",
+      "route": "20251002-20261001/2606.08952v1",
+      "title": "AlloSpatial: Agentic Harness Framework for Spatial Reasoning in Foundation Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.921074+00:00",
+      "updated_at": "2026-10-02T07:04:54.921074+00:00"
+    },
+    {
+      "paper_id": "2606.05833v2",
+      "route": "20251002-20261001/2606.05833v2",
+      "title": "Learning Geometric Representations from Videos for Spatial Intelligent Multimodal Large Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.850835+00:00",
+      "updated_at": "2026-10-02T07:04:54.850835+00:00"
+    },
+    {
+      "paper_id": "2606.04381v1",
+      "route": "20251002-20261001/2606.04381v1",
+      "title": "From Symbolic to Geometric: Enabling Spatial Reasoning in Large Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.780786+00:00",
+      "updated_at": "2026-10-02T07:04:54.780786+00:00"
+    },
+    {
+      "paper_id": "2606.03890v2",
+      "route": "20251002-20261001/2606.03890v2",
+      "title": "OVO-S-Bench: A Hierarchical Benchmark for Streaming Spatial Intelligence in Multimodal LLMs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.711403+00:00",
+      "updated_at": "2026-10-02T07:04:54.711403+00:00"
+    },
+    {
+      "paper_id": "2606.02459v1",
+      "route": "20251002-20261001/2606.02459v1",
+      "title": "Active Exploring like a Pigeon: Reinforcing Spatial Reasoning via Agentic Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.641784+00:00",
+      "updated_at": "2026-10-02T07:04:54.641784+00:00"
+    },
+    {
+      "paper_id": "2605.29074v1",
+      "route": "20251002-20261001/2605.29074v1",
+      "title": "Embodied3DBench: Benchmarking Low-Level Embodied Spatial Intelligence of Vision Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.572799+00:00",
+      "updated_at": "2026-10-02T07:04:54.572799+00:00"
+    },
+    {
+      "paper_id": "2605.28132v1",
+      "route": "20251002-20261001/2605.28132v1",
+      "title": "Which Pretraining Paradigm Better Serves Spatial Intelligence? An Empirical Comparison of Vision-Language and Video Generation Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.504406+00:00",
+      "updated_at": "2026-10-02T07:04:54.504406+00:00"
+    },
+    {
+      "paper_id": "2605.25334v1",
+      "route": "20251002-20261001/2605.25334v1",
+      "title": "Dual-Pathway Geometry-Aware MLLM for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.436285+00:00",
+      "updated_at": "2026-10-02T07:04:54.436285+00:00"
+    },
+    {
+      "paper_id": "2605.22536v2",
+      "route": "20251002-20261001/2605.22536v2",
+      "title": "SpaceDG: Benchmarking Spatial Intelligence under Visual Degradation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.368478+00:00",
+      "updated_at": "2026-10-02T07:04:54.368478+00:00"
+    },
+    {
+      "paper_id": "2605.20837v1",
+      "route": "20251002-20261001/2605.20837v1",
+      "title": "ArchSIBench: Benchmarking the Architectural Spatial Intelligence of Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.300478+00:00",
+      "updated_at": "2026-10-02T07:04:54.300478+00:00"
+    },
+    {
+      "paper_id": "2605.18746v2",
+      "route": "20251002-20261001/2605.18746v2",
+      "title": "ESI-Bench: Towards Embodied Spatial Intelligence that Closes the Perception-Action Loop",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.232194+00:00",
+      "updated_at": "2026-10-02T07:04:54.232194+00:00"
+    },
+    {
+      "paper_id": "2605.18621v1",
+      "route": "20251002-20261001/2605.18621v1",
+      "title": "CrossView Suite: Harnessing Cross-view Spatial Intelligence of MLLMs with Dataset, Model and Benchmark",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.165202+00:00",
+      "updated_at": "2026-10-02T07:04:54.165202+00:00"
+    },
+    {
+      "paper_id": "2604.17385v1",
+      "route": "20251002-20261001/2604.17385v1",
+      "title": "SpatialImaginer: Towards Adaptive Visual Imagination for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.098678+00:00",
+      "updated_at": "2026-10-02T07:04:54.098678+00:00"
+    },
+    {
+      "paper_id": "2604.14144v1",
+      "route": "20251002-20261001/2604.14144v1",
+      "title": "SpatialEvo: Self-Evolving Spatial Intelligence via Deterministic Geometric Environments",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:54.032344+00:00",
+      "updated_at": "2026-10-02T07:04:54.032344+00:00"
+    },
+    {
+      "paper_id": "2604.10573v1",
+      "route": "20251002-20261001/2604.10573v1",
+      "title": "Learning 3D Representations for Spatial Intelligence from Unposed Multi-View Images",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.966501+00:00",
+      "updated_at": "2026-10-02T07:04:53.966501+00:00"
+    },
+    {
+      "paper_id": "2604.09712v1",
+      "route": "20251002-20261001/2604.09712v1",
+      "title": "LAST: Leveraging Tools as Hints to Enhance Spatial Reasoning for Multimodal Large Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.900872+00:00",
+      "updated_at": "2026-10-02T07:04:53.900872+00:00"
+    },
+    {
+      "paper_id": "2604.07296v2",
+      "route": "20251002-20261001/2604.07296v2",
+      "title": "OpenSpatial: A Principled Data Engine for Empowering Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.835110+00:00",
+      "updated_at": "2026-10-02T07:04:53.835110+00:00"
+    },
+    {
+      "paper_id": "2604.03318v2",
+      "route": "20251002-20261001/2604.03318v2",
+      "title": "EgoMind: Activating Spatial Cognition through Linguistic Reasoning in MLLMs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.770220+00:00",
+      "updated_at": "2026-10-02T07:04:53.770220+00:00"
+    },
+    {
+      "paper_id": "2603.27967v1",
+      "route": "20251002-20261001/2603.27967v1",
+      "title": "Learning Multi-View Spatial Reasoning from Cross-View Relations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.705232+00:00",
+      "updated_at": "2026-10-02T07:04:53.705232+00:00"
+    },
+    {
+      "paper_id": "2603.27437v3",
+      "route": "20251002-20261001/2603.27437v3",
+      "title": "SpatialStack: Layered Geometry-Language Fusion for 3D VLM Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.640876+00:00",
+      "updated_at": "2026-10-02T07:04:53.640876+00:00"
+    },
+    {
+      "paper_id": "2603.25411v1",
+      "route": "20251002-20261001/2603.25411v1",
+      "title": "HiSpatial: Taming Hierarchical 3D Spatial Understanding in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.576719+00:00",
+      "updated_at": "2026-10-02T07:04:53.576719+00:00"
+    },
+    {
+      "paper_id": "2603.23404v2",
+      "route": "20251002-20261001/2603.23404v2",
+      "title": "Unleashing Spatial Reasoning in Multimodal Large Language Models via Textual Representation Guided Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.512808+00:00",
+      "updated_at": "2026-10-02T07:04:53.512808+00:00"
+    },
+    {
+      "paper_id": "2603.20662v1",
+      "route": "20251002-20261001/2603.20662v1",
+      "title": "Attention in Space: Functional Roles of VLM Heads for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.449240+00:00",
+      "updated_at": "2026-10-02T07:04:53.449240+00:00"
+    },
+    {
+      "paper_id": "2603.18892v2",
+      "route": "20251002-20261001/2603.18892v2",
+      "title": "MultihopSpatial: Multi-hop Compositional Spatial Reasoning Benchmark for Vision-Language Model",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.386652+00:00",
+      "updated_at": "2026-10-02T07:04:53.386652+00:00"
+    },
+    {
+      "paper_id": "2603.15386v1",
+      "route": "20251002-20261001/2603.15386v1",
+      "title": "RieMind: Geometry-Grounded Spatial Agent for Scene Understanding",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.323683+00:00",
+      "updated_at": "2026-10-02T07:04:53.323683+00:00"
+    },
+    {
+      "paper_id": "2603.13033v1",
+      "route": "20251002-20261001/2603.13033v1",
+      "title": "ESPIRE: A Diagnostic Benchmark for Embodied Spatial Reasoning of Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.261271+00:00",
+      "updated_at": "2026-10-02T07:04:53.261271+00:00"
+    },
+    {
+      "paper_id": "2603.12255v1",
+      "route": "20251002-20261001/2603.12255v1",
+      "title": "Spatial-TTT: Streaming Visual-based Spatial Intelligence with Test-Time Training",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.199380+00:00",
+      "updated_at": "2026-10-02T07:04:53.199380+00:00"
+    },
+    {
+      "paper_id": "2603.09774v1",
+      "route": "20251002-20261001/2603.09774v1",
+      "title": "World2Mind: Cognition Toolkit for Allocentric Spatial Reasoning in Foundation Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.137796+00:00",
+      "updated_at": "2026-10-02T07:04:53.137796+00:00"
+    },
+    {
+      "paper_id": "2603.08592v2",
+      "route": "20251002-20261001/2603.08592v2",
+      "title": "Boosting MLLM Spatial Reasoning with Geometrically Referenced 3D Scene Representations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.076257+00:00",
+      "updated_at": "2026-10-02T07:04:53.076257+00:00"
+    },
+    {
+      "paper_id": "2603.07751v2",
+      "route": "20251002-20261001/2603.07751v2",
+      "title": "3ViewSense: Spatial and Mental Perspective Reasoning from Orthographic Views in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:53.015636+00:00",
+      "updated_at": "2026-10-02T07:04:53.015636+00:00"
+    },
+    {
+      "paper_id": "2603.06704v1",
+      "route": "20251002-20261001/2603.06704v1",
+      "title": "On the Generalization Capacities of MLLMs for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.954871+00:00",
+      "updated_at": "2026-10-02T07:04:52.954871+00:00"
+    },
+    {
+      "paper_id": "2603.00409v1",
+      "route": "20251002-20261001/2603.00409v1",
+      "title": "SSR: Pushing the Limit of Spatial Intelligence with Structured Scene Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.893133+00:00",
+      "updated_at": "2026-10-02T07:04:52.893133+00:00"
+    },
+    {
+      "paper_id": "2602.21186v2",
+      "route": "20251002-20261001/2602.21186v2",
+      "title": "Spa3R: Predictive Spatial Field Modeling for 3D Visual Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.832814+00:00",
+      "updated_at": "2026-10-02T07:04:52.832814+00:00"
+    },
+    {
+      "paper_id": "2602.07864v2",
+      "route": "20251002-20261001/2602.07864v2",
+      "title": "Thinking in Structures: Evaluating Spatial Intelligence in Constraint-Governed Spaces",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.772918+00:00",
+      "updated_at": "2026-10-02T07:04:52.772918+00:00"
+    },
+    {
+      "paper_id": "2602.07082v1",
+      "route": "20251002-20261001/2602.07082v1",
+      "title": "MosaicThinker: On-Device Visual Spatial Reasoning for Embodied AI via Iterative Construction of Space Representation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.713468+00:00",
+      "updated_at": "2026-10-02T07:04:52.713468+00:00"
+    },
+    {
+      "paper_id": "2602.06037v5",
+      "route": "20251002-20261001/2602.06037v5",
+      "title": "Thinking with Geometry: Active Geometry Integration for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.654348+00:00",
+      "updated_at": "2026-10-02T07:04:52.654348+00:00"
+    },
+    {
+      "paper_id": "2602.01644v1",
+      "route": "20251002-20261001/2602.01644v1",
+      "title": "From Perception to Action: Spatial AI Agents and World Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.595584+00:00",
+      "updated_at": "2026-10-02T07:04:52.595584+00:00"
+    },
+    {
+      "paper_id": "2601.06496v1",
+      "route": "20251002-20261001/2601.06496v1",
+      "title": "3D CoCa v2: Contrastive Learners with Test-Time Search for Generalizable Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.536881+00:00",
+      "updated_at": "2026-10-02T07:04:52.536881+00:00"
+    },
+    {
+      "paper_id": "2601.01984v1",
+      "route": "20251002-20261001/2601.01984v1",
+      "title": "Thinking with Blueprints: Assisting Vision-Language Models in Spatial Reasoning via Structured Object Representation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.478972+00:00",
+      "updated_at": "2026-10-02T07:04:52.478972+00:00"
+    },
+    {
+      "paper_id": "2601.00092v2",
+      "route": "20251002-20261001/2601.00092v2",
+      "title": "Spatial4D-Bench: A Versatile 4D Spatial Intelligence Benchmark",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.421436+00:00",
+      "updated_at": "2026-10-02T07:04:52.421436+00:00"
+    },
+    {
+      "paper_id": "2512.23365v4",
+      "route": "20251002-20261001/2512.23365v4",
+      "title": "SpatialMosaic: A Multiview VLM Dataset for Partial Visibility",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.363912+00:00",
+      "updated_at": "2026-10-02T07:04:52.363912+00:00"
+    },
+    {
+      "paper_id": "2512.20557v1",
+      "route": "20251002-20261001/2512.20557v1",
+      "title": "Learning to Reason in 4D: Dynamic Spatial Understanding for Vision Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.306654+00:00",
+      "updated_at": "2026-10-02T07:04:52.306654+00:00"
+    },
+    {
+      "paper_id": "2512.19683v2",
+      "route": "20251002-20261001/2512.19683v2",
+      "title": "From Indoor to Open World: Revealing the Spatial Reasoning Gap in MLLMs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.249720+00:00",
+      "updated_at": "2026-10-02T07:04:52.249720+00:00"
+    },
+    {
+      "paper_id": "2512.16461v1",
+      "route": "20251002-20261001/2512.16461v1",
+      "title": "SNOW: Spatio-Temporal Scene Understanding with World Knowledge for Open-World Embodied Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.193414+00:00",
+      "updated_at": "2026-10-02T07:04:52.193414+00:00"
+    },
+    {
+      "paper_id": "2512.16237v1",
+      "route": "20251002-20261001/2512.16237v1",
+      "title": "Scaling Spatial Reasoning in MLLMs through Programmatic Data Synthesis",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.137342+00:00",
+      "updated_at": "2026-10-02T07:04:52.137342+00:00"
+    },
+    {
+      "paper_id": "2512.15160v2",
+      "route": "20251002-20261001/2512.15160v2",
+      "title": "EagleVision: A Dual-Stage Framework with BEV-grounding-based Chain-of-Thought for Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.081709+00:00",
+      "updated_at": "2026-10-02T07:04:52.081709+00:00"
+    },
+    {
+      "paper_id": "2512.10863v1",
+      "route": "20251002-20261001/2512.10863v1",
+      "title": "MMSI-Video-Bench: A Holistic Benchmark for Video-Based Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:52.026492+00:00",
+      "updated_at": "2026-10-02T07:04:52.026492+00:00"
+    },
+    {
+      "paper_id": "2512.08135v1",
+      "route": "20251002-20261001/2512.08135v1",
+      "title": "CVP: Central-Peripheral Vision-Inspired Multimodal Model for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.971705+00:00",
+      "updated_at": "2026-10-02T07:04:51.971705+00:00"
+    },
+    {
+      "paper_id": "2512.04563v2",
+      "route": "20251002-20261001/2512.04563v2",
+      "title": "COOPER: A Unified Model for Cooperative Perception and Reasoning in Spatial Intelligence",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.916708+00:00",
+      "updated_at": "2026-10-02T07:04:51.916708+00:00"
+    },
+    {
+      "paper_id": "2512.03284v1",
+      "route": "20251002-20261001/2512.03284v1",
+      "title": "SpatialReasoner: Active Perception for Large-Scale 3D Scene Understanding",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.861982+00:00",
+      "updated_at": "2026-10-02T07:04:51.861982+00:00"
+    },
+    {
+      "paper_id": "2512.02340v1",
+      "route": "20251002-20261001/2512.02340v1",
+      "title": "Reasoning Path and Latent State Analysis for Multi-view Visual Spatial Reasoning: A Cognitive Science Perspective",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.808101+00:00",
+      "updated_at": "2026-10-02T07:04:51.808101+00:00"
+    },
+    {
+      "paper_id": "2512.01821v2",
+      "route": "20251002-20261001/2512.01821v2",
+      "title": "Seeing through Imagination: Learning Scene Geometry via Implicit Spatial World Modeling",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.752466+00:00",
+      "updated_at": "2026-10-02T07:04:51.752466+00:00"
+    },
+    {
+      "paper_id": "2512.00736v1",
+      "route": "20251002-20261001/2512.00736v1",
+      "title": "REM: Evaluating LLM Embodied Spatial Reasoning through Multi-Frame Trajectories",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.699369+00:00",
+      "updated_at": "2026-10-02T07:04:51.699369+00:00"
+    },
+    {
+      "paper_id": "2511.21688v2",
+      "route": "20251002-20261001/2511.21688v2",
+      "title": "G$^2$VLM: Geometry Grounded Vision Language Model with Unified 3D Reconstruction and Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.646071+00:00",
+      "updated_at": "2026-10-02T07:04:51.646071+00:00"
+    },
+    {
+      "paper_id": "2511.21471v4",
+      "route": "20251002-20261001/2511.21471v4",
+      "title": "SpatialBench: Benchmarking Multimodal Large Language Models for Spatial Cognition",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.593427+00:00",
+      "updated_at": "2026-10-02T07:04:51.593427+00:00"
+    },
+    {
+      "paper_id": "2511.20644v2",
+      "route": "20251002-20261001/2511.20644v2",
+      "title": "Vision-Language Memory for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.541151+00:00",
+      "updated_at": "2026-10-02T07:04:51.541151+00:00"
+    },
+    {
+      "paper_id": "2511.19119v2",
+      "route": "20251002-20261001/2511.19119v2",
+      "title": "MonoSR: Open-Vocabulary Spatial Reasoning from Monocular Images",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.488950+00:00",
+      "updated_at": "2026-10-02T07:04:51.488950+00:00"
+    },
+    {
+      "paper_id": "2511.16160v2",
+      "route": "20251002-20261001/2511.16160v2",
+      "title": "Video2Layout: Recall and Reconstruct Metric-Grounded Cognitive Map for Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.437447+00:00",
+      "updated_at": "2026-10-02T07:04:51.437447+00:00"
+    },
+    {
+      "paper_id": "2511.13782v1",
+      "route": "20251002-20261001/2511.13782v1",
+      "title": "Imagine in Space: Exploring the Frontier of Spatial Intelligence and Reasoning Efficiency in Vision Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.385895+00:00",
+      "updated_at": "2026-10-02T07:04:51.385895+00:00"
+    },
+    {
+      "paper_id": "2511.11239v2",
+      "route": "20251002-20261001/2511.11239v2",
+      "title": "Beyond Flatlands: Unlocking Spatial Intelligence by Decoupling 3D Reasoning from Numerical Regression",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.334616+00:00",
+      "updated_at": "2026-10-02T07:04:51.334616+00:00"
+    },
+    {
+      "paper_id": "2511.10946v3",
+      "route": "20251002-20261001/2511.10946v3",
+      "title": "Abstract 3D Perception for Spatial Intelligence in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.283454+00:00",
+      "updated_at": "2026-10-02T07:04:51.283454+00:00"
+    },
+    {
+      "paper_id": "2511.07403v2",
+      "route": "20251002-20261001/2511.07403v2",
+      "title": "SpatialThinker: Reinforcing Scene Graph-Grounded Spatial Reasoning via Dense Rewards",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "",
+      "first_seen_at": "2026-10-02T07:04:51.233184+00:00",
+      "updated_at": "2026-10-02T07:04:51.233184+00:00"
+    },
+    {
+      "paper_id": "2511.05491v1",
+      "route": "20251002-20261001/2511.05491v1",
+      "title": "Visual Spatial Tuning",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向空间智能专题，提出无需额外编码器的VLM空间调优框架与大规模数据集，提升空间感知与推理。",
+      "first_seen_at": "2026-10-02T07:04:51.183138+00:00",
+      "updated_at": "2026-10-02T07:04:51.183138+00:00"
+    },
+    {
+      "paper_id": "2510.25760v2",
+      "route": "20251002-20261001/2510.25760v2",
+      "title": "Multimodal Spatial Reasoning in the Large Model Era: A Survey and Benchmarks",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "综述多模态大模型空间推理任务并发布开放基准，关联空间智能专题。",
+      "first_seen_at": "2026-10-02T07:04:51.133252+00:00",
+      "updated_at": "2026-10-02T07:04:51.133252+00:00"
+    },
+    {
+      "paper_id": "2510.21160v1",
+      "route": "20251002-20261001/2510.21160v1",
+      "title": "Towards Physics-informed Spatial Intelligence with Human Priors: An Autonomous Driving Pilot Study",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向自动驾驶场景，用网格化物理先验与人类注视提升基础模型空间智能评测。",
+      "first_seen_at": "2026-10-02T07:04:51.083814+00:00",
+      "updated_at": "2026-10-02T07:04:51.083814+00:00"
+    },
+    {
+      "paper_id": "2510.16688v2",
+      "route": "20251002-20261001/2510.16688v2",
+      "title": "Pursuing Minimal Sufficiency in Spatial Reasoning",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向空间推理专题，提出最小充分集与双智能体框架，提升3D语言定位准确率。",
+      "first_seen_at": "2026-10-02T07:04:51.030652+00:00",
+      "updated_at": "2026-10-02T07:04:51.030652+00:00"
+    },
+    {
+      "paper_id": "2510.13800v2",
+      "route": "20251002-20261001/2510.13800v2",
+      "title": "Reasoning in Space via Grounding in the World",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向空间智能专题，探索3D视觉定位与空间推理的统一表示与推理链。",
+      "first_seen_at": "2026-10-02T07:04:50.981841+00:00",
+      "updated_at": "2026-10-02T07:04:50.981841+00:00"
+    },
+    {
+      "paper_id": "2510.13394v4",
+      "route": "20251002-20261001/2510.13394v4",
+      "title": "Spatial-DISE: A Unified Benchmark for Evaluating Spatial Reasoning in Vision-Language Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向空间智能专题，构建VLM空间推理统一基准与训练数据，评测多模型能力差距。",
+      "first_seen_at": "2026-10-02T07:04:50.933448+00:00",
+      "updated_at": "2026-10-02T07:04:50.933448+00:00"
+    },
+    {
+      "paper_id": "2510.08673v2",
+      "route": "20251002-20261001/2510.08673v2",
+      "title": "Thinking with Camera: A Unified Multimodal Model for Camera-Centric Understanding and Generation",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向空间智能专题，提出相机中心统一多模态理解与生成模型，关联空间感知与跨视角任务。",
+      "first_seen_at": "2026-10-02T07:04:50.882963+00:00",
+      "updated_at": "2026-10-02T07:04:50.882963+00:00"
+    },
+    {
+      "paper_id": "2510.08531v1",
+      "route": "20251002-20261001/2510.08531v1",
+      "title": "SpatialLadder: Progressive Training for Spatial Reasoning in Vision-Language Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "该论文为空间智能专题提供渐进式训练与多模态数据集支撑，属邻近参考。",
+      "first_seen_at": "2026-10-02T07:04:50.834956+00:00",
+      "updated_at": "2026-10-02T07:04:50.834956+00:00"
+    },
+    {
+      "paper_id": "2510.08173v2",
+      "route": "20251002-20261001/2510.08173v2",
+      "title": "NavSpace: How Navigation Agents Follow Spatial Intelligence Instructions",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向具身导航空间智能评测，提出NavSpace基准与SNav模型，属空间智能专题。",
+      "first_seen_at": "2026-10-02T07:04:50.786927+00:00",
+      "updated_at": "2026-10-02T07:04:50.786927+00:00"
     },
     {
       "paper_id": "2609.35138v2",
