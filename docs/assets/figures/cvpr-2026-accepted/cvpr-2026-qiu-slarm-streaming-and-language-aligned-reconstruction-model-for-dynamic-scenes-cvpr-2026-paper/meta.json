@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-001.webp",
+      "caption": "",
+      "page": 1,
+      "index": 1,
+      "width": 759,
+      "height": 192
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-002.webp",
+      "caption": "",
+      "page": 1,
+      "index": 2,
+      "width": 660,
+      "height": 891
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-003.webp",
+      "caption": "",
+      "page": 1,
+      "index": 3,
+      "width": 505,
+      "height": 391
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-004.webp",
+      "caption": "",
+      "page": 1,
+      "index": 4,
+      "width": 815,
+      "height": 520
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-005.webp",
+      "caption": "",
+      "page": 1,
+      "index": 5,
+      "width": 505,
+      "height": 394
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-006.webp",
+      "caption": "",
+      "page": 1,
+      "index": 6,
+      "width": 720,
+      "height": 580
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-007.webp",
+      "caption": "",
+      "page": 5,
+      "index": 7,
+      "width": 480,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-008.webp",
+      "caption": "",
+      "page": 6,
+      "index": 8,
+      "width": 962,
+      "height": 532
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-009.webp",
+      "caption": "",
+      "page": 6,
+      "index": 9,
+      "width": 955,
+      "height": 531
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-010.webp",
+      "caption": "",
+      "page": 6,
+      "index": 10,
+      "width": 975,
+      "height": 614
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-011.webp",
+      "caption": "",
+      "page": 8,
+      "index": 11,
+      "width": 480,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-012.webp",
+      "caption": "",
+      "page": 8,
+      "index": 12,
+      "width": 480,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-013.webp",
+      "caption": "",
+      "page": 8,
+      "index": 13,
+      "width": 480,
+      "height": 320
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-qiu-slarm-streaming-and-language-aligned-reconstruction-model-for-dynamic-scenes-cvpr-2026-paper/fig-014.webp",
+      "caption": "",
+      "page": 8,
+      "index": 14,
+      "width": 480,
+      "height": 320
+    }
+  ]
+}

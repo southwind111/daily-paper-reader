@@ -1,0 +1,1194 @@
+LumiMotion: Improving Gaussian Relighting with Scene Dynamics
+Joanna Kaleta1,2*,
+Piotr W´ojcik3,4,5*,
+Kacper Marzol6
+Tomasz Trzci´nski1,7,
+Kacper Kania1,
+Marek Kowalski8
+1Warsaw University of Technology
+2Sano Centre for Computational Medicine
+3Inst. for Biomedical Informatics, Univ. Hospital of Cologne
+4University of Cologne
+5CMMC Cologne
+6Jagiellonian University
+7IDEAS Research Institute
+8Microsoft
+Abstract
+In 3D reconstruction, the problem of inverse rendering,
+namely recovering the illumination of the scene and the
+material properties, is fundamental.
+Existing Gaussian
+Splatting-based methods primarily target static scenes and
+often assume simplified or moderate lighting to avoid entan-
+gling shadows with surface appearance. This limits their
+ability to accurately separate lighting effects from mate-
+rial properties, particularly in real-world conditions. We
+address this limitation by leveraging dynamic elements—
+regions of the scene that undergo motion—as a supervisory
+signal for inverse rendering. Motion reveals the same sur-
+faces under varying lighting conditions, providing stronger
+cues for disentangling material and illumination. This the-
+sis is supported by our experimental results which show we
+improve LPIPS by 23% for albedo estimation and by 15%
+for scene relighting relative to next-best baseline. To this
+end, we introduce LumiMotion, the first Gaussian-based
+approach that leverages dynamics for inverse rendering and
+operates in arbitrary dynamic scenes. Our method learns
+a dynamic 2D Gaussian Splatting representation that em-
+ploys a set of novel constraints which encourage the dy-
+namic regions of the scene to deform, while keeping static
+regions stable. As we demonstrate, this separation is crucial
+for correct optimization of the albedo. Finally, we release
+a new synthetic benchmark comprising five scenes under
+four lighting conditions, each in both static and dynamic
+variants, for the first time enabling systematic evaluation
+of inverse rendering methods in dynamic environments and
+challenging lighting. Link to project page in footnote1.
+1. Introduction
+Inverse rendering - the task of recovering geometry, ma-
+terial properties, and illumination from a set of images of
+a scene - is a fundamental challenge in computer vision
+*Equal contribution
+1https://joaxkal.github.io/LumiMotion/
+Figure 1. Qualitative results for LumiMotion and IRGS [12] on
+a real-world dataset. Note that thanks to modeling the scene dy-
+namics LumiMotion can successfully remove shadows from the
+albedo, leading to improved relighting. IRGS struggles to cor-
+rectly remove shadows from the albedo, and the specular compo-
+nent is not properly optimized. To allow for comparison of Lumi-
+Motion and IRGS in absence of the latter’s specularity estimation
+errors we show some of IRGS results with diffuse component only.
+and graphics [1]. Although methods like Neural Radiance
+Fields [32] and Gaussian Splatting [22] allow for accurately
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+37311
+
+
+representing scene geometry, they represent the color of the
+reconstructed scene as it was observed, including shadows
+and other illumination-dependent effects. This conflation
+of lighting and material means the scene cannot be ren-
+dered under a different illumination (it cannot be relit). This
+limits the applicability of those reconstructions in fields
+such as gaming or film making, which require control over
+illumination.
+Recent works have introduced physically-
+motivated decomposition methods to address this limitation
+[7, 10, 12], though, as shown in Fig. 1, such approaches
+may struggle in real-world scenes with significant direct il-
+lumination.
+We hypothesize that the reason existing methods strug-
+gle is that they operate on static scenes, where the content
+is not moving. This lack of motion means that it is difficult
+to discern between the intrinsic color of objects and the ob-
+served color, which is a function of the incident light. For
+example, when viewing images of static scenes, it may be
+difficult to determine whether a certain part of the scene is
+darker because a shadow is cast on it or because the ma-
+terial itself is dark. Thus, we propose LumiMotion, the
+first Gaussian-based method to perform inverse rendering
+of arbitrary dynamic scenes. Based solely on a video se-
+quence of a scene with dynamic elements, our approach
+reconstructs the scene’s geometry, as well as its material
+properties and illumination. The lighting conditions are as-
+sumed to be static, not known a priori and are inferred as
+part of the training. We leverage the scene dynamics to im-
+prove the quality of the estimated illumination and albedo,
+thereby enhancing the ability to render those scenes under
+novel illumination conditions.
+LumiMotion operates in two stages. In the first stage,
+we jointly learn the static scene geometry and a neural
+network that models the dynamics of the scene including
+changes to shape and color of objects in the scene. The ge-
+ometry is modeled with 2D Gaussian Splats [15] that repre-
+sent the surfaces in the scene with a collection of flat disks.
+A key benefit of this approach over 3D Gaussian Splatting
+or Neural Radiance Fields is that the 2D Gaussians have
+normal vectors associated with them and those are neces-
+sary for our second stage. In the second stage we freeze
+both the geometry and the neural network and proceed to
+inverse rendering. At this point we move away from ren-
+dering the Gaussian color directly and instead we compute
+the color of each Gaussian as a function of its material and
+the incident light that is computed via ray tracing. This al-
+lows for jointly optimizing the material (described jointly
+by albedo and roughness) and the illumination.
+Once we have those parameters, we can relight the scene
+with novel illumination or use the estimated illumination to
+relight other scenes. We demonstrate those abilities quali-
+tatively on real data and quantitatively on a new synthetic
+dataset we created, where the ground truth illumination and
+Table 1. Overview of the representative relightable methods
+and datasets. Existing methods often target static scenes or focus
+on human avatars, assume known lights or require unnatural light-
+ing setup. In contrast, LumiMotion uniquely performs inverse
+rendering of generic dynamic scenes under unknown natural light-
+ing. We also show that none of the available datasets with known
+GT lighting meet the requirements for the tackled setup, which we
+address with our newly released dataset.
+Relightable methods
+Method Name
+Supports
+Dynamics
+Object-
+Agnostic
+Unknown
+Train Light
+Natural
+Train Light
+GS3 [2]
+✗
+✓
+✗
+✗
+R-3DGS [10], GI-GS [7], IR-GS [12]
+✗
+✓
+✓
+✓
+TensorIR [19], NeRFactor [51]
+✗
+✓
+✓
+✓
+Relightable Neural Actor [29]
+✓
+✗
+✗
+✓
+Gaussian Codec Avatars [35] & [38]
+✓
+✗
+✗
+✗
+IntrinsicAvatar [37]
+✓
+✗
+✓
+✓
+Relightable [...] Neural Avatars [48]
+✓
+✗
+✓
+✓
+LumiMotion
+✓
+✓
+✓
+✓
+Relightable datasets
+Dataset Name
+Domain
+Scene Type
+Train Light
+Type
+Static-Dynamic
+Reference
+OLAT [27]
+generic
+static
+OLAT
+✗
+TensoIR [19]
+generic
+static
+natural
+✗
+Synthetic4Relight [52]
+generic
+static
+natural
+✗
+Stanford-ORB [23]
+generic
+static
+natural
+✗
+RANA [17]
+avatars
+dynamic
+natural
+✗
+Codec Avatar Studio [31]
+avatars
+both
+multi-light
+✗
+LumiMotion
+generic
+both
+natural
+✓
+material are known. Please see Fig. 1 for a teaser of the
+results.
+Our contributions can be summarized as follows:
+• First Gaussian-based approach for inverse rendering in
+arbitrary dynamic scenes, achieving better separation of
+material and illumination by leveraging scene dynamics
+as a supervisory signal.
+• A novel set of constraints on the deformation network that
+allows for better separation of static and dynamic parts of
+the scene and for improved modeling of scene geometry
+in time.
+• A new synthetic dataset allowing for comparing the per-
+formance of inverse rendering approaches for static and
+dynamic scenes.
+2. Related Work
+Novel View Synthesis. Novel view synthesis aims to gen-
+erate images of a scene from novel viewpoints using a
+limited set of input observations. Neural Radiance Fields
+(NeRF) [32] marked a breakthrough in novel view synthe-
+sis, offering high quality of view-dependent renderings. De-
+spite their strengths, NeRFs suffer from slow training and
+rendering. Several approaches were made to overcome this
+limitation [5, 11, 33]. Recently, 3D Gaussian Splatting [22]
+proposed representing scenes with a gaussian point cloud
+rendered with a tile-based rasterizer, achieving state-of-the-
+art results with lower computational cost. A series of sub-
+sequent studies tackled a range of challenges, including ed-
+itability [8, 36, 41], realistic modeling of conditioned ap-
+pearance [21, 42], modeling of motion and scene dynam-
+37312
+
+
+ics [16, 28, 40, 44] or improved geometry reconstruction
+[9, 13, 15]. Utilizing disc-like, flat Gaussian primitives in
+2DGS [15] improved surface reconstruction quality while
+well-defined ray-splat intersection provided a straightfor-
+ward foundation for extending the method to various tasks.
+Inverse Rendering. Inverse rendering seeks to decompose
+a scene into its geometry, material properties, and lighting
+effects based on input images. A key challenge lies in the
+inherent ambiguity between observed photometric effects
+and the true material and lighting parameters, often result-
+ing in multiple plausible solutions to the rendering equation.
+At the same time, modeling physical conditions is crucial
+for relighting optimized scenes. To this end, several meth-
+ods have incorporated spatially-varying BRDF parameters
+into neural representations [3, 6, 43, 45, 49]. For example,
+NERD leverages multiview supervision under varying illu-
+mination and employs a path-traced differentiable renderer.
+TensoIR [19] utilizes TensorRF [5] tri-plane representation
+for efficient computation of visibility and indirect lighting
+by ray-tracing.
+More recent methods explore inverse rendering using
+Gaussian Splatting, aiming to optimize material properties
+for each Gaussian. Some approaches focus solely on model-
+ing reflective properties [18, 46, 47], while others utilize the
+full rendering equation, which requires accurate visibility
+estimation. In GS³ [2], occlusions are handled via shadow
+splatting, allowing for fast relighting but limited to OLAT-
+type training data. R3DG [10] employs ray tracing for vis-
+ibility estimation and baking, computing shading individu-
+ally per Gaussian. GI-GS [7], IRGS [12], and GS-IR [25]
+adopt a deferred shading approach: they first rasterize maps
+into a G-buffer, then apply the full rendering equation for
+shading. Notably, IRGS [12] leverages 2DGS with a dif-
+ferentiable ray tracer and addresses the computational over-
+head via stratified relighting in each iteration. Note that all
+of the above models focus on static scenes and thus do not
+leverage information from the scene motion. Other meth-
+ods [14, 24, 35, 38, 48, 53], although designed to handle
+relightable dynamics, are constrained by human-pose priors
+and typically require either known training light conditions
+or access to large datasets with diverse lighting. In con-
+trast to these approaches, our method learns lighting from a
+scene without the need to observe it under multiple illumi-
+nations and with no assumption on object category. Tab. 1
+summarizes the differences between the discussed methods
+and available datasets.
+3. Method
+LumiMotion operates in a two-stage setup.
+In the first
+stage, we perform a 3D reconstruction of the scene. This
+process combines creation of Gaussians with learning a de-
+formation network that models the scene’s dynamics. In the
+second stage, we take the geometry and deformation learned
+in the first stage, which are now frozen, and jointly optimize
+the illumination and material parameters of the scene. An
+overview of our method is presented in Fig. 2.
+3.1. Preliminaries
+2D Gaussian Splatting (2DGS). 2DGS [15] is particularly
+well-suited for view synthesis and relighting, thanks to its
+ability to produce smooth and accurate surface normals.
+2DGS represents a scene as a collection of flat 2D Gaus-
+sians embedded in 3D space. Each Gaussian is defined by
+a central point µ ∈R3, two tangential vectors tu, tv ∈R3
+which define the normal, and two scaling factors su, sv that
+control the spread in the local tangent plane. A 2D Gaussian
+is parameterized as follows:
+G(u, v) = µ + sutuu + svtvv.
+(1)
+For rendering, each disk is projected to screen space via
+a homogeneous transformation. An explicit ray-splat inter-
+section computes the local (u, v) coordinates for each pixel,
+and the projected value is evaluated using a screen-space fil-
+ter. Gaussians are alpha-composited front-to-back based on
+depth ordering to accumulate color per pixel. For more im-
+plementation details, we refer the reader to [15].
+Rendering Equation. In Stage 2 of our pipeline, we relight
+the reconstructed scene under a given illumination. In com-
+puter graphics, the appearance of the surface is governed
+by the classical rendering equation [20], which models the
+interaction between the properties of light and material:
+Lo(x, ωo) =
+Z
+Ω
+fr(ωi, ωo, x)
+ V (ωi, x)Lenv(ωi)
++ Lind(x, ωi)
+
+(ωi·n) dωi,
+(2)
+where Lo(x, ωo) denotes the outgoing radiance at point x in
+direction ωo, fr(ωi, ωo, x) represents the bidirectional re-
+flectance distribution function (BRDF), Lenv(ωi) is the in-
+coming environment radiance from direction ωi, n is the
+surface normal at x, Lind(x, ωi) is the indirect illumination
+term, V (ωi, x) is the visibility of environment light from
+the point x in the direction ωi, and Ωdenotes the hemi-
+sphere oriented around n. The BRDF describes the amount
+of light reflected from direction ωi towards ωo for the mate-
+rial at position x.
+Most inverse rendering tasks aim to decompose and re-
+construct scene components by estimating material prop-
+erties (fr) and environment illumination (Lenv) from ob-
+served images.
+Following the simplified Disney BRDF
+model [4], we parametrize bidirectional reflectance distri-
+bution function with albedo ρ and roughness α. While those
+values change throughout the scene and thus depend on the
+position x we omit the position here for brevity. The final
+BRDF which combines diffuse and specular terms is:
+fr(ωi, ωo)= ρ
+π + D(ρ; α)F(ωo, h; ρ)G(ωi, ωo, h; α)
+4(ωi · n)(ωo · n)
+, (3)
+37313
+
+
+Figure 2. Method overview. In Stage 1, a dynamic representation of 2D Gaussians, tailored for the relighting task, is trained. The
+canonical color from Stage 1 serves as a starting point for albedo and is further optimized in Stage 2, together with roughness and the
+unknown environment map. In Stage 2, we rasterize the albedo, roughness and normal maps, then perform stratified sampling from the
+environment map Lenv and apply ray tracing to compute per-pixel visibility V and indirect light Lind. L1 Loss is computed between the
+rendered pixels and the ground truth pixels.
+where D, F, and G denote the normal distribution function,
+the Fresnel term, and the geometry term, respectively, and
+h =
+ωi+ωo
+∥ωi+ωo∥, for details see [7]. We further assume that
+elements of the scene do not emit light.
+3.2. Stage 1: Dynamic Geometry Learning for Re-
+lighting
+We base our method on 2D Gaussian Splatting (2DGS),
+which provides accurate surface normals that are critical for
+separating illumination from materials. To capture dynamic
+scene changes over time, following classical dynamic scene
+modeling approaches [40, 44], we use a multilayer percep-
+tron (MLP) to predict Gaussian transformations.
+Given a timestep t ∈[0, 1] and the canonical Gaussian
+position µ = (x, y, z), the MLP predicts changes in posi-
+tion ∆µ ∈R3, rotation ∆r ∈R3, and color ∆c ∈R3:
+(∆µ, ∆r, ∆c) = MLP(enc(t), enc(µ)),
+(4)
+where enc(·) denotes positional encoding [32].
+The
+timestep t denotes a moment in time for the dynamic scene
+being modeled. Note that we choose not to model changes
+of opacity or scale of the Gaussians as this would allow the
+MLP to make objects appear and disappear instead of mov-
+ing them through space. This, in turn, would go against our
+main goal, which is to recover illumination and materials
+with the use of motion in the scene.
+Static-dynamic fuzzy separation. To compute the actual
+Gaussian position and rotation at time t, we could sim-
+ply add the predicted deltas to the canonical values. How-
+ever, we notice that accurately modeling element dynamics
+is crucial for correct albedo estimation and can be flawed
+in textureless areas. For example, moving shadows on a
+flat surface can be explained either by color changes or
+by moving/disappearing Gaussians, or a combination of
+both. Importantly, a moving Gaussian representing a mov-
+ing shadow cannot be assigned a stable albedo color in
+Stage 2. Thus, we aim to separate static and dynamic com-
+ponents explicitly in Stage 1.
+To achieve such separation, we introduce an auxiliary
+per-Gaussian variable P that indicates whether the Gaus-
+sian belongs to the static or dynamic group. We sample P
+using a Binary Concrete distribution [30], a continuous re-
+laxation of a Bernoulli distribution that concentrates most
+mass near 0 or 1. The relaxed variable ˜P is defined as:
+˜P = sigmoid
+ 1
+T (log(|P|) + log(U) −log(1 −U))
+
+,
+U ∼Uniform(0, 1).
+(5)
+where T is the temperature hyperparameter. We set T =
+0.5, encouraging a near-binary separation. During infer-
+ence, we fix U = 0.5 to deterministically obtain ˜P.
+The final Gaussian position µ′ and rotation r′ at time t
+37314
+
+
+Figure 3. Qualitative comparison of novel view synthesis, relighting, components and estimated lighting. All renders are shown from
+a novel viewpoint. Our method not only achieves stronger relighting capabilities and effectively removes shadows from albedo, but also
+estimates lighting more accurately. The presented environment map (top shows the map truncated to [0, 1] while bottom shows it scaled so
+that the maximum value is 1) captures the main light direction more accurately and relights new item more realistically than environment
+maps estimated from static baselines. Please zoom in for details.
+are then computed as:
+µ′ = µ + ˜P∆µ,
+r′ = r + ˜P∆r.
+(6)
+This formulation along with the regularization on P ex-
+plained below ensures that dynamic changes are applied se-
+lectively, leading to more accurate modeling of scene ge-
+ometry in time, which is essential for precise relighting and
+material decomposition in the second stage.
+Modeling Temporal Color Variation. Since we focus on
+dynamic scenes under static lighting, we allow Gaussian
+colors to vary over time. We observe that significant color
+changes typically arise from two sources: (i) moving shad-
+ows affecting both static and dynamic elements, and (ii)
+changes in incident illumination on dynamic elements due
+to motion. To model these effects, we define the color at
+time t as:
+c′ = c(1 −∆c),
+(7)
+where c is Gaussian canonical color. We use multiplicative
+change to mimic how light affects surfaces (see Eq. (2)),
+while (1−∆c) allows for applying regularization on exces-
+sive color variation. Such formulation captures effects like
+moving shadows and illumination changes on dynamic ele-
+ments. The canonical color c approximates a pseudo-albedo
+that serves as the initial estimate for material decomposition
+in Stage 2.
+Training Loss. Following 2DGS [15], we apply the recon-
+struction loss Lc, along with normal consistency loss Ln,
+which aligns the rendered normal map with the underlying
+surface geometry, and depth distortion loss Ld, which en-
+courages tight spatial concentration of the Gaussians.
+To handle floating Gaussians, we apply a binary cross-
+entropy loss Lo with respect to the foreground mask M:
+Lo = −M log O −(1 −M) log(1 −O),
+(8)
+where O is per-pixel accumulated gaussian opacity. In ad-
+dition to the above, we introduce losses specific to dynamic
+37315
+
+
+Figure 4. Qualitative evaluation of components for a dynamic scene for different timesteps. LumiMotion maintains consistent
+normals across timesteps, accurately separates static elements, and produces temporally consistent relighting.
+modeling.
+Static-Dynamic Separation Loss LP . To encourage Gaus-
+sians to remain static whenever possible, we apply an L1
+penalty on the dynamic assignment variable P:
+LP = 1
+N
+N
+X
+i=1
+|Pi|,
+(9)
+where Pi is the predicted probability of Gaussian i is dy-
+namic, and N is the number of Gaussians. Minimizing LP
+directly encourages Pi to be close to 0, favoring static rep-
+resentations and reducing unnecessary dynamic modeling.
+Color and Position Change Regularization. To addition-
+ally discourage the model from predicting unnecessary po-
+sition and color changes, we apply L2 regularization on
+both the predicted color and position deltas, defined as
+L∆c = 1
+N
+N
+X
+i=1
+∥∆ci∥2,
+L∆µ = 1
+N
+N
+X
+i=1
+∥∆µi∥2,
+(10)
+penalizing excessive color variation and spatial movement
+of Gaussians.
+Overall Loss. The total loss for the first stage training is
+then:
+L1 = Lc + λnLn + λdLd + λoLo + λP LP
++λ∆cL∆c + λ∆µL∆µ,
+(11)
+where λn, λd, λo, λP , λ∆c, λ∆µ are weighting coefficients.
+Please see supplementary materials for their weights.
+3.3. Stage 2: Inverse Rendering
+In the second stage, we perform inverse rendering to de-
+compose the scene into material properties and environment
+lighting. To model materials, each 2D Gaussian is assigned
+a diffuse albedo ρ that is initialized with the canonical color
+c from the first stage, and roughness α. These properties re-
+main constant for each timestep t. In Stage 2, color changes
+arise solely from the rendering equation, which determines
+Figure 5. LumiMotion on real-world ENeRF scene. The sharp
+shadow cast by the dynamic actor is largely removed from albedo.
+Under novel lighting, the actor appears realistic, casting shadows
+in appropriate locations.
+light–surface interaction and thus the ∆c output of the MLP
+is not used. Environment lighting Lenv is modeled using an
+image where each pixel corresponds to light intensity and
+color from a direction ωi. During Stage 2 we jointly opti-
+mize ρ and α for each Gaussian as well as a single Lenv for
+the whole scene. Further details about optimized parameter
+set and gradient flow are available in supplementary.
+When rendering the scene, similarly to [7, 12], we apply
+the rendering equation after rasterization rather than per-
+Gaussian.
+This approach allows shading effects such as
+shadows to appear at each pixel, rather than being limited
+to per-Gaussian granularity. To obtain per-pixel material
+values we alpha-blend the albedo and roughness attributes
+across Gaussians during rasterization.
+The incident radiance Li at surface point x along di-
+rection ωi is represented by the sum V (ωi, x)Lenv(ωi) +
+Lind(ωi, x), where the visibility term V (ωi, x) ∈{0, 1} is
+obtained via 2D Gaussian ray tracing from x in direction
+ωi. A low value of V (ωi, x) indicates that the light from
+Lenv(ωi) is occluded before reaching point x. We com-
+pute indirect term Lind similarly to [12] where indirect light
+values are traced: during training, RGB values used in ray
+37316
+
+
+Table 2. Quantitative results for albedo estimation and relighting. Static methods use only one timestep with multiple views of the
+scene. LumiMotion uses a dynamic scene for training while testing is done on the same views and the same single timestep as in the
+static setting. Results are grouped by train-test light setting. Although training on dynamic scenes is inherently more challenging,
+LumiMotion significantly outperforms albedo estimation tasks on all metrics across all baselines. Notably, for both tasks, we achieve a
+substantial improvement in LPIPS which is a metric that corresponds well to perceptual quality.
+Env Lights
+Method
+Albedo
+Relight
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+Dam Wall
+R-3DGS
+20.744 ± 0.661
+0.900 ± 0.013
+0.128 ± 0.031
+21.220 ± 1.843
+0.915 ± 0.016
+0.112 ± 0.028
+↓
+GI-GS
+20.943 ± 1.747
+0.906 ± 0.014
+0.105 ± 0.023
+18.434 ± 1.681
+0.868 ± 0.023
+0.139 ± 0.032
+Harbour Sunset
+IR-GS
+22.888 ± 1.559
+0.936 ± 0.013
+0.076 ± 0.023
+26.177 ± 1.606
+0.953 ± 0.011
+0.064 ± 0.018
+LumiMotion
+27.268 ± 1.568
+0.952 ± 0.007
+0.069 ± 0.024
+26.037 ± 0.579
+0.928 ± 0.007
+0.060 ± 0.012
+Chapel Day
+R-3DGS
+22.463 ± 2.001
+0.927 ± 0.017
+0.096 ± 0.038
+22.282 ± 2.806
+0.943 ± 0.012
+0.081 ± 0.030
+↓
+GI-GS
+24.733 ± 2.862
+0.955 ± 0.014
+0.056 ± 0.016
+22.673 ± 1.513
+0.880 ± 0.015
+0.125 ± 0.022
+Golden Bay
+IR-GS
+23.769 ± 2.732
+0.956 ± 0.015
+0.053 ± 0.017
+28.157 ± 1.978
+0.966 ± 0.009
+0.046 ± 0.020
+LumiMotion
+30.838 ± 1.798
+0.973 ± 0.007
+0.036± 0.014
+28.563 ± 0.478
+0.939 ± 0.011
+0.041 ± 0.007
+Golden Bay
+R-3DGS
+19.945 ± 1.124
+0.899± 0.018
+0.133 ± 0.041
+19.563 ± 1.874
+0.918 ± 0.013
+0.118 ± 0.033
+↓
+GI-GS
+21.295 ± 2.930
+0.932 ± 0.020
+0.087 ± 0.025
+17.636 ± 2.293
+0.823 ± 0.029
+0.132 ± 0.030
+Dam Wall
+IR-GS
+20.910 ± 1.379
+0.937 ± 0.013
+0.082 ± 0.024
+25.009 ± 1.615
+0.955 ± 0.011
+0.060 ± 0.014
+LumiMotion
+27.929 ± 1.932
+0.959± 0.010
+0.058 ± 0.019
+25.405 ± 0.690
+0.936 ± 0.013
+0.048 ± 0.009
+tracing correspond to the colors c from the first stage, while
+for inference under novel lighting, we use colors evaluated
+from the rendering equation.
+We employ Monte Carlo
+integration with uniform stratified sampling selecting Nr
+ray directions over the hemisphere to efficiently evaluate the
+rendering equation. The final RGB output of the rendering
+function can be written as:
+cpbr(ωo) = 2π
+Nr
+Nr
+X
+i=1
+fr(ωi, ωo, x)Li(ωi, x)(ωi · n)
+(12)
+where Li denotes incident radiance. Following [12], we
+also randomly sample N pixels per iteration to reduce com-
+putation time.
+Stage 2 combines three losses: (1) Lc loss from Stage 1,
+(2) L1 loss for Stage 2 renders against GT pixels, (3) L2
+regularization with small weight λenv that penalizes high
+values in the lower region of Lenv. Lc is computed be-
+tween GT images and pure Gaussian splatting renders and
+it constrains the fine-tuned Gaussian parameters, preventing
+them from deviating excessively from their Stage 1 values.
+L1 is the only loss used to supervise the cpbr.
+4. Experiments and Results
+Datasets. To thoroughly evaluate our method under con-
+trolled relighting and shadow-casting conditions, we intro-
+duce a novel synthetic benchmark consisting of 20 varia-
+tions: five distinct scenes, each rendered under four differ-
+ent lighting environments (‘Harbour Sunset’, ‘Dam Wall’,
+‘Golden Bay’, and ‘Chapel Day’). The scenes differ in ob-
+ject types, motion patterns, and levels of surface specularity.
+For every scene, both static and dynamic versions are pro-
+vided to enable fair comparison across temporal settings.
+For dynamic version we have D-NeRF [34]-like captures:
+one view per one timestep. The static dataset captures a
+single timestep from the same camera poses as the dynamic
+version. This setup enables training both static and dynamic
+models on comparable data, and allows direct evaluation us-
+ing identical camera views and time steps. Test set consists
+of novel views. Additional details about the dataset are pro-
+vided in the Supplementary Material.
+To qualitatively assess performance in real-world condi-
+tions, we use two scenes from ENeRF dataset [26], an out-
+door dataset which captures dynamic people casting promi-
+nent shadows from 18 cameras. Its multi-view nature sup-
+ports training and evaluation of static and dynamic models.
+Experimental setup. For synthetic data, we evaluate key
+aspects of our method: albedo estimation and relighting
+quality. We report PSNR, SSIM [39], and LPIPS [50] as
+evaluation metrics. For each scene in our dataset, we con-
+duct experiments under three configurations, selecting one
+light for training and another for testing. Detailed training
+parameters and extended evaluation including videos are
+provided in the Supplementary Material. All experiments
+are conducted on an NVIDIA RTX 3090, with training for
+both stages taking approximately 1.2 hours per synthetic
+scene.
+Results.
+Quantitative comparisons against state-of-the-
+art methods are summarized in Tab. 2, demonstrating our
+method’s strong performance across the evaluation metrics.
+We achieve strong performance in albedo estimation, sur-
+passing all baselines across all metrics by a large mar-
+gin, which demonstrates the enhanced capability of our
+method in removing light-related artifacts. For relighting,
+our metrics surpass the baselines in most cases. With regard
+37317
+
+
+Figure 6. Influence of separation loss parameters. The dynamic
+objects in the scene remain correctly classified as dynamic across
+tested separation weights and initialization times. However, shad-
+ows on static parts of the scene (e.g. ground) can be misclassified
+as dynamic Gaussians (here mostly visible for start 10,000 iter).
+Increasing the separation weight or starting the separation earlier
+helps to reduce such misclassifications. Zoom in for details.
+Figure 7. Ablation study of static-dynamic separation. The
+demonstrated scene is characterized with strong directional light
+and strong shadows. Without the static-dynamic separation (top),
+the Gaussians reconstruct a strong shadow that follows the object
+motion, which degrades albedo optimization in the second stage.
+When separation is enabled, the shadows are modeled by ∆c in-
+stead of ∆µ which enables correct albedo optimization. Please
+zoom in for details.
+to LPIPS—the metric that best corresponds to perceptual
+quality—LumiMotion performs best in all cases, with an
+average improvement of 15%. Relighting task is inherently
+more difficult for dynamic scenes - it depends strongly on
+properly estimated normals, which are more challenging to
+obtain due to the added constraint of temporal consistency.
+It is notable that our approach performs competitively on
+the relighting task, highlighting its capability even under
+the complexities of a dynamic setup. We present qualitative
+results in Fig. 3 and highlight improvements in relighting fi-
+delity, albedo consistency and environment map reconstruc-
+tion. Please note that, thanks to dynamics, we can better es-
+timate the direction of incoming light, and also prevent the
+model from baking shadows in the base color. We provide
+extended results in the Supplementary Material.
+We evaluate our approach on two clips from the chal-
+Table 3. Ablation study on Golden Bay →Dam Wall configura-
+tion, characterized by strong directional train light. The additional
+components improve albedo and relight reconstruction quality.
+Method
+Albedo
+Relight
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+w/o Stage 2
+23.935
+0.943
+0.072
+23.154
+0.926
+0.060
+w/o ∆c
+23.983
+0.937
+0.083
+23.142
+0.926
+0.061
+w/o P
+26.768
+0.954
+0.064
+25.079
+0.933
+0.052
+full model
+27.929
+0.959
+0.058
+25.405
+0.936
+0.048
+lenging real-world ENeRF dataset, where sharp shadows
+are cast by moving actors.
+This setup enables us to as-
+sess our method’s robustness in handling real-world lighting
+variations and dynamic geometry. Since it is a multiview
+setup, we can compare our method with IRGS which is the
+most recent baseline. See Fig. 1 where, relative to IRGS, we
+remove the majority of shadows from the albedo from the
+first scene. Additionally, unlike IRGS our method does not
+exhibit artifacts when rendering with specular component.
+The second scene is presented in Fig. 5.
+In Fig. 4, we demonstrate that our method produces co-
+herent renderings across timesteps, with smooth normals,
+consistent separation of dynamic elements, and shadows es-
+timated in accordance with the moving geometry.
+Finally, we perform an ablation study on key compo-
+nents of our pipeline (Tab. 3). Fig. 6 illustrates the influence
+of separation parameters, showing how varying the sepa-
+ration weight and initialization affects the identification of
+dynamic elements. We show that Gaussians that move to
+simulate lighting effects, such as shadows, negatively im-
+pact albedo optimization. Fig. 7 highlights the benefits of
+our separation strategy in addressing this issue.
+5. Conclusions and Limitations
+We proposed a two-stage inverse rendering framework that
+leverages dynamics as a supervisory signal to separate illu-
+mination from material properties. We further introduced
+a benchmark with scenes under various lighting and mo-
+tion conditions, enabling systematic evaluation of our ap-
+proach. LumiMotion achieves improved relighting perfor-
+mance and more accurate material estimation compared to
+static-only baselines, proving that incorporating dynamic
+content is beneficial for these tasks. Limitations. We ob-
+serve that accurate normal estimation and the quality of the
+learned deformations are critical to performance. In our
+framework, reconstruction quality remains limited, as tem-
+porally consistent and physically accurate motion and nor-
+mal estimation in complex dynamic scenes is still an open
+challenge. Our simple separation strategy can generate arti-
+facts when handling intricate dynamics, and more accurate
+supervision, such as optical flow, may be crucial. Addition-
+ally, the framework is sensitive to inaccurate camera pose
+estimation, sparse camera setups or inaccurate initialization.
+37318
+
+
+Acknowledgements. This paper received funding from the
+European Union’s Horizon 2020 research and innovation
+programme under grant agreement No 857533.
+The re-
+search is supported by Sano project carried out within the
+International Research Agendas programme of the Foun-
+dation for Polish Science, co-financed by the European
+Union under the European Regional Development Fund.
+The research was created within the project of the Min-
+ister of Science and Higher Education ”Support for the
+activity of Centers of Excellence established in Poland
+under Horizon 2020” on the basis of the contract num-
+ber MEiN/2023/DIR/3796.
+The work of J. Kaleta was
+supported by National Science Centre, Poland (grant no.
+2022/47/O/ST6/01407). The work of K. Marzol was sup-
+ported by the project Effective Rendering of 3D Objects Us-
+ing Gaussian Splatting in an Augmented Reality Environ-
+ment (FENG.02.02-IP.05-0114/23), carried out under the
+First Team programme of the Foundation for Polish Sci-
+ence and co-financed by the European Union through the
+European Funds for Smart Economy 2021–2027 (FENG).
+The work of P. W´ojcik was supported by the German Re-
+search Foundations (DFG) funded Collaborative Research
+Center 1310 Predictability in evolution project C03. We
+gratefully acknowledge Polish high-performance comput-
+ing infrastructure PLGrid (HPC Centers: ACK Cyfronet
+AGH) for providing computer facilities and support within
+computational grant no. PLG/2024/017221.
+References
+[1] Harry Barrow, J Tenenbaum, A Hanson, and E Riseman. Re-
+covering intrinsic scene characteristics. Comput. vis. syst, 2
+(3-26):2, 1978. 1
+[2] Zoubin Bi, Yixin Zeng, Chong Zeng, Fan Pei, Xiang Feng,
+Kun Zhou, and Hongzhi Wu. Gs3: Efficient relighting with
+triple gaussian splatting. In SIGGRAPH Asia 2024 Confer-
+ence Papers, SA 2024, Tokyo, Japan, December 3-6, 2024,
+pages 12:1–12:12. ACM, 2024. 2, 3
+[3] Mark Boss, Raphael Braun, Varun Jampani, Jonathan T. Bar-
+ron, Ce Liu, and Hendrik P. A. Lensch. Nerd: Neural re-
+flectance decomposition from image collections.
+In 2021
+IEEE/CVF International Conference on Computer Vision,
+ICCV 2021, Montreal, QC, Canada, October 10-17, 2021,
+pages 12664–12674. IEEE, 2021. 3
+[4] Brent
+Burley
+and
+Walt
+Disney
+Animation
+Studios.
+Physically-based shading at disney.
+In Acm siggraph,
+pages 1–7. vol. 2012, 2012. 3
+[5] Anpei Chen, Zexiang Xu, Andreas Geiger, Jingyi Yu, and
+Hao Su. Tensorf: Tensorial radiance fields. In Computer
+Vision - ECCV 2022 - 17th European Conference, Tel Aviv,
+Israel, October 23-27, 2022, Proceedings, Part XXXII, pages
+333–350. Springer, 2022. 2, 3
+[6] Hao Chen, Bo He, Hanyu Wang, Yixuan Ren, Ser-Nam Lim,
+and Abhinav Shrivastava. Nerv: Neural representations for
+videos. In Advances in Neural Information Processing Sys-
+tems 34: Annual Conference on Neural Information Process-
+ing Systems 2021, NeurIPS 2021, December 6-14, 2021, vir-
+tual, pages 21557–21568, 2021. 3
+[7] Hongze Chen, Zehong Lin, and Jun Zhang. GI-GS: global
+illumination decomposition on gaussian splatting for inverse
+rendering. In The Thirteenth International Conference on
+Learning Representations, ICLR 2025, Singapore, April 24-
+28, 2025. OpenReview.net, 2025. 2, 3, 4, 6
+[8] Yiwen Chen, Zilong Chen, Chi Zhang, Feng Wang, Xiaofeng
+Yang, Yikai Wang, Zhongang Cai, Lei Yang, Huaping Liu,
+and Guosheng Lin. Gaussianeditor: Swift and controllable
+3d editing with gaussian splatting. 2024 IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition (CVPR),
+pages 21476–21485, 2023. 2
+[9] Jaehoon Choi, Yonghan Lee, Hyungtae Lee, Heesung Kwon,
+and Dinesh Manocha. Meshgs: Adaptive mesh-aligned gaus-
+sian splatting for high-quality rendering. In Proceedings of
+the Asian Conference on Computer Vision (ACCV), pages
+3310–3326, 2024. 3
+[10] Jian Gao, Chun Gu, Youtian Lin, Zhihao Li, Hao Zhu, Xun
+Cao, Li Zhang, and Yao Yao. Relightable 3d gaussians: Re-
+alistic point cloud relighting with brdf decomposition and
+ray tracing. In European Conference on Computer Vision,
+pages 73–89. Springer, 2024. 2, 3
+[11] Stephan J Garbin, Marek Kowalski, Matthew Johnson, Jamie
+Shotton, and Julien Valentin. Fastnerf: High-fidelity neu-
+ral rendering at 200fps. In Proceedings of the IEEE/CVF
+international conference on computer vision, pages 14346–
+14355, 2021. 2
+[12] Chun Gu, Xiaofei Wei, Zixuan Zeng, Yuxuan Yao, and Li
+Zhang. Irgs: Inter-reflective gaussian splatting with 2d gaus-
+sian ray tracing. In Proceedings of the Computer Vision and
+Pattern Recognition Conference, pages 10943–10952, 2025.
+1, 2, 3, 6, 7
+[13] Antoine Gu´edon and Vincent Lepetit.
+Sugar:
+Surface-
+aligned gaussian splatting for efficient 3d mesh reconstruc-
+tion and high-quality mesh rendering. CVPR, 2024. 3
+[14] Yu Hong, Yize Wu, Zhehao Shen, Chengcheng Guo, Yuheng
+Jiang, Yingliang Zhang, Qiang Hu, Jingyi Yu, and Lan Xu.
+Beam: Bridging physically-based rendering and gaussian
+modeling for relightable volumetric video. In Proceedings
+of the 33rd ACM International Conference on Multimedia,
+pages 7968–7977, 2025. 3
+[15] Binbin Huang, Zehao Yu, Anpei Chen, Andreas Geiger, and
+Shenghua Gao. 2d gaussian splatting for geometrically ac-
+curate radiance fields. In ACM SIGGRAPH 2024 Conference
+Papers, SIGGRAPH 2024, Denver, CO, USA, 27 July 2024-
+1 August 2024, page 32. ACM, 2024. 2, 3, 5
+[16] Yi-Hua Huang, Yang-Tian Sun, Ziyi Yang, Xiaoyang Lyu,
+Yan-Pei Cao, and Xiaojuan Qi. SC-GS: sparse-controlled
+gaussian splatting for editable dynamic scenes. In IEEE/CVF
+Conference on Computer Vision and Pattern Recognition,
+CVPR 2024, Seattle, WA, USA, June 16-22, 2024, pages
+4220–4230. IEEE, 2024. 3
+[17] Umar Iqbal, Akin Caliskan, Koki Nagano, Sameh Khamis,
+Pavlo Molchanov, and Jan Kautz. RANA: relightable articu-
+lated neural avatars. In IEEE/CVF International Conference
+on Computer Vision, ICCV 2023, Paris, France, October 1-6,
+2023, pages 23085–23096. IEEE, 2023. 2
+37319
+
+
+[18] Yingwenqi Jiang, Jiadong Tu, Yuan Liu, Xifeng Gao, Xi-
+aoxiao Long, Wenping Wang, and Yuexin Ma. Gaussian-
+shader: 3d gaussian splatting with shading functions for re-
+flective surfaces. In Proceedings of the IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition, pages
+5322–5332, 2024. 3
+[19] Haian Jin, Isabella Liu, Peijia Xu, Xiaoshuai Zhang, Song-
+fang Han, Sai Bi, Xiaowei Zhou, Zexiang Xu, and Hao Su.
+Tensoir: Tensorial inverse rendering. In IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition, CVPR
+2023, Vancouver, BC, Canada, June 17-24, 2023, pages 165–
+174. IEEE, 2023. 2, 3
+[20] James T. Kajiya. The rendering equation. In Proceedings
+of the 13th Annual Conference on Computer Graphics and
+Interactive Techniques, page 143–150, New York, NY, USA,
+1986. Association for Computing Machinery. 3
+[21] Joanna Kaleta, Kacper Kania, Tomasz Trzci´nski, and Marek
+Kowalski. Lumigauss: Relightable gaussian splatting in the
+wild. In 2025 IEEE/CVF Winter Conference on Applications
+of Computer Vision (WACV), pages 1–10. IEEE, 2025. 2
+[22] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨uhler,
+and George Drettakis.
+3d gaussian splatting for real-time
+radiance field rendering. ACM Trans. Graph., 42(4):139:1–
+139:14, 2023. 1, 2
+[23] Zhengfei Kuang, Yunzhi Zhang, Hong-Xing Yu, Samir Agar-
+wala, Elliott Wu, Jiajun Wu, et al. Stanford-orb: a real-world
+3d object inverse rendering benchmark. Advances in Neural
+Information Processing Systems, 36:46938–46957, 2023. 2
+[24] Junxuan Li, Chen Cao, Gabriel Schwartz, Rawal Khirod-
+kar, Christian Richardt, Tomas Simon, Yaser Sheikh, and
+Shunsuke Saito.
+Uravatar: Universal relightable gaussian
+codec avatars. In SIGGRAPH Asia 2024 Conference Papers,
+SA 2024, Tokyo, Japan, December 3-6, 2024, pages 128:1–
+128:11. ACM, 2024. 3
+[25] Zhihao Liang, Qi Zhang, Ying Feng, Ying Shan, and Kui Jia.
+Gs-ir: 3d gaussian splatting for inverse rendering. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition, pages 21644–21653, 2024. 3
+[26] Haotong Lin, Sida Peng, Zhen Xu, Yunzhi Yan, Qing Shuai,
+Hujun Bao, and Xiaowei Zhou.
+Efficient neural radiance
+fields for interactive free-viewpoint video. In SIGGRAPH
+Asia Conference Proceedings, 2022. 7
+[27] Isabella Liu, Linghao Chen, Ziyang Fu, Liwen Wu, Haian
+Jin, Zhong Li, Chin Ming Ryan Wong, Yi Xu, Ravi Ra-
+mamoorthi, Zexiang Xu, et al. Openillumination: A multi-
+illumination dataset for inverse rendering evaluation on real
+objects.
+Advances in Neural Information Processing Sys-
+tems, 36:36951–36962, 2023. 2
+[28] Isabella Liu, Hao Su, and Xiaolong Wang. Dynamic gaus-
+sians mesh: Consistent mesh reconstruction from monocular
+videos. arXiv preprint arXiv:2404.12379, 2024. 3
+[29] Diogo Carbonera Luvizon, Vladislav Golyanik, Adam Ko-
+rtylewski, Marc Habermann, and Christian Theobalt. Re-
+lightable neural actor with intrinsic decomposition and pose
+control. In Computer Vision - ECCV 2024 - 18th European
+Conference, Milan, Italy, September 29-October 4, 2024,
+Proceedings, Part LIX, pages 465–483. Springer, 2024. 2
+[30] Chris J Maddison, Andriy Mnih, and Yee Whye Teh. The
+concrete distribution: A continuous relaxation of discrete
+random variables. arXiv preprint arXiv:1611.00712, 2016.
+4
+[31] Julieta Martinez, Emily Kim, Javier Romero, Timur Bagaut-
+dinov, Shunsuke Saito, Shoou-I Yu, Stuart Anderson,
+Michael Zollh¨ofer, Te-Li Wang, Shaojie Bai, Chenghui Li,
+Shih-En Wei, Rohan Joshi, Wyatt Borsos, Tomas Simon,
+Jason Saragih, Paul Theodosis, Alexander Greene, Anjani
+Josyula, Silvio Mano Maeta, Andrew I. Jewett, Simon Ven-
+shtain, Christopher Heilman, Yueh-Tung Chen, Sidi Fu, Mo-
+hamed Ezzeldin A. Elshaer, Tingfang Du, Longhua Wu,
+Shen-Chi Chen, Kai Kang, Michael Wu, Youssef Emad,
+Steven Longay, Ashley Brewer, Hitesh Shah, James Booth,
+Taylor Koska, Kayla Haidle, Matt Andromalos, Joanna Hsu,
+Thomas Dauer, Peter Selednik, Tim Godisart, Scott Ardis-
+son, Matthew Cipperly, Ben Humberston, Lon Farr, Bob
+Hansen, Peihong Guo, Dave Braun, Steven Krenn, He Wen,
+Lucas Evans, Natalia Fadeeva, Matthew Stewart, Gabriel
+Schwartz, Divam Gupta, Gyeongsik Moon, Kaiwen Guo,
+Yuan Dong, Yichen Xu, Takaaki Shiratori, Fabian Prada,
+Bernardo R. Pires, Bo Peng, Julia Buffalini, Autumn Trim-
+ble, Kevyn McPhail, Melissa Schoeller, and Yaser Sheikh.
+Codec Avatar Studio: Paired Human Captures for Complete,
+Driveable, and Generalizable Avatars.
+NeurIPS Track on
+Datasets and Benchmarks, 2024. 2
+[32] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik,
+Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. Nerf:
+representing scenes as neural radiance fields for view synthe-
+sis. Commun. ACM, 65(1):99–106, 2022. 1, 2, 4
+[33] Thomas M¨uller, Alex Evans, Christoph Schied, and Alexan-
+der Keller. Instant neural graphics primitives with a mul-
+tiresolution hash encoding. ACM transactions on graphics
+(TOG), 41(4):1–15, 2022. 2
+[34] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and
+Francesc Moreno-Noguer.
+D-nerf: Neural radiance fields
+for dynamic scenes. In Proceedings of the IEEE/CVF con-
+ference on computer vision and pattern recognition, pages
+10318–10327, 2021. 7
+[35] Shunsuke Saito, Gabriel Schwartz, Tomas Simon, Junxuan
+Li, and Giljoo Nam.
+Relightable gaussian codec avatars.
+In IEEE/CVF Conference on Computer Vision and Pattern
+Recognition, CVPR 2024, Seattle, WA, USA, June 16-22,
+2024, pages 130–141. IEEE, 2024. 2, 3
+[36] Joanna Waczy´nska, Piotr Borycki, Sławomir Konrad Tadeja,
+Jacek Tabor, and Przemysław Spurek. Games: Mesh-based
+adapting and modification of gaussian splatting.
+ArXiv,
+abs/2402.01459, 2024. 2
+[37] Shaofei Wang, Bozidar Antic, Andreas Geiger, and Siyu
+Tang.
+Intrinsicavatar: Physically based inverse rendering
+of dynamic humans from monocular videos via explicit ray
+tracing. In IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, CVPR 2024, Seattle, WA, USA, June
+16-22, 2024, pages 1877–1888. IEEE, 2024. 2
+[38] Shaofei Wang, Tomas Simon, Igor Santesteban, Timur
+Bagautdinov, Junxuan Li, Vasu Agrawal, Fabian Prada,
+Shoou-I Yu, Pace Nalbone, Matt Gramlich, et al. Relightable
+full-body gaussian codec avatars.
+In Proceedings of the
+37320
+
+
+Special Interest Group on Computer Graphics and Interac-
+tive Techniques Conference Conference Papers, pages 1–12,
+2025. 2, 3
+[39] Zhou Wang, A.C. Bovik, H.R. Sheikh, and E.P. Simoncelli.
+Image quality assessment: from error visibility to structural
+similarity. IEEE Transactions on Image Processing, 13(4):
+600–612, 2004. 7
+[40] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng
+Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang.
+4d gaussian splatting for real-time dynamic scene render-
+ing. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 20310–
+20320, 2024. 3, 4
+[41] Tong Wu, Jiali Sun, Yu-Kun Lai, Yuewen Ma, Leif Kobbelt,
+and Lin Gao.
+Deferredgs: Decoupled and editable gaus-
+sian splatting with deferred shading. ArXiv, abs/2404.09412,
+2024. 2
+[42] Tao Xie, Xi Chen, Zhen Xu, Yiman Xie, Yudong Jin, Yu-
+jun Shen, Sida Peng, Hujun Bao, and Xiaowei Zhou. En-
+vgs: Modeling view-dependent appearance with environ-
+ment gaussian. In Proceedings of the Computer Vision and
+Pattern Recognition Conference, pages 5742–5751, 2025. 2
+[43] Yingyan Xu, Gaspard Zoss, Prashanth Chandran, Markus
+Gross, Derek Bradley, and Paulo Gotardo.
+Renerf: Re-
+lightable neural radiance fields with nearfield lighting. In
+2023 IEEE/CVF International Conference on Computer Vi-
+sion (ICCV), pages 22524–22534, 2023. 3
+[44] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing
+Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-
+fidelity monocular dynamic scene reconstruction.
+In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 20331–20341, 2024.
+3, 4
+[45] Yao Yao, Jingyang Zhang, Jingbo Liu, Yihang Qu, Tian
+Fang, David McKinnon, Yanghai Tsin, and Long Quan.
+Neilf: Neural incident light field for physically-based mate-
+rial estimation. In European conference on computer vision,
+pages 700–716. Springer, 2022. 3
+[46] Yuxuan Yao, Zixuan Zeng, Chun Gu, Xiatian Zhu, and Li
+Zhang. Reflective gaussian splatting. arXiv preprint, 2024.
+3
+[47] Keyang Ye, Qiming Hou, and Kun Zhou. 3d gaussian splat-
+ting with deferred reflection. In ACM SIGGRAPH 2024 Con-
+ference Papers, pages 1–10, 2024. 3
+[48] Youyi Zhan, Tianjia Shao, He Wang, Yin Yang, and Kun
+Zhou.
+Interactive rendering of relightable and animatable
+gaussian avatars. arXiv preprint arXiv:2407.10707, 2024. 2,
+3
+[49] Jingyang Zhang, Yao Yao, Shiwei Li, Jingbo Liu, Tian Fang,
+David McKinnon, Yanghai Tsin, and Long Quan. Neilf++:
+Inter-reflectable light fields for geometry and material es-
+timation.
+International Conference on Computer Vision
+(ICCV), 2023. 3
+[50] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman,
+and Oliver Wang. The unreasonable effectiveness of deep
+features as a perceptual metric. In CVPR, 2018. 7
+[51] Xiuming Zhang, Pratul P. Srinivasan, Boyang Deng, Paul E.
+Debevec, William T. Freeman, and Jonathan T. Barron. Ner-
+factor: neural factorization of shape and reflectance under
+an unknown illumination. ACM Trans. Graph., 40(6):237:1–
+237:18, 2021. 2
+[52] Yuanqing Zhang, Jiaming Sun, Xingyi He, Huan Fu, Rongfei
+Jia, and Xiaowei Zhou. Modeling indirect illumination for
+inverse rendering. In IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, CVPR 2022, New Orleans,
+LA, USA, June 18-24, 2022, pages 18622–18631. IEEE,
+2022. 2
+[53] Yiqun Zhao, Chenming Wu, Binbin Huang, Yihao Zhi, Chen
+Zhao, Jingdong Wang, and Shenghua Gao.
+Surfel-based
+gaussian inverse rendering for fast and relightable dynamic
+human reconstruction from monocular video. arXiv preprint
+arXiv:2407.15212, 2024. 3
+37321

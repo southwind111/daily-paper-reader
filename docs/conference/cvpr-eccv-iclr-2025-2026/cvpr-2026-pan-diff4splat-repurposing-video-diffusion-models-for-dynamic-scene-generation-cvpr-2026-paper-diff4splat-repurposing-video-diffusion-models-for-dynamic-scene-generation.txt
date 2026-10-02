@@ -1,0 +1,1318 @@
+DIFF4SPLAT: Repurposing Video Diffusion Models
+for Dynamic Scene Generation
+Panwang Pan∗‡, Chenguo Lin∗, Chenxin Li, Jingjing Zhao, Yuchen Lin,
+Haopeng Li, Yunlong Lin, Kairun Wen, Yixuan Yuan, Yadong MU
+Peking University, Xiamen University, CUHK, Carnegie Mellon University
+https://paulpanwang.github.io/Diff4Splat
+Abstract
+We introduce DIFF4SPLAT, a feed-forward framework for
+dynamic scene generation from a single image. Our method
+synergizes the powerful generative priors of video diffusion
+models with geometric and motion constraints learned from
+a large-scale 4D dataset. Given a single image, a camera
+trajectory, and an optional text prompt, our model directly
+predicts a dynamic scene represented by a deformable 3D
+Gaussian field. This approach captures appearance, ge-
+ometry, and motion in a single pass, eliminating the need
+for test-time optimization or post-hoc processing. At the
+core of our framework is a video latent transformer that
+enhances existing video diffusion models, enabling them to
+jointly model spatio-temporal dependencies and predict 3D
+Gaussian Primitives over time. Supervised by objectives tar-
+geting appearance fidelity, geometric accuracy, and motion
+consistency, DIFF4SPLAT generates high-fidelity dynamic
+scenes within 30 seconds. We demonstrate the effectiveness
+of DIFF4SPLAT across video generation, novel view synthe-
+sis, and geometry extraction, where it matches or surpasses
+optimization-based methods for dynamic scene synthesis
+while being significantly more efficient.
+1. Introduction
+The generation of dynamic 3D scenes from a single image
+is a grand challenge in computer vision, with transforma-
+tive potential for immersive content creation, robotics, and
+simulation. Current paradigms, however, are caught in a fun-
+damental dilemma. One path involves multi-stage pipelines
+that first generate a video and then apply 3D reconstruc-
+tion [30, 97]. These methods are slow, error-prone, and lack
+end-to-end control. The alternative, direct feed-forward gen-
+eration, has been largely confined to producing 2D video
+frames [2, 64] or static 3D scenes [40], failing to capture the
+∗: Equal contribution; ‡: Corresponding author.
+explicit, dynamic 3D geometry essential for true 4D repre-
+sentation. This impasse reveals a critical gap: the absence of
+a framework that can directly and efficiently synthesize an
+explicit, controllable scene representation.
+To address this, we introduce DIFF4SPLAT, a novel
+paradigm for dynamic 3D generation that unifies a diffusion
+backbone with a deformable 3D Gaussian field representa-
+tion [96] within a single, end-to-end trainable model. As
+illustrated in Fig. 1, our framework directly generates a com-
+plete 4D representation in a single forward pass, obviating
+the need for per-scene optimization. The core of our method
+is a Video Latent Transformer, an architecture engineered to
+bridge the representational gap between 2D spatio-temporal
+features and 4D dynamic scenes. This transformer interprets
+latent features from the diffusion model as a dynamic point
+cloud, conditioned on camera and temporal embeddings,
+from which a lightweight head regresses the parameters of
+the deformable 3D Gaussians. This design compels the
+diffusion model to learn a powerful prior over explicit 3D
+geometry and motion, marking a significant departure from
+prior work [40]. To facilitate training, we developed a large-
+scale data pipeline to annotate real-world videos [26, 114]
+with the metric-scale 4D labels required for supervision. A
+critical bottleneck in prior work is the exorbitant computa-
+tional cost of producing explicit 4D representations. Existing
+methods are hamstrung by a multi-stage process, where a
+generated video [2, 64, 110] must undergo a costly, per-
+scene optimization to be lifted into 3D. The scale of this
+inefficiency is staggering: methods like DimensionX [72]
+demand a prohibitive several GPU hours for a single video,
+while even cutting-edge techniques like Mosca [31] require
+half an hour. This renders them impractical for nearly all
+real-world applications. Our work directly confronts this
+challenge. By unifying generation and representation into
+a single feed-forward pass, DIFF4SPLAT collapses this en-
+tire pipeline into approximately 30 seconds. This leads to a
+fundamental leap in efficiency, a 60-fold acceleration com-
+pared to state-of-the-art optimization, making dynamic 3D
+scene generation truly practical for the first time.
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+4232
+
+
+Figure 1. Given a single image, a specified camera trajectory, and an optional text prompt, our diffusion-based framework directly generates a
+deformable 3D Gaussian field without test-time optimization. The resulting representation supports diverse applications, including video
+generation, depth rendering, and novel view synthesis, enabling real-time rendering of dynamic scenes and interactive virtual exploration.
+Our contributions can be summarized as follows:
+• We introduce a new paradigm for dynamic 3D scene gen-
+eration, where a diffusion model is trained to directly
+synthesize a deformable 3D Gaussian field in a single for-
+ward pass, resolving the tension between feed-forward
+efficiency and explicit 3D representation.
+• We design a novel Video Latent Transformer architecture
+that bridges the representational gap between 2D latent
+features and a structured 4D representation, enabling the
+direct prediction of a deformable 3D Gaussian field.
+• To enable our method, we construct a large-scale 4D
+dataset with metric-scale geometry and motion annota-
+tions, which will be released to facilitate future research.
+• Extensive experiments validate that our unified approach
+produces high-fidelity dynamic 3D scenes from a single
+image, outperforming complex two-stage pipelines in both
+quality and efficiency.
+2. Related Work
+Video Diffusion Models
+Video diffusion models [21] have
+demonstrated a remarkable capacity for generating high-
+quality, temporally coherent videos. Fine-grained control
+is typically achieved by adapting conditional image syn-
+thesis strategies [37, 56, 107] to the video domain, incor-
+porating diverse signals such as RGB images [6, 91, 92],
+depth maps [15, 93], motion trajectories [58, 100], and se-
+mantic maps [60]. Despite these advancements, explicit
+camera motion control remains a relatively underexplored
+area. Existing approaches often rely on predefined motion
+categories [6, 17] or learnable LoRA modules [22]. While
+methods like MotionCtrl [84] employ camera extrinsics, they
+exhibit limited precision in complex scenarios, and Multi-
+Diff [57] is constrained by class-specific training. More
+recently, several works [18, 19, 94] have leveraged Plücker
+coordinates [70] for camera control, but still face challenges
+in producing realistic video outputs. Notably, the majority
+of current research generates videos as 2D frame sequences,
+largely overlooking the joint generation of dynamic 3D rep-
+resentations.
+Static 3D Scene Generation
+Recent progress in genera-
+tive models [20, 66, 80, 95] and 3D representations [29, 55]
+has significantly advanced static 3D scene generation. One
+prominent research direction focuses on structured scene gen-
+eration from layouts or graphs [4, 16, 44, 45, 48, 61, 78, 105].
+Another line of research, more related to our work, addresses
+open-world scene generation from weak conditioning signals
+like text [13, 113] or images [13, 23, 35, 40, 102]. These
+methods often rely on image diffusion models [20, 66] as a
+backbone to provide strong 3D priors [13, 46, 75, 86, 102,
+113]. The rise of video diffusion models has also motivated
+studies [40, 52, 72, 103] to leverage them for improved 3D-
+aware consistency. Our work distinguishes itself by pio-
+neering dynamic scene generation, addressing the critical
+challenge of modeling motion.
+4233
+
+
+Dynamic 3D Scene Generation
+Static 3D generation
+methods are inherently limited to motionless scenes. The
+natural, albeit challenging, progression is dynamic 4D scene
+generation [11, 33, 42, 49, 83, 106, 110, 116]. For example,
+Lyra [3] proposes a self-distillation framework that aims
+to distill the implicit 3D knowledge in the video diffusion
+models into an explicit 3DGS representation. Due to dataset
+limitations [14, 24, 50, 85, 99, 104, 114], prior works often
+tackle sub-problems. Some methods require a video and
+multi-view images of the first frame [79, 90, 101]. Others
+generate Dynamic 3D Gaussian Splatting from monocular
+video [12, 42, 69, 89] or rely on costly per-scene optimiza-
+tion [31, 38, 73, 81, 87, 109]. Recent feed-forward works
+generate dynamic pointmaps [10, 116], but this kind of rep-
+resentation struggles to achieve photorealism, resulting in
+renderings with holes and artifacts. In contrast, our work
+introduces a generalizable method that generates an explicit
+deformation Gaussian field from a single image, without
+per-scene optimization.
+3. Methodology
+We address the generation of dynamic 4D scene represen-
+tations from a single image I0 ∈RH×W ×3, a text prompt
+Cctx, and camera poses P ∈RT ×H×W ×6 (Plücker embed-
+dings [25]). Our methodology (Fig. 2) integrates a video
+diffusion model with a novel latent reconstruction Trans-
+former, synergistically combining 2D appearance priors, ge-
+ometry, and motion cues for high-fidelity 4D synthesis. First,
+a pre-trained video diffusion model, conditioned on I0 and
+P, generates a latent tensor z ∈Rn×h×w×c, where n is the
+feature count and h, w, c are latent dimensions. Next, our
+Latent Dynamic Reconstruction Model (LDRM, Sec. 3.2)
+processes z and camera conditions to predict a deformable
+Gaussian field for novel view and time rendering. Second,
+we augment the static 3D Gaussian Splatting (3DGS) [29]
+with an efficient inter-frame deformation model (Sec. 3.3)
+to represent dynamics. Third, a unified supervision scheme
+(Sec. 3.4) incorporates photometric, geometric, and motion
+losses. Finally, we employ a progressive training strategy to
+ensure high-fidelity textures and robust geometry.
+3.1. Data Curation
+We start by developing a scalable 4D data annotation
+pipeline, meticulously designed to convert real-world videos
+into spatio-temporal point maps at metric scales. Our data cu-
+ration strategy systematically integrates two complementary
+types of data sources:
+(1) Synthetic Datasets:
+We leverage seven syn-
+thetic
+datasets:
+TartanAir
+[82],
+MatrixCity
+[36],
+PointOdyssey [112], DynamicReplica [27], Spring [54],
+VKITTI2 [8], and MultiCamVideo [5].
+These datasets
+provide precise ground-truth annotations for geometry
+and motion, with varied camera trajectories (both static
+and moving), which are essential for learning robust
+geometric and dynamic priors. (2) Real-world Datasets: We
+incorporate two real-world datasets: RealEstate10K [115]
+and Stereo4D [26]. These datasets offer authentic scene
+complexity and natural variations, which are crucial
+for enhancing the model’s generalization capabilities.
+Since these datasets often feature stationary or limited
+camera motion and lack metric scale, we process them
+to serve as a basis for learning high-fidelity appearance.
+Inspired by [116], we employ VideoDepthAnything [9]
+and MegaSaM [39] to recover metric scale from these
+datasets, enabling more precise camera control within
+our generative framework [2]. As shown in Algorithm 1,
+through this comprehensive processing pipeline, we amass
+approximately 130,000 high-quality 4D training scenes.
+Following a rigorous quality control protocol, which
+includes dynamic object masking and reprojection error
+filtering.
+We construct a collection of 130,000 diverse
+videos featuring dynamic scenes captured by stationary
+cameras. Real-world datasets such as RealEstate10K [114]
+only provide relative camera parameters estimated via
+COLMAP [67], resulting in an unknown global scale. To
+address this, we re-estimate both metric depth maps and
+camera extrinsics using recent foundation models, Video
+Depth Anything [9] and MegaSaM [39], to recover aligned
+geometry across frames.
+3.2. Latent Dynamic Reconstruction Model
+Directly applying video diffusion models for 3D-aware latent
+synthesis is challenging due to their lack of explicit camera
+control and inconsistent dynamic content, which hinders
+robust 3D reconstruction. Inspired by recent latent diffusion
+models [7, 41, 59, 65], we propose the Latent Dynamic
+Reconstruction Model (LDRM) to avoid costly per-scene
+optimization. LDRM employs a pre-trained video diffusion
+model, conditioned on an input image and camera poses, to
+generate a compact, 3D-aware latent tensor z that ensures
+structural and appearance consistency across views, making
+it ideal for 3D lifting. Given the latent tensor z ∈Rn×h×w×c
+and camera poses, we create and concatenate latent and
+pose tokens of identical length. These are processed by
+Transformer blocks [1], after which a lightweight decoder
+regresses 3D Gaussian attributes. A 3D deconvolutional
+layer then maps these attributes to the source video pixels.
+3.3. Deformable Gaussian Fields
+A static 3D scene can be represented as a collection of M
+Gaussian primitives {Gp}M
+p=1. Each Gaussian Gp is char-
+acterized by its mean location µp ∈R3, scaling factors
+sp ∈R3, orientation quaternion qp ∈R4, opacity αp ∈R,
+and color features cp ∈RC. We use Spherical Harmon-
+ics (SH) to model view-dependent effects. The spatial influ-
+4234
+
+
+Algorithm 1 Metric Depth Reconstruction via Relative
+Depth Alignment
+1: Input: RGB Image I, pre-trained DepthAnything model
+FDA, MegaSaM model FMS, metric depth oracle PM
+2: Output: Dense and metrically-scaled depth map D∗
+3: Drel ←FDA(I)
+▷Generate relative depth map
+4: S ←FMS(I)
+▷Generate segmentation mask set
+5: A ←∅
+▷Initialize anchor point set
+6: for each mask Mi ∈S do
+7:
+dgt,i ←PM(Mi)
+▷Query ground-truth metric
+depth for the mask
+8:
+if dgt,i is a valid measurement then
+9:
+Vi ←{Drel(u, v) | Mi(u, v) = 1}
+▷Extract
+corresponding relative depth values
+10:
+drel,i ←median(Vi)
+▷Compute a robust
+representative value
+11:
+A ←A ∪{(drel,i, dgt,i)} ▷Add the pair to the
+anchor set
+12:
+end if
+13: end for
+14:
+▷Estimate optimal scale and shift by solving the
+least-squares problem
+15: (s∗, t∗) ←arg min
+s,t
+P
+(drel,i,dgt,i)∈A(s · drel,i + t −
+dgt,i)2
+16:
+▷Apply the transformation to the full relative depth
+map
+17: D∗←s∗· Drel + t∗
+18: return D∗
+ence of each Gaussian is given by:
+Gp(x) := exp
+
+−1
+2(x −µp)⊤Σ−1
+p (x −µp)
+
+,
+(1)
+where Σp is the covariance matrix derived from sp and qp.
+Inspired by [43, 47, 97], we introduce a deformable 3D
+Gaussian formulation to represent dynamic scene. For each
+Gaussian p at time step t, the predicted deformation field
+comprises a displacement for its mean, ∆µt
+p ∈R3; an ad-
+justment to its rotation, ∆qt
+p ∈R4; and a modification to
+its scale, ∆st
+p ∈R3. The deformed parameters at time t are
+updated as follows: µt
+p := µ0
+p + ∆µt
+p, qt
+p := q0
+p ⊗∆qt
+p
+(quaternion multiplication), and st
+p := s0
+p + ∆st
+p. These
+deformed Gaussians are then rendered using a differentiable
+Gaussian rasterization pipeline. Deformable Gaussian Fields
+is equipped with the LDRM, which generates a Gaussian
+feature map G ∈R(T ×H×W )×Kg, where Kg denotes the
+number of parameters for each Gaussian primitive. Concur-
+rently, the LDRM predicts a corresponding deformation map
+D ∈R(T ×H×W )×Kd. The dimensionality of this deforma-
+tion, Kd = 10, comprises offsets for the mean (∆µ ∈R3),
+rotation (∆q ∈R4), and scale (∆s ∈R3).
+During training and inference, we employ a pruning strat-
+egy based on the opacity values predicted by the model, re-
+moving Gaussians with opacity below a threshold τopacity =
+0.005 for rendering.
+3.4. Training Objective
+To enhance the geometric consistency of the generated la-
+tents, we introduce a training scheme that jointly optimizes
+the network across multi-tasks via differentiable rendering.
+The total loss is a weighted sum of four components:
+L = LFM +λphotoLphoto +λgeoLgeo +λmotionLmotion, (2)
+where λphoto = 1.0, λgeo = 0.5, and λmotion = 2.0 are
+balancing coefficients.
+Flow Matching Loss
+The Flow Matching (FM) [51] ap-
+proach learns the vector field that transports a noise distribu-
+tion to the data distribution. The FM loss, LFM, is applied
+only to the parameters of the base video diffusion model. It
+is used to finetune the pretrained video model on our curated
+dataset to better align its latent space with 4D-consistent
+data. The LDRM and Gaussian prediction head are trained
+exclusively with the rendering-based losses described below.
+Let z(0) be a clean latent sequence from the data distribution
+pdata, and z(1) ∼N(0, I) be a sample from the prior gaus-
+sian noise. The FM objective is to train a vector field model
+vθ(z(t), t) to match the ground-truth vector field ut(z(t)).
+LFM(θ) = Et,pt(z(t))
+h
+∥vθ(z(t), t) −ut(z(t))∥2
+2
+i
+.
+(3)
+This loss encourages the diffusion model to generate latent
+videos that are faithful to the distribution of our 4D-annotated
+dataset.
+Photometric Loss
+To facilitate high-quality novel view
+synthesis, we optimize the 3DGS parameters using a com-
+posite loss:
+Lphoto = MSE(ˆIk, Ik) + λp · LPIPS(ˆIk, Ik),
+(4)
+where ˆIk is the rendered image for view k, Ik is the
+ground-truth image, and λp is a balancing coefficient for
+the LPIPS [108] term.
+Geometric Loss
+Inspired by [34], we introduce a ge-
+ometric regularization term to enforce accurate depth re-
+lationships. Let ˆDk be the rendered depth map and D∗
+k
+be the ground-truth depth for view k. Lgeo( ˆDk, D∗
+k) =
+1 −
+Cov( ˆ
+Dk,D∗
+k)
+√
+Var( ˆ
+Dk)Var(D∗
+k), where Cov and Var are covariance
+and variance functions. We also apply a total variation loss,
+LTV = ∥∇ˆDk∥1, to enforce local smoothness.
+4235
+
+
+Figure 2. Architecture of DIFF4SPLAT. We present a high-fidelity dynamic 3DGS generation method from a single image through four
+key innovations: (1) video diffusion latents processed by our novel Transformer (Sec. 3.2), (2) a dynamic 3DGS deformation mechanism
+(Sec. 3.3), (3) unified supervision with photometric, geometric, and motion losses (Sec. 3.4), and (4) a progressive training scheme for robust
+geometry and texture.
+Motion Loss
+Given 3D point tracking data, the ground-
+truth motion for a point j is its displacement ∆xj. For
+synthetic data, these tracks are readily available. For real-
+world videos, we utilize the CoTracker [28] model to obtain
+point tracks, which are then filtered based on confidence
+scores to ensure high quality. The motion loss is:
+Lmotion =
+1
+|O|
+X
+j∈O
+(λm∥∆ˆxj −∆xj∥2 + ∥∆ˆxj∥1) , (5)
+where O is the set of tracked points, ∆ˆxj is the predicted
+displacement, and λm is a weighting coefficient.
+Progressive Training Scheme
+➊Static Geometry Pre-
+training (40K iterations). We first establish a strong geo-
+metric prior by training LDRM on static scenes (e.g., Tar-
+tanAir, RealEstate10K) at a low resolution (256 × 256),
+using only photometric and geometric losses. During this
+stage, the deformation module (an 8-layer DPT head) is
+frozen.
+➋High-Resolution Refinement (40K iterations). With
+the deformation module still frozen, we enhance reconstruc-
+tion fidelity by training on static scenes under a high resolu-
+tion (512 × 512).
+➌Dynamic Scene Fine-tuning (20K iterations). Fi-
+nally, we unfreeze and fine-tune the entire model on dynamic
+datasets (PointOdyssey, DynamicReplica, Spring, VKITTI2,
+and Stereo4D). This stage employs the complete loss func-
+tion, including a motion loss term, to learn temporal de-
+formations. This progressive strategy, combined with our
+large-scale 4D dataset, enables our model to learn complex
+dynamics and generate high-fidelity, temporally coherent
+dynamic scenes.
+4. Experimental Evaluation
+4.1. Implementation Details
+Our framework is built upon CogVideoX [98], a pretrained
+Video Diffusion Transformer model operating in the latent
+space of a 3D Causal Variational Autoencoder with a 32 ×
+4 × 8 × 8 compression scheme. The architecture consists of
+32 blocks and a hidden dimensionality of 4096. The Latent
+Diffusion model for Deformable Radiance Fields (LDRM)
+comprises 16 standard Transformer blocks. Latent features,
+with a channel dimension of c = 32, are projected into a 64-
+dimensional embedding space before being processed by the
+Transformer backbone. The latent tensor is tokenized with
+a patch size of 2 × 2, resulting in a sequence of tokens for
+the transformer. To incorporate textual guidance, each DiT
+block is equipped with a cross-attention layer that integrates
+image embeddings from a T5 model [63].
+For training, we utilize the AdamW optimizer [53] with
+an initial learning rate of 10−5 and a weight decay of 10−4.
+The loss weighting hyperparameters are set to λphoto =
+1.0, λgeo = 0.5, and λp = 0.5 for the photometric loss
+and λm = 2 for the motion loss. The model is trained for
+100,000 iterations using a cosine learning rate scheduler,
+requiring approximately 7 days on 32 A100 GPUs with
+BF16 mixed precision. At inference, our model generates a
+dynamic scene in approximately 30 seconds.
+4.2. Evaluation Protocol
+Baselines
+We benchmark our single-stage pipeline against
+two-stage approaches that combine state-of-the-art tech-
+niques. Specifically, we employ AC3D [2] for single-image
+controllable video generation, followed by Mosca [31] for
+dynamic 3D Gaussian reconstruction. For a comprehensive
+4236
+
+
+Table 1. Quantitative comparison of appearance fidelity and aesthetic quality. † denotes methods requiring per-scene optimization. We
+highlight first-place and second-place results.
+Method
+Video Generation & Aesthetic Quality
+Rec. Time
+(lower is better)
+FVD ↓
+KVD ↓
+CLIP-Score ↑
+CLIP-Aesthetic ↑
+QA-Quality ↑
+Camera-Controlled Video Generation
+CameraCtrl [18]
+478.192
+8.105
+19.365
+2.965
+1.894
+20s
+AC3D [2]
+339.431
+6.342
+20.673
+3.324
+2.158
+28s
+Explicit 3DGS Representation (Optimization-based)
+AC3D + Shape of Motion† [81]
+373.045
+6.511
+16.201
+3.043
+1.838
+18min
+AC3D + SaV† [74]
+327.122
+5.816
+19.018
+4.371
+2.382
+35min
+AC3D + Mosca† [31]
+235.961
+2.012
+20.214
+4.999
+2.842
+45min
+Ours (Feed-forward)
+210.153
+2.316
+23.123
+5.231
+2.813
+30s
+Figure 3. Qualitative comparison with state-of-the-art methods. DIFF4SPLAT (last column) generates more visually appealing and
+temporally consistent 4D scenes with superior geometric fidelity compared to baselines. Kindly zoom in for details.
+evaluation of camera controllability, we created an evalu-
+ation set of 160 samples by applying five distinct camera
+trajectories (spiral, forward, backward, upward, and down-
+ward) to 32 unique text-captioned scenes. We also compare
+against recent feed-forward 4D generation methods where
+possible, though many are not open-sourced or have different
+input requirements, precluding a direct, fair comparison on
+our benchmark.
+4237
+
+
+Table 2. Geometric integrity and reconstruction time. † denotes
+optimization-based methods. Best results are in bold, second best
+are underlined.
+Method
+Avg.
+Matches ↑
+Subj. Consist.
+Score ↑
+Bg. Consist.
+Score ↑
+Time
+↓
+Camera-Controlled Video Generation
+CameraCtrl [18]
+2015.82
+72.25
+74.53
+20s
+AC3D [2]
+2489.16
+75.64
+75.91
+28s
+Explicit 3DGS Representation
+AC3D + Shape of Motion† [81]
+2874.22
+83.13
+83.33
+18min
+AC3D + SaV† [74]
+3035.43
+85.96
+84.23
+35min
+AC3D + Mosca† [31]
+4500.68
+86.23
+90.43
+45min
+Ours
+5114.22
+88.32
+89.89
+30s
+Table 3. Comparison of Average Relative Pose Error (RPE), high-
+lighting our explicit model’s superior accuracy in translation and
+rotation, alongside its additional capabilities.
+Method
+Avg. RPE
+(Translation) ↓
+Avg. RPE
+(Rotation) ↓
+Novel View
+Synthesis
+Depth
+Rasterization
+Real-time
+Interaction
+AC3D [2]
+3.001
+0.810
+✓
+✗
+✗
+Ours (Explicit)
+0.012
+0.008
+✓
+✓
+✓
+Metrics
+Our evaluation assesses both prompt-scene consis-
+tency and aesthetic quality using several established metrics:
+CLIP similarity score [62], CLIP-Aesthetic score [68], and
+the VLM-based visual scorer Q-Align (QA-Quality) [88].
+Video quality is measured using Fréchet Video Distance
+(FVD) [77] and Kernel Video Distance (KVD) [76]. To
+evaluate geometric integrity, we use MASt3R [32] for local
+correspondence matching between input and generated novel
+views, reporting the average number of matches, as well as
+subject and background consistency scores [111].
+4.3. Quantitative and Qualitative Evaluation
+Figure 4. Qualitative results under extreme viewpoints.
+Quantitative Results
+As detailed in Tab. 1 and Tab. 2,
+our approach demonstrates competitive or superior perfor-
+mance across a range of metrics. For video generation and
+aesthetic quality (Tab. 1), our method is highly competitive,
+while drastically reducing the reconstruction time to just 30
+Table 4. Ablation Study on Motion Loss. We evaluate the impact
+of our proposed motion loss on dynamic video generation.
+Method
+FVD ↓
+KVD ↓
+QA-Quality ↑
+Avg. Matches ↑
+Subj. Consist.
+Score ↑
+Bg. Consist.
+Score ↑
+Rec. Time ↓
+w/o motion loss
+351.382
+3.351
+2.145
+4821.56
+82.45
+85.12
+30s
+Ours
+210.153
+2.316
+2.813
+5114.22
+88.32
+89.89
+30s
+seconds. This represents a substantial efficiency gain over
+optimization-based methods like “AC3D + Mosca,” which
+requires 45 minutes. Furthermore, Tab. 2 shows that our
+method achieves precise, camera-controllable generation
+with strong geometric integrity.
+Qualitative Results
+As illustrated in Fig. 3, our method
+generates 4D scenes that are more visually appealing, tem-
+porally coherent, and geometrically accurate than base-
+line methods. For instance, our generated videos exhibit
+smoother motion and fewer artifacts compared to SaV and
+Mosca.
+This visual superiority is a direct result of our
+model’s ability to predict a deformable 3D Gaussian field,
+which provides a continuous and comprehensive represen-
+tation of the scene’s temporal evolution. In contrast, the
+dynamic motion capabilities of camera control models like
+AC3D and CameraCtrl are constrained by their 2D video
+priors, often leading to less dynamic results.
+Generation Controllability
+A key advantage of our ex-
+plicit 4D representation is the ability to enforce physical
+consistency by rendering video deterministically from a spec-
+ified camera path. We validate this by quantifying camera
+pose fidelity using the Relative Pose Error (RPE) metric [71].
+As shown in Table 3, our method significantly improves pose
+accuracy compared to the implicit baseline.
+4.4. Ablation and Analysis
+Effect of Deformation Gaussian Field
+Fig. 6 illustrates
+the importance of the deformation Gaussian module. With-
+out this module, the model struggles to differentiate between
+camera movement and the motion of foreground objects.
+This inability to properly combine 3D Gaussian splats from
+different timestamps leads to motion blur, spike artifacts,
+and a general degradation in image quality. By employing
+the deformation Gaussian field, our model effectively fuses
+reconstruction information from various moments, thereby
+achieving higher visual quality.
+Effect of Explicit Representation
+Our adoption of an ex-
+plicit 3D Gaussian Splatting representation offers several
+key advantages over implicit models, as detailed in Table 3.
+Firstly, it enables superior camera controllability, drastically
+reducing the Relative Pose Error (RPE) in both translation
+and rotation. This ensures that the generated video faithfully
+adheres to the specified camera path. Secondly, the explicit
+nature of the representation unlocks additional functional-
+4238
+
+
+Figure 5. Applications of DIFF4SPLAT. Our method supports applications such as novel view synthesis and depth map extraction from the
+generated 4D representation.
+Figure 6. Ablation of the Deformation Gaussian Field. Removing
+this module (the red bounding boxes) results in ghosting artifacts,
+particularly in frames with large motion.
+Figure 7. Ablation on the progressive training strategy. Our ap-
+proach (left) yields higher visual quality than direct dynamic train-
+ing (right) after 100K iterations.
+ities not available in the implicit baseline, such as depth
+rasterization and real-time interaction.
+Effect of Motion Loss
+We perform an ablation study on
+our proposed deformation module and motion loss. As
+shown in Table 4, removing this component prevents the
+network from accurately modeling temporal deformations,
+which is critical for dynamic video synthesis. Its absence
+significantly degrades scene reconstruction quality and nega-
+tively impacts all quantitative metrics.
+Importance of Progressive Training
+Our progressive
+training strategy is crucial for robust 4D scene generation.
+Directly training on dynamics without static pre-training
+fails to initialize the 3DGS, leading to unstable training and
+degraded 4D scene quality. In contrast, our approach first
+establishes a static scene representation, providing a solid
+foundation for learning complex dynamics, which signif-
+icantly enhances performance and visual fidelity. Direct
+dynamic training is inefficient, either converging to a sub-
+optimal state or requiring triple the training time (e.g., 21
+versus 7 days) for a comparable baseline. As shown in Fig. 7,
+our progressive strategy yields substantially higher visual
+quality after 100K iterations, underscoring its superior re-
+source efficiency and final performance.
+Applications
+Beyond controllable video generation, our
+framework naturally supports novel view synthesis for dy-
+namic scenes, enabling free-viewpoint rendering. The ex-
+plicit 3DGS representation facilitates real-time rendering
+and interaction, paving the way for immersive virtual reality
+experiences. Furthermore, geometric information, such as
+depth maps, can be readily extracted. We showcase addi-
+tional in-the-wild cases in Fig. 4, followed by comprehensive
+qualitative results for these applications in Fig. 5.
+5. Conclusion
+In this work, we present a novel framework for explicit de-
+formation Gaussian field generation from a single image in
+a feed-forward manner and achieves three key innovations:
+(1) unified diffusion transformer architecture integrating dy-
+namic scene modeling, (2) geometry-aware latent representa-
+tion enabling efficient view synthesis, (3) real-time rendering
+pipeline supporting practical applications.
+4239
+
+
+References
+[1] Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury
+Zemlyanskiy, Federico Lebrón, and Sumit Sanghai. Gqa:
+Training generalized multi-query transformer models from
+multi-head checkpoints. arXiv preprint arXiv:2305.13245,
+2023. 3
+[2] Sherwin Bahmani, Ivan Skorokhodov, Guocheng Qian, Ali-
+aksandr Siarohin, Willi Menapace, Andrea Tagliasacchi,
+David B Lindell, and Sergey Tulyakov. Ac3d: Analyzing
+and improving 3d camera control in video diffusion trans-
+formers. arXiv preprint arXiv:2411.18673, 2024. 1, 3, 5, 6,
+7
+[3] Sherwin Bahmani, Tianchang Shen, Jiawei Ren, Jiahui
+Huang, Yifeng Jiang, Haithem Turki, Andrea Tagliasacchi,
+David B Lindell, Zan Gojcic, Sanja Fidler, et al. Lyra: Gen-
+erative 3d scene reconstruction via video diffusion model
+self-distillation. arXiv preprint arXiv:2509.19296, 2025. 3
+[4] Haotian Bai, Yuanhuiyi Lyu, Lutao Jiang, Sijia Li, Haonan
+Lu, Xiaodong Lin, and Lin Wang. Componerf: Text-guided
+multi-object compositional nerf with editable 3d scene lay-
+out. arXiv preprint arXiv:2303.13843, 2023. 2
+[5] Jianhong Bai, Menghan Xia, Xiao Fu, Xintao Wang, Lianrui
+Mu, Jinwen Cao, Zuozhu Liu, Haoji Hu, Xiang Bai, Pengfei
+Wan, and Di Zhang.
+Recammaster: Camera-controlled
+generative rendering from a single video. arXiv preprint
+arXiv:2503.11647, 2025. 3
+[6] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel
+Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam Levi,
+Zion English, Vikram Voleti, Adam Letts, et al. Stable video
+diffusion: Scaling latent video diffusion models to large
+datasets. arXiv preprint arXiv:2311.15127, 2023. 2
+[7] Andreas Blattmann, Robin Rombach, Huan Ling, Tim Dock-
+horn, Seung Wook Kim, Sanja Fidler, and Karsten Kreis.
+Align your latents: High-resolution video synthesis with
+latent diffusion models. In Proc. CVPR, 2023. 3
+[8] Yohann Cabon, Naila Murray, and Martin Humenberger.
+Virtual kitti 2. arXiv preprint arXiv:2001.10773, 2020. 3
+[9] Sili Chen, Hengkai Guo, Shengnan Zhu, Feihu Zhang, Zi-
+long Huang, Jiashi Feng, and Bingyi Kang. Video depth
+anything: Consistent depth estimation for super-long videos.
+In Conference on Computer Vision and Pattern Recognition
+(CVPR), 2025. 3
+[10] Zhaoxi Chen, Tianqi Liu, Long Zhuo, Jiawei Ren, Zeng Tao,
+He Zhu, Fangzhou Hong, Liang Pan, and Ziwei Liu. 4dnex:
+Feed-forward 4d generative modeling made easy. arXiv
+preprint arXiv:2508.13154, 2025. 3
+[11] Wen-Hsuan Chu, Lei Ke, and Katerina Fragkiadaki. Dream-
+scene4d: Dynamic multi-object scene generation from
+monocular videos. arXiv preprint arXiv:2405.02280, 2024.
+3
+[12] Wen-Hsuan Chu, Lei Ke, and Katerina Fragkiadaki. Dream-
+scene4d: Dynamic multi-object scene generation from
+monocular videos. Advances in Neural Information Pro-
+cessing Systems, 37:96181–96206, 2025. 3
+[13] Jaeyoung Chung, Suyoung Lee, Hyeongjin Nam, Jaerin
+Lee, and Kyoung Mu Lee. Luciddreamer: Domain-free
+generation of 3d gaussian splatting scenes. arXiv preprint
+arXiv:2311.13384, 2023. 2
+[14] Angela Dai, Angel X Chang, Manolis Savva, Maciej Hal-
+ber, Thomas Funkhouser, and Matthias Nießner. Scannet:
+Richly-annotated 3d reconstructions of indoor scenes. In
+Proceedings of the IEEE conference on computer vision and
+pattern recognition, pages 5828–5839, 2017. 3
+[15] Patrick Esser, Johnathan Chiu, Parmida Atighehchian,
+Jonathan Granskog, and Anastasis Germanidis. Structure
+and content-guided video synthesis with diffusion models.
+In ICCV, 2023. 2
+[16] Gege Gao, Weiyang Liu, Anpei Chen, Andreas Geiger, and
+Bernhard Schölkopf. GraphDreamer: Compositional 3D
+scene synthesis from scene graphs. Proc. CVPR, 2024. 2
+[17] Yuwei Guo, Ceyuan Yang, Anyi Rao, Yaohui Wang, Yu
+Qiao, Dahua Lin, and Bo Dai. Animatediff: Animate your
+personalized text-to-image diffusion models without specific
+tuning. arXiv preprint arXiv:2307.04725, 2023. 2
+[18] Hao He, Yinghao Xu, Yuwei Guo, Gordon Wetzstein, Bo
+Dai, Hongsheng Li, and Ceyuan Yang. Cameractrl: Enabling
+camera control for text-to-video generation. arXiv preprint
+arXiv:2404.02101, 2024. 2, 6, 7
+[19] Hao He, Ceyuan Yang, Shanchuan Lin, Yinghao Xu, Meng
+Wei, Liangke Gui, Qi Zhao, Gordon Wetzstein, Lu Jiang, and
+Hongsheng Li. Cameractrl ii: Dynamic scene exploration
+via camera-controlled video diffusion models, 2025. 2
+[20] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-
+sion probabilistic models. Advances in neural information
+processing systems, 2020. 2
+[21] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William
+Chan, Mohammad Norouzi, and David J Fleet. Video dif-
+fusion models. Advances in Neural Information Processing
+Systems, 35:8633–8646, 2022. 2
+[22] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen.
+Lora: Low-rank adaptation of large language models. In
+ICLR, 2022. 2
+[23] Tianyu Huang, Wangguandong Zheng, Tengfei Wang, Yuhao
+Liu, Zhenwei Wang, Junta Wu, Jie Jiang, Hui Li, Ryn-
+son WH Lau, Wangmeng Zuo, et al. Voyager: Long-range
+and world-consistent video diffusion for explorable 3d scene
+generation. arXiv preprint arXiv:2506.04225, 2025. 2
+[24] Yuzhi Huang, Kairun Wen, Rongxin Gao, Dongxuan Liu,
+Yibin Lou, Jie Wu, Jing Xu, Jian Zhang, Zheng Yang, Yun-
+long Lin, Chenxin Li, Panwang Pan, Junbin Lu, Jingyan
+Jiang, Xinghao Ding, Yue Huang, and Zhi Wang. Think-
+ing in dynamics: How multimodal large language models
+perceive, track, and reason dynamics in physical 4d world.
+In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, 2026. 3
+[25] Yan-Bin Jia. Plücker coordinates for lines in the space.
+Problem Solver Techniques for Applied Computer Science,
+Com-S-477/577 Course Handout, 2020. 3
+[26] Linyi Jin, Richard Tucker, Zhengqi Li, David Fouhey, Noah
+Snavely, and Aleksander Holynski. Stereo4d: Learning how
+things move in 3d from internet stereo videos. In Proceed-
+ings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), 2025. 1, 3
+4240
+
+
+[27] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia
+Neverova, Andrea Vedaldi, and Christian Rupprecht. Dy-
+namicstereo: Consistent dynamic depth from stereo videos.
+In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2023. 3
+[28] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia
+Neverova, Andrea Vedaldi, and Christian Rupprecht. Co-
+tracker: It is better to track together. In European conference
+on computer vision, pages 18–35. Springer, 2024. 5
+[29] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkuehler,
+and George Drettakis. 3d gaussian splatting for real-time
+radiance field rendering. ACM Transactions on Graphics
+(TOG), 2023. 2, 3
+[30] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkühler,
+and George Drettakis. 3d gaussian splatting for real-time
+radiance field rendering. In ACM TOG, 2023. 1
+[31] Jiahui Lei, Yijia Weng, Adam Harley, Leonidas Guibas,
+and Kostas Daniilidis. Mosca: Dynamic gaussian fusion
+from casual videos via 4d motion scaffolds. arXiv preprint
+arXiv:2405.17421, 2024. 1, 3, 5, 6, 7
+[32] Vincent Leroy, Yohann Cabon, and Jerome Revaud. Ground-
+ing image matching in 3d with mast3r. arXiv:2406.09756,
+2024. 7
+[33] Renjie Li, Panwang Pan, Bangbang Yang, Dejia Xu, Shi-
+jie Zhou, Xuanyang Zhang, Zeming Li, Achuta Kadambi,
+Zhangyang Wang, Zhengzhong Tu, et al.
+4k4dgen:
+Panoramic 4d generation at 4k resolution. arXiv preprint
+arXiv:2406.13527, 2024. 3
+[34] Renjie Li, Panwang Pan, Bangbang Yang, Dejia Xu, Shi-
+jie Zhou, Xuanyang Zhang, Zeming Li, Achuta Kadambi,
+Zhangyang Wang, Zhengzhong Tu, et al.
+4k4dgen:
+Panoramic 4d generation at 4k resolution. Proc. ICLR, 2025.
+4
+[35] Xinyang Li, Tengfei Wang, Zixiao Gu, Shengchuan Zhang,
+Chunchao Guo, and Liujuan Cao.
+Flashworld: High-
+quality 3d scene generation within seconds. arXiv preprint
+arXiv:2510.13678, 2025. 2
+[36] Yixuan Li, Lihan Jiang, Linning Xu, Yuanbo Xiangli, Zhen-
+zhi Wang, Dahua Lin, and Bo Dai. Matrixcity: A large-scale
+city dataset for city-scale neural rendering and beyond. In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), 2023. 3
+[37] Yuheng Li, Haotian Liu, Qingyang Wu, Fangzhou Mu, Jian-
+wei Yang, Jianfeng Gao, Chunyuan Li, and Yong Jae Lee.
+Gligen: Open-set grounded text-to-image generation. In
+CVPR, 2023. 2
+[38] Zhengqi Li, Qianqian Wang, Forrester Cole, Richard Tucker,
+and Noah Snavely. Dynibar: Neural dynamic image-based
+rendering. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition, 2023. 3
+[39] Zhengqi Li, Richard Tucker, Forrester Cole, Qianqian Wang,
+Linyi Jin, Vickie Ye, Angjoo Kanazawa, Aleksander Holyn-
+ski, and Noah Snavely. Megasam: Accurate, fast, and robust
+structure and motion from casual dynamic videos. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR), 2025. 3
+[40] Hanwen Liang, Junli Cao, Vidit Goel, Guocheng Qian,
+Sergei Korolev, Demetri Terzopoulos, Konstantinos N Pla-
+taniotis, Sergey Tulyakov, and Jian Ren. Wonderland: Nav-
+igating 3d scenes from a single image.
+arXiv preprint
+arXiv:2412.12091, 2024. 1, 2
+[41] Hanwen Liang, Junli Cao, Vidit Goel, Guocheng Qian,
+Sergei Korolev, Demetri Terzopoulos, Konstantinos N. Pla-
+taniotis, Sergey Tulyakov, and Jian Ren. Wonderland: Navi-
+gating 3D Scenes from a Single Image, 2024. 3
+[42] Hanxue Liang, Jiawei Ren, Ashkan Mirzaei, Antonio Tor-
+ralba, Ziwei Liu, Igor Gilitschenski, Sanja Fidler, Cengiz
+Oztireli, Huan Ling, Zan Gojcic, et al. Feed-forward bullet-
+time reconstruction of dynamic scenes from monocular
+videos. arXiv preprint arXiv:2412.03526, 2024. 3
+[43] Yiqing Liang, Numair Khan, Zhengqin Li, Thu Nguyen-
+Phuoc, Douglas Lanman, James Tompkin, and Lei Xiao.
+Gaufre: Gaussian deformation fields for real-time dynamic
+novel view synthesis. In 2025 IEEE/CVF Winter Conference
+on Applications of Computer Vision (WACV), pages 2642–
+2652. IEEE, 2025. 4
+[44] Chenguo Lin and Yadong Mu. Instructscene: Instruction-
+driven 3d indoor scene synthesis with semantic graph prior.
+arXiv preprint arXiv:2402.04717, 2024. 2
+[45] Chenguo Lin, Yuchen Lin, Panwang Pan, Xuanyang Zhang,
+and Yadong Mu. Instructlayout: Instruction-driven 2d and
+3d layout synthesis with semantic graph prior. arXiv preprint
+arXiv:2407.07580, 2024. 2
+[46] Chenguo Lin, Panwang Pan, Bangbang Yang, Zeming Li,
+and Yadong Mu. Diffsplat: Repurposing image diffusion
+models for scalable gaussian splat generation. arXiv preprint
+arXiv:2501.16764, 2025. 2
+[47] Youtian Lin, Zuozhuo Dai, Siyu Zhu, and Yao Yao.
+Gaussian-flow: 4d reconstruction with dynamic 3d gaus-
+sian particle. In Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition, pages 21136–
+21145, 2024. 4
+[48] Yuchen Lin, Chenguo Lin, Panwang Pan, Honglei Yan,
+Yiqiang Feng, Yadong Mu, and Katerina Fragkiadaki.
+Partcrafter: Structured 3d mesh generation via composi-
+tional latent diffusion transformers, 2025. 2
+[49] Yuchen Lin, Chenguo Lin, Jianjin Xu, and Yadong
+Mu.
+Omniphysgs:
+3d constitutive gaussians for gen-
+eral physics-based dynamics generation. arXiv preprint
+arXiv:2501.18982, 2025. 3
+[50] Lu Ling, Yichen Sheng, Zhi Tu, Wentian Zhao, Cheng Xin,
+Kun Wan, Lantao Yu, Qianyu Guo, Zixun Yu, Yawen Lu,
+et al.
+Dl3dv-10k: A large-scale scene dataset for deep
+learning-based 3d vision. In Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition,
+pages 22160–22169, 2024. 3
+[51] Yaron Lipman, Ricky TQ Chen, Heli Ben-Hamu, Maxim-
+ilian Nickel, and Matt Le. Flow matching for generative
+modeling. In International Conference on Learning Repre-
+sentations (ICLR), 2023. 4
+[52] Fangfu Liu, Wenqiang Sun, Hanyang Wang, Yikai Wang,
+Haowen Sun, Junliang Ye, Jun Zhang, and Yueqi Duan.
+Reconx: Reconstruct any scene from sparse views with
+4241
+
+
+video diffusion model. arXiv preprint arXiv:2408.16767,
+2024. 2
+[53] Ilya Loshchilov and Frank Hutter. Decoupled weight decay
+regularization. In International Conference on Learning
+Representations, 2019. 5
+[54] Lukas Mehl, Jenny Schmalfuss, Azin Jahedi, Yaroslava Nali-
+vayko, and Andrés Bruhn. Spring: A high-resolution high-
+detail dataset and benchmark for scene flow, optical flow
+and stereo. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+4981–4991, 2023. 3
+[55] B Mildenhall, PP Srinivasan, M Tancik, JT Barron, R Ra-
+mamoorthi, and R Ng. Nerf: Representing scenes as neural
+radiance fields for view synthesis. In European Conference
+on Computer Vision (ECCV), 2020. 2
+[56] Chong Mou, Xintao Wang, Liangbin Xie, Yanze Wu, Jian
+Zhang, Zhongang Qi, and Ying Shan. T2i-adapter: Learn-
+ing adapters to dig out more controllable ability for text-to-
+image diffusion models. In AAAI, 2024. 2
+[57] Norman Müller, Katja Schwarz, Barbara Rössle, Lorenzo
+Porzi, Samuel Rota Bulò, Matthias Nießner, and Peter
+Kontschieder. Multidiff: Consistent novel view synthesis
+from a single image. In Proc. CVPR, 2024. 2
+[58] Muyao Niu, Xiaodong Cun, Xintao Wang, Yong Zhang,
+Ying Shan, and Yinqiang Zheng. Mofa-video: Control-
+lable image animation via generative motion field adaptions
+in frozen image-to-video diffusion model. arXiv preprint
+arXiv:2405.20222, 2024. 2
+[59] Panwang Pan, Zhuo Su, Chenguo Lin, Zhen Fan, Yongjie
+Zhang, Zeming Li, Tingting Shen, Yadong Mu, and Yebin
+Liu. Humansplat: Generalizable single-image human gaus-
+sian splatting with structure priors, 2024. 3
+[60] Elia Peruzzo, Vidit Goel, Dejia Xu, Xingqian Xu, Yifan
+Jiang, Zhangyang Wang, Humphrey Shi, and Nicu Sebe.
+Vase: Object-centric appearance and shape manipulation of
+real videos. arXiv preprint arXiv:2401.02473, 2024. 2
+[61] Ryan Po and Gordon Wetzstein. Compositional 3D scene
+generation using locally conditioned diffusion. Proc. 3DV,
+2024. 2
+[62] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learn-
+ing transferable visual models from natural language super-
+vision. In International conference on machine learning,
+pages 8748–8763. PMLR, 2021. 7
+[63] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee,
+Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, and
+Peter J Liu. Exploring the limits of transfer learning with a
+unified text-to-text transformer. In Proc. JMLR, 2020. 5
+[64] Xuanchi Ren, Tianchang Shen, Jiahui Huang, Huan Ling,
+Yifan Lu, Merlin Nimier-David, Thomas Müller, Alexander
+Keller, Sanja Fidler, and Jun Gao. Gen3c: 3d-informed
+world-consistent video generation with precise camera con-
+trol. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition, 2025. 1
+[65] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Björn Ommer. High-resolution image
+synthesis with latent diffusion models. In Proc. CVPR, 2022.
+3
+[66] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Björn Ommer. High-resolution image
+synthesis with latent diffusion models. In Proceedings of
+the IEEE/CVF conference on computer vision and pattern
+recognition, 2022. 2
+[67] Johannes L Schonberger and Jan-Michael Frahm. Structure-
+from-motion revisited. In Computer Vision and Pattern
+Recognition (CVPR), 2016. 3
+[68] Christoph
+Schuhmann.
+CLIP+MLP
+Aesthetic
+Score
+Predictor.
+https : / / github . com /
+christophschuhmann / improved - aesthetic -
+predictor, 2023. 7
+[69] Qiuhong Shen, Xuanyu Yi, Mingbao Lin, Hanwang Zhang,
+Shuicheng Yan, and Xinchao Wang. Seeing world dynamics
+in a nutshell, 2025. 3
+[70] Vincent Sitzmann, Semon Rezchikov, Bill Freeman, Josh
+Tenenbaum, and Fredo Durand. Light field networks: Neural
+scene representations with single-evaluation rendering. In
+Proc. NeurIPS, 2021. 2
+[71] Jürgen Sturm, Nikolas Engelhard, Felix Endres, Wolfram
+Burgard, and Daniel Cremers. A benchmark for the eval-
+uation of rgb-d slam systems. In IEEE/RSJ international
+conference on intelligent robots and systems, 2012. 7
+[72] Wenqiang Sun, Shuo Chen, Fangfu Liu, Zilong Chen, Yueqi
+Duan, Jun Zhang, and Yikai Wang. Dimensionx: Create
+any 3d and 4d scenes from a single image with controllable
+video diffusion. arXiv preprint arXiv:2411.04928, 2024. 1,
+2
+[73] Yang-Tian Sun, Yihua Huang, Lin Ma, Xiaoyang Lyu, Yan-
+Pei Cao, and Xiaojuan Qi. Splatter a video: Video gaussian
+representation for versatile processing. In Advances in Neu-
+ral Information Processing Systems (NeurIPS), 2024. 3
+[74] Yang-Tian Sun, Yi-Hua Huang, Lin Ma, Xiaoyang Lyu, Yan-
+Pei Cao, and Xiaojuan Qi. Splatter a video: Video gaussian
+representation for versatile processing, 2024. 6, 7
+[75] Stanislaw Szymanowicz, Jason Y Zhang, Pratul Srinivasan,
+Ruiqi Gao, Arthur Brussee, Aleksander Holynski, Ricardo
+Martin-Brualla, Jonathan T Barron, and Philipp Henzler.
+Bolt3d: Generating 3d scenes in seconds. arXiv preprint
+arXiv:2503.14445, 2025. 2
+[76] Thomas Unterthiner, Sjoerd Van Steenkiste, Karol Kurach,
+Raphael Marinier, Marcin Michalski, and Sylvain Gelly.
+Towards accurate generative models of video: A new metric
+& challenges. arXiv preprint arXiv:1812.01717, 2018. 7
+[77] Thomas Unterthiner, Sjoerd van Steenkiste, Karol Kurach,
+Raphaël Marinier, Marcin Michalski, and Sylvain Gelly.
+Fvd: A new metric for video generation. International
+Conference on Learning Representations (ICLR), 2019. 7
+[78] Alexander Vilesov, Pradyumna Chari, and Achuta Kadambi.
+Cg3d: Compositional generation for text-to-3d via gaussian
+splatting. arXiv preprint arXiv:2311.17907, 2023. 2
+[79] Chaoyang Wang, Peiye Zhuang, Tuan Duc Ngo, Willi Mena-
+pace, Aliaksandr Siarohin, Michael Vasilkovsky, Ivan Sko-
+rokhodov, Sergey Tulyakov, Peter Wonka, and Hsin-Ying
+Lee. 4real-video: Learning generalizable photo-realistic 4d
+video diffusion. arXiv preprint arXiv:2412.04462, 2024. 3
+4242
+
+
+[80] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea
+Vedaldi, Christian Rupprecht, and David Novotny. Vggt:
+Visual geometry grounded transformer, 2025. 2
+[81] Qianqian Wang, Vickie Ye, Hang Gao, Jake Austin, Zhengqi
+Li, and Angjoo Kanazawa. Shape of motion: 4d reconstruc-
+tion from a single video. Proceedings of the IEEE/CVF
+International Conference on Computer Vision (ICCV), 2025.
+3, 6, 7
+[82] Wenshan Wang, Delong Zhu, Xiangwei Wang, Yaoyu Hu,
+Yuheng Qiu, Chen Wang, Yafei Hu, Ashish Kapoor, and
+Sebastian Scherer. Tartanair: A dataset to push the limits
+of visual slam. In International Conference on Intelligent
+Robots and Systems (IROS), 2020. 3
+[83] Yikai Wang, Guangce Liu, Xinzhou Wang, Zilong Chen, Ji-
+afang Li, Xin Liang, Fuchun Sun, and Jun Zhu. Video4dgen:
+Enhancing video and 4d generation through mutual optimiza-
+tion. IEEE Transactions on Pattern Analysis and Machine
+Intelligence (TPAMI), 2025. 3
+[84] Zhouxia Wang, Ziyang Yuan, Xintao Wang, Tianshui Chen,
+Menghan Xia, Ping Luo, and Ying Shan. Motionctrl: A
+unified and flexible motion controller for video generation.
+In SIGGRAPH Conference, 2024. 2
+[85] Kairun Wen, Yuzhi Huang, Runyu Chen, Hui Zheng, Yun-
+long Lin, Panwang Pan, Chenxin Li, Wenyan Cong, Jian
+Zhang, Junbin Lu, Chenguo Lin, Dilin Wang, Zhicheng
+Yan, Hongyu Xu, Justin Theiss, Yue Huang, Xinghao Ding,
+Rakesh Ranjan, and Zhiwen Fan. Dynamicverse: Physically-
+aware multimodal modeling for dynamic 4d worlds. In
+Advances in Neural Information Processing Systems, 2025.
+3
+[86] Christopher Wewer, Kevin Raj, Eddy Ilg, Bernt Schiele, and
+Jan Eric Lenssen. latentsplat: Autoencoding variational
+gaussians for fast generalizable 3d reconstruction. In Eu-
+ropean Conference on Computer Vision, pages 456–473.
+Springer, 2024. 2
+[87] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng
+Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang.
+4d gaussian splatting for real-time dynamic scene rendering.
+In Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition, pages 20310–20320, 2024. 3
+[88] Haoning Wu, Zicheng Zhang, Weixia Zhang, Chaofeng
+Chen, Chunyi Li, Liang Liao, Annan Wang, Erli Zhang,
+Wenxiu Sun, Qiong Yan, Xiongkuo Min, Guangtai Zhai, and
+Weisi Lin. Q-align: Teaching lmms for visual scoring via dis-
+crete text-defined levels. arXiv preprint arXiv:2312.17090,
+2023. 7
+[89] Rundi Wu, Ruiqi Gao, Ben Poole, Alex Trevithick, Changxi
+Zheng, Jonathan T Barron, and Aleksander Holynski. Cat4d:
+Create anything in 4d with multi-view video diffusion mod-
+els. arXiv preprint arXiv:2411.18613, 2024. 3
+[90] Yiming Xie, Chun-Han Yao, Vikram Voleti, Huaizu Jiang,
+and Varun Jampani. Sv4d: Dynamic 3d content generation
+with multi-frame and multi-view consistency. arXiv preprint
+arXiv:2407.17470, 2024. 3
+[91] Jinbo Xing, Menghan Xia, Yong Zhang, Haoxin Chen, Xin-
+tao Wang, Tien-Tsin Wong, and Ying Shan. Dynamicrafter:
+Animating open-domain images with video diffusion priors.
+arXiv preprint arXiv:2310.12190, 2023. 2
+[92] Jinbo Xing, Hanyuan Liu, Menghan Xia, Yong Zhang,
+Xintao Wang, Ying Shan, and Tien-Tsin Wong.
+Toon-
+crafter: Generative cartoon interpolation. arXiv preprint
+arXiv:2405.17933, 2024. 2
+[93] Jinbo Xing, Menghan Xia, Yuxin Liu, Yuechen Zhang, Yong
+Zhang, Yingqing He, Hanyuan Liu, Haoxin Chen, Xiaodong
+Cun, Xintao Wang, et al. Make-your-video: Customized
+video generation using textual and structural guidance. IEEE
+TVCG, 2024. 2
+[94] Dejia Xu, Weili Nie, Chao Liu, Sifei Liu, Jan Kautz,
+Zhangyang Wang, and Arash Vahdat. Camco: Camera-
+controllable 3d-consistent image-to-video generation. arXiv
+preprint arXiv:2406.02509, 2024. 2
+[95] Jianing Yang, Alexander Sax, Kevin J. Liang, Mikael Henaff,
+Hao Tang, Ang Cao, Joyce Chai, Franziska Meier, and Matt
+Feiszli. Fast3r: Towards 3d reconstruction of 1000+ images
+in one forward pass, 2025. 2
+[96] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing
+Zhang, and Xiaogang Jin. Deformable 3d gaussians for
+high-fidelity monocular dynamic scene reconstruction, 2023.
+1
+[97] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing
+Zhang, and Xiaogang Jin. Deformable 3d gaussians for
+high-fidelity monocular dynamic scene reconstruction. In
+Proceedings of the IEEE/CVF conference on computer vi-
+sion and pattern recognition, pages 20331–20341, 2024. 1,
+4
+[98] Zhuoyi Yang, Jiayan Teng, Wendi Zheng, Ming Ding, Shiyu
+Huang, Jiazheng Xu, Yuanming Yang, Wenyi Hong, Xiao-
+han Zhang, Guanyu Feng, et al. Cogvideox: Text-to-video
+diffusion models with an expert transformer. arXiv preprint
+arXiv:2408.06072, 2024. 5
+[99] Chandan Yeshwanth, Yueh-Cheng Liu, Matthias Nießner,
+and Angela Dai. Scannet++: A high-fidelity dataset of 3d in-
+door scenes. In Proceedings of the IEEE/CVF International
+Conference on Computer Vision, pages 12–22, 2023. 3
+[100] Shengming Yin, Chenfei Wu, Jian Liang, Jie Shi, Houqiang
+Li, Gong Ming, and Nan Duan. Dragnuwa: Fine-grained
+control in video generation by integrating text, image, and
+trajectory. arXiv preprint arXiv:2308.08089, 2023. 2
+[101] Heng Yu, Chaoyang Wang, Peiye Zhuang, Willi Mena-
+pace, Aliaksandr Siarohin, Junli Cao, Laszlo A Jeni, Sergey
+Tulyakov, and Hsin-Ying Lee. 4real: Towards photorealistic
+4d scene generation via video diffusion models, 2024. 3
+[102] Hong-Xing Yu, Haoyi Duan, Charles Herrmann, William T
+Freeman, and Jiajun Wu.
+Wonderworld: Interactive 3d
+scene generation from a single image.
+arXiv preprint
+arXiv:2406.09394, 2024. 2
+[103] Wangbo Yu, Jinbo Xing, Li Yuan, Wenbo Hu, Xiaoyu Li,
+Zhipeng Huang, Xiangjun Gao, Tien-Tsin Wong, Ying Shan,
+and Yonghong Tian. Viewcrafter: Taming video diffusion
+models for high-fidelity novel view synthesis. arXiv preprint
+arXiv:2409.02048, 2024. 2
+[104] Xianggang Yu, Mutian Xu, Yidan Zhang, Haolin Liu,
+Chongjie Ye, Yushuang Wu, Zizheng Yan, Chenming Zhu,
+Zhangyang Xiong, Tianyou Liang, et al. Mvimgnet: A
+large-scale dataset of multi-view images. In Proceedings of
+4243
+
+
+the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), 2023. 3
+[105] Jinyan Yuan, Bangbang Yang, Keke Wang, Panwang Pan,
+Lin Ma, Xuehai Zhang, Xiao Liu, Zhaopeng Cui, and
+Yuewen Ma. Immersegen: Agent-guided immersive world
+generation with alpha-textured proxies.
+arXiv preprint
+arXiv:2506.14315, 2025. 2
+[106] Junyi Zhang, Charles Herrmann, Junhwa Hur, Varun Jam-
+pani, Trevor Darrell, Forrester Cole, Deqing Sun, and Ming-
+Hsuan Yang.
+Monst3r: A simple approach for estimat-
+ing geometry in the presence of motion. arXiv preprint
+arXiv:2410.03825, 2024. 3
+[107] Lvmin Zhang, Anyi Rao, and Maneesh Agrawala. Adding
+conditional control to text-to-image diffusion models. In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), 2023. 2
+[108] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman,
+and Oliver Wang. The unreasonable effectiveness of deep
+features as a perceptual metric. In CVPR, 2018. 4
+[109] Xiaoming Zhao, Alex Colburn, Fangchang Ma, Miguel An-
+gel Bautista, Joshua M. Susskind, and Alexander G.
+Schwing. Pseudo-generalized dynamic view synthesis from
+a video. In International Conference on Learning Represen-
+tations (ICLR), 2024. 3
+[110] Yuyang Zhao, Chung-Ching Lin, Kevin Lin, Zhiwen Yan,
+Linjie Li, Zhengyuan Yang, Jianfeng Wang, Gim Hee Lee,
+and Lijuan Wang. Genxd: Generating any 3d and 4d scenes.
+arXiv preprint arXiv:2411.02319, 2024. 1, 3
+[111] Dian Zheng, Ziqi Huang, Hongbo Liu, Kai Zou, Yinan He,
+Fan Zhang, Yuanhan Zhang, Jingwen He, Wei-Shi Zheng,
+Yu Qiao, and Ziwei Liu. VBench-2.0: Advancing video
+generation benchmark suite for intrinsic faithfulness. arXiv
+preprint arXiv:2503.21755, 2025. 7
+[112] Yang Zheng, Adam W Harley, Bokui Shen, Gordon Wet-
+zstein, and Leonidas J Guibas. Pointodyssey: A large-scale
+synthetic dataset for long-term point tracking. In Proceed-
+ings of the IEEE/CVF International Conference on Com-
+puter Vision (ICCV), 2023. 3
+[113] Shijie Zhou, Zhiwen Fan, Dejia Xu, Haoran Chang,
+Pradyumna Chari, Tejas Bharadwaj, Suya You, Zhangyang
+Wang, and Achuta Kadambi.
+Dreamscene360: Uncon-
+strained text-to-3d scene generation with panoramic gaus-
+sian splatting. In European Conference on Computer Vision
+(ECCV), 2024. 2
+[114] Tinghui Zhou, Richard Tucker, John Flynn, Graham Fyffe,
+and Noah Snavely. Stereo magnification: Learning view
+synthesis using multiplane images. In SIGGRAPH, 2018. 1,
+3
+[115] Tinghui Zhou, Richard Tucker, John Flynn, Graham Fyffe,
+and Noah Snavely. Stereo magnification: learning view syn-
+thesis using multiplane images. Transactions on Graphics
+(TOG), 2018. 3
+[116] Haoyi Zhu, Yifan Wang, Jianjun Zhou, Wenzheng Chang,
+Yang Zhou, Zizun Li, Junyi Chen, Chunhua Shen, Jiang-
+miao Pang, et al. Aether: Geometric-aware unified world
+modeling. arXiv preprint arXiv:2503.18945, 2025. 3
+4244

@@ -1,0 +1,327 @@
+Title: Neu-PiG: Neural Preconditioned Grids for Fast Dynamic Surface Reconstruction on Long Sequences
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Kaltheuner_Neu-PiG_Neural_Preconditioned_Grids_for_Fast_Dynamic_Surface_Reconstruction_on_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:53:06 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# Neu-PiG: Neural Preconditioned Grids for Fast Dynamic Surface Reconstruction on Long Sequences 
+
+# Julian Kaltheuner Hannah Dr¨ oge Markus Plack Patrick Stotko Reinhard Klein University of Bonn 
+
+> {kaltheun,droege,mplack,stotko,rk }@cs.uni-bonn.de
+> Figure 1. We present Neu-PiG, a method that learns spatially smooth and temporally coherent deformations from dynamic point clouds. Starting from input point clouds (left), a unified latent space parameterized by an initial reference mesh (middle) is optimized through multi-scale grids to produce high-fidelity deformations (right) without relying on strong priors or correspondences.
+
+# Abstract 
+
+Temporally consistent surface reconstruction of dynamic 3D objects from unstructured point cloud data remains challenging, especially for very long sequences. Existing methods either optimize deformations incrementally, risk-ing drift and requiring long runtimes, or rely on complex learned models that demand category-specific training. We present Neu-PiG , a fast deformation optimization method based on a novel preconditioned latent-grid encoding that distributes spatial features parameterized on the position and normal direction of a keyframe surface. Our method encodes entire deformations across all time steps at vari-ous spatial scales into a multi-resolution latent grid, pa-rameterized by the position and normal direction of a refer-ence surface from a single keyframe. This latent represen-tation is then augmented for time modulation and decoded into per-frame 6-DoF deformations via a lightweight multi-layer perceptron (MLP). To achieve high-fidelity, drift-free surface reconstructions in seconds, we employ Sobolev pre-conditioning during gradient-based training of the latent space, completely avoiding the need for any explicit cor-respondences or further priors. Experiments across diverse human and animal datasets demonstrate that Neu-PiG out-performs state-the-art approaches, offering both superior accuracy and scalability to long sequences while running at least 60 × faster than existing training-free methods and achieving inference speeds on the same order as heavy pre-trained models. 
+
+# 1. Introduction 
+
+Understanding and modeling how shapes in the surrounding world evolve over time is fundamental to perceiving and in-teracting with dynamic environments. Whether observing a human performing complex motions, an animal moving through its habitat, or an object undergoing physical trans-formations, capturing such spatiotemporal deformations is key to reasoning about the physical and semantic struc-ture of the world. This capability underpins a wide range of applications in augmented and virtual reality (AR/VR), robotics, autonomous systems, and computer vision, includ-ing realistic motion capture, scene reconstruction, and hu-man–robot interaction. A common strategy to represent deformable shapes is through parametric models, which provide a controllable yet expressive space of possible deformations. Promi-nent examples include SMPL [40] and SMPL-X [53] for human bodies, FLAME [34] for facial geometry, and MANO [57] for hands. While these models offer com-pact and interpretable control, they are inherently limited to the object categories for which they were designed. To move beyond category-specific representations, template-free methods have been proposed, which can broadly be divided into optimization-based and learning-based approaches. Optimization-based methods ( e.g ., Dyno-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 36539 Surf [71], PDG [25]) directly optimize surface deforma-tions for each sequence, producing high-quality results but at the cost of long runtimes. In contrast, learning-based ap-proaches amortize reconstruction through category-specific priors, achieving fast inference but struggling to generalize beyond their training domain. Despite their complementary strengths, a general, efficient, and category-agnostic ap-proach for modeling dynamic shape deformations remains an open challenge. To address these limitations, we propose Neu-PiG , a novel method which introduces Neu ral Precond itioned 
+
+Grids as an efficient representation for fast estimation of spatially smooth and temporally coherent deformations from dynamic point cloud sequences. Starting from an ini-tial mesh estimate as a canonical reference, we learn the complete deformation across all time steps via a novel sur-face encoding that is parameterized by vertex positions and normal directions. To enable this without relying on corre-spondences or restricting the method’s generalizability by strong priors, our key insight lies in the geometric struc-ture and the associated optimization procedure of the latent embedding. We store learnable feature vectors at different spatial scales in a multi-resolution voxel grid and aggregate them for a given query point via trilinear interpolation and averaging. This ensures that we learn the absolute defor-mations at each level rather than a decomposition of them which would be sensitive to small deviations and thus sig-nificantly less stable during optimization. We further stabi-lize this process by applying Sobolev preconditioning to the gradient-based training of the latent grid. Consequently, this approach allows us to obtain a unified latent space which can be augmented for time-modulation and then decoded into high-fidelity deformations via a lightweight MLP. As illustrated in Fig. 1 and demonstrated in extensive experi-ments, Neu-PiG achieves superior reconstruction accuracy at an order-of-magnitude lower runtimes than state-of-the-art optimization-based approaches and comparable to the inference times of pretrained models. In summary, our key contributions are: • We propose a fast optimization-based method that esti-mates temporally coherent deformations of arbitrary sub-jects, including humans and animals, from sequential point cloud data. • We introduce a novel preconditioned surface encoding based on vertex positions and normal directions of a ref-erence mesh that captures the full deformations across all time steps into a unified latent space. • We design a multi-scale latent grid representation to en-force spatial consistency both on global and local scales, enabling fast decoding via a lightweight MLP. Code is available at: https://github.com/vc-bonn/neu-pig 
+
+# 2. Related Work 
+
+2.1. Parametric Template Models 
+
+Category-specific reconstruction has historically relied on deforming a canonical mesh to match observations [2, 34, 40, 53, 68, 69]. Such models represent facial and body ge-ometry within learned low-dimensional manifolds, enabling expressive control of identity and pose [6, 39, 59]. Exten-sions further incorporate clothing, soft tissue, or body-shape variability [1, 5, 65], making parametric systems domi-nant for structured capture tasks. Despite their success, the linear subspace assumption of these models restricts gen-eralization beyond the training domain [40, 69]. Recent neural formulations replace explicit templates with implicit shape functions that learn deformation spaces directly from data [34, 68]. Current state-of-the-art methods decouple skeletal bases from surface-shape representations [51], or body-shape from clothing [14], while complementary ap-proaches bridge parametric and implicit formulations by learning MLP weights for an SDF-based body model [43]. Our approach follows this trend toward implicit rep-resentations but removes category dependence entirely: Neu-PiG reconstructs dynamic surfaces from unstructured sequences using a latent spatial grid and a lightweight de-coder without predefined templates. 
+
+2.2. Deformation Field Estimation 
+
+Non-rigid motion recovery aims to describe how points or surfaces evolve across time [46, 62]. Early methods esti-mated dense warp fields via optimization, e.g . through em-bedded graphs [62] or volumetric tracking [46]. Subsequent dynamic radiance formulations employ Gaussian primitives for compact 4D mapping [27, 42] or separate static and moving components for SLAM-style pipelines [33, 73]. Neural deformation models shifted the focus from ex-plicit alignment to learned motion inference [8, 9, 35]. Hier-archical and continuous formulations parameterize motion as neural vector fields [16, 22, 23, 48, 64] or as spatio-temporal surfaces [49]. Probabilistic variants treat defor-mation as a distribution over 4D geometry [11], while canonical-space techniques couple shape and motion within rendering frameworks [32, 38, 52, 54, 72]. Optimization-only strategies such as DynoSurf [71] achieve supervision-free tracking but remain computationally demanding. 
+
+Latent and Implicit Representations. Recent advances move beyond explicit displacement fields by storing defor-mation cues in spatially distributed latent representations that are decoded into motion [52, 54]. Dense voxel fea-tures paired with compact decoders provide locality but can be memory-intensive at high resolutions [35, 71]. As a foundational alternative for neural fields, multi-resolution hash encodings supply compact capacity for static recon-36540 Figure 2. Overview of Neu-PiG. A reference surface Xtkey is first generated from the input point cloud at a keyframe Ptkey . Position and normal-direction-embedded latent features zp and zn are then sampled from multi-resolution preconditioned grids and combined with a time embedding γ(t). A lightweight MLP ψ predicts per-frame 6-DoF deformations that are applied to Xtkey to reconstruct each frame ˆXt.Sobolev preconditioning in the latent space enforces spatial smoothness and temporal coherence across the sequence during optimization. 
+
+struction [44]; however, their collision-prone, non-smooth parameterization is ill-suited to coherent non-rigid motion and, to our knowledge, has not been adopted for defor-mation modeling. For dynamic scenes, factorized latent structures impose stronger continuity priors across space and time-tensor decompositions and separable planes yield smoother fields with lightweight decoders [10, 13, 20]. In parallel, implicit deformation fields map canonical co-ordinates to observations via learned warps, often com-bining latent features with time embeddings for scalable long-horizon tracking [11, 52, 54]. Complementary trends instantiate related ideas in alternative primitives by em-bedding motion in per-Gaussian codes for deformable 3D splats [3]. Following these directions, but focusing specif-ically on stable latent carriers for deformation, we group our design around a preconditioned voxel representation de-coded by a lightweight MLP; for broader context on latent field formulations in dynamic settings, see [74]. Neu-PiG differs from explicit per timestep deforma-tion grid formulations such as Preconditioned Deformation Grids [25] by maintaining a single preconditioned latent grid shared across all frames, yielding smooth, drift-free re-sults on extended sequences. 
+
+2.3. Preconditioning 
+
+Stabilizing gradient-based optimization through precon-ditioning is well-established in numerical geometry [18, 30, 31], and while challenging in high-dimensional la-tent spaces, graph- and learning-based variants adapt such schemes for data-driven problems [15, 21, 37, 58, 66]. Sobolev gradient methods [45] compute updates under smoother inner products, improving convergence in shape and surface optimization [19, 25, 41, 55, 56], and have shown benefits in training scenarios [4, 17, 28, 50], e.g . by accelerating ReLU network convergence [50]. They have since appeared in non-rigid reconstruction [24, 61], differ-entiable rendering [47], and spatiotemporal filtering [12]. Neu-PiG extends this principle to latent voxel spaces, propagating Sobolev-filtered gradients through a learned feature grid to ensure smooth, coherent updates of latent codes across long dynamic sequences. 
+
+# 3. Method 
+
+Given a sequence of unstructured point clouds {P t}Tt=1 
+
+where each Pt = {pi,t ∈ R3}Nt
+
+> i=1
+
+, we address the problem of dynamic surface reconstruction by estimating deforma-tions from a single reference mesh defined at a keyframe 
+
+tkey ∈ { 1, . . . , T }, to all other frames. An overview of this setup is illustrated in Fig. 2. The reference mesh consists of vertices and their associated vertex normals, 
+
+Xtkey = {(xi,t key , ni,t key ) ∈ R3 × R3}Ntkey  
+
+> i=1
+
+(see Sec. 3.1). We encode the deformations into smooth latent features based on the vertex positions and normal directions of Xtkey 
+
+and store them in a pair of preconditioned multi-resolution voxel grids. Our latent-grid formulation can be interpreted as a spatially coherent spatio-temporal field optimized un-der Sobolev regularization. Unlike implicit neural represen-tations that encode geometry entirely in network weights, our factorized grid–decoder formulation distributes high-dimensional features over space, enabling a MLP ψ to re-construct dynamic geometry from local content. This inter-pretation motivates our preconditioned latent-field design described in Sec. 3.2. These latent encodings are com-bined with frequency-encoded timesteps t and decoded by a lightweight MLP ψ that predicts per-frame deformations, transforming the reference mesh Xtkey into temporally co-herent reconstructions { ˆXt}Tt=1 , see Secs. 3.3 and 3.4. We jointly optimize the voxel grids and network parameters us-ing a deformation loss and an isometry loss, without any 36541 additional regularization or priors, see Sec. 3.5. 
+
+3.1. Initialization 
+
+We begin by selecting a keyframe tkey , from which we can reconstruct a surface mesh with suitable topology. This frame acts as a canonical reference for all subsequent de-formations. Following the method of PDG [25], we assess the spatial extent of each input point cloud Pt, weighted by a bias term that favors the temporal midpoint of the sequence. The point cloud corresponding to the selected keyframe, Ptkey , is then converted into an initial mesh Xtkey 
+
+using screened Poisson surface reconstruction [26]. Note that the precise geometric alignment of Xtkey with Ptkey is not critical, as long as the topology is correct, since we es-timate deformations for all frames, including tkey .We initialize the latent features stored at each level of the multi-resolution voxel grid with zero vectors. Further-more, we set the weights of all but the last layer of the MLP to random values, while zeroing the weights of the last one. This initializes the deformations as identity trans-formations and lets them evolve gradually during optimiza-tion, avoiding sudden jumps that could disrupt latent-space consistency and lead to incoherent results. 
+
+3.2. Multi-Resolution Latent Grids 
+
+To efficiently represent the geometric structure across spa-tial scales, we encode the reference surface Xtkey in a hier-archy of preconditioned voxel grids. Each grid level stores latent features at a distinct spatial frequency: coarser lev-els capture global deformation patterns, while finer levels encode high-frequency geometric detail. This hierarchical representation serves as an expressive latent structure for the deformation network introduced in Sec. 3.3. 
+
+Position and Normal-Direction Embeddings. For each vertex vi,t key = ( xi,t key , ni,t key ) on the reference surface, we query two distinct grids: a position-based grid Gp that encodes spatial context, and a normal-direction-based grid 
+
+Gn that captures local orientation information. This enables spatially adjacent regions with differing normal directions to deform independently. Each grid cell stores a learn-able feature vector and we retrieve interpolated features at 
+
+xi,t key and ni,t key via trilinear interpolation, yielding the latent vectors zp(xi,t key ) and zn(ni,t key ), respectively. As the position-based embedding is the most important fac-tor in deformation, we store 30-dimensional latent features at each cell of Gp, resulting in zp ∈ R30 . In contrast, the orientation-based embedding in Gn stores 2-dimensional la-tent features at each grid cell, resulting in zn ∈ R2.
+
+Grid Hierarchy. The position grid Gp is defined as a multi-resolution hierarchy with progressively increasing spatial resolution [25]. It consists of eight levels, with the coarsest grid containing 23 cells and the finest 32 3 cells, achieved by increasing the grid resolution by 3 elements in each level. Instead of treating the grid levels independently, we aggregate their outputs into a unified latent representa-tion, ensuring that each point xi,t key is associated with a spatially coherent latent feature: 
+
+zp(xi,t key ) = 1
+
+L
+
+> L
+
+X
+
+> l=1
+
+zl
+
+> p
+
+(xi,t key ). (1) The normal-direction-based grid Gn is defined as a single-resolution grid of size 43, which is sufficient to encode lo-cal orientation changes, despite the potentially large normal variations in nearby regions. 
+
+3.3. Temporal Deformation Model 
+
+Our temporal deformation model predicts per-frame trans-formations that deform the reference mesh Xtkey into tem-porally varying reconstructions { ˆXt}Tt=1 . Each vertex in 
+
+Xtkey is represented by two latent descriptors from the pre-conditioned voxel grids Gp and Gn, a position-based en-coding zp(xi,t key ) and a normal direction-based encoding 
+
+zn(ni,t key ). For each timestep t, these descriptors are com-bined with a time embedding γ(t) to form the input vector: 
+
+yi =  zn(ni,t key ), zp(xi,t key ), γ(t)T ∈ R2+30+8 . (2) This input formulation provides the network with both spa-tial and directional context, enabling the generation of tem-porally coherent deformations that are locally smooth and globally consistent across the sequence. 
+
+Fourier Time Encoding. To represent time in a continu-ous, multi-scale manner, we normalize the timestep to the range [0 , 1] via ˜t = ( t − 1) /(T − 1) and map it to a sinu-soidal embedding following the Fourier feature formula-tion [63]. Specifically, we define the time embedding as: 
+
+γ(t) = sin( πν j ˜t), cos( πν j ˜t)Mj=1 ∈ R2M , (3) where each frequency νj = 2 j−1 modulates the temporal signal at a distinct scale. This encoding allows the network to capture both low-frequency, slowly varying motions and high-frequency, transient deformations. In practice, we use 
+
+M = 4 frequencies, resulting in an 8D time embedding. 
+
+Network Architecture. The deformation network ψ is implemented as a lightweight MLP that maps the input vec-tor y to a transformation consisting of a rotation quaternion 
+
+q ∈ R4 and a displacement vector d ∈ R3:
+
+(q, d)T = ψ(y). (4) 36542 The network comprises three fully connected layers, each with 512 hidden units and LeakyReLU activations. The fi-nal layer outputs a 7-dimensional transformation vector. All parameters of ψ are optimized jointly with the latent grid features during the reconstruction process. 
+
+3.4. Transformation Mapping 
+
+To apply the predictions from the network ψ while ensuring stability and smoothness during optimization, we map each component to explicit geometric transformations. 
+
+Rotation Component. Let q = ( qw, q x, q y , q z )T ∈ R4
+
+denote the quaternion parameters predicted by the defor-mation network. To enforce that a zero-valued network out-put corresponds to the identity rotation, we offset the scalar component qw by 1, i.e., 
+
+ˆq = (1 + qw, q x, q y , q z )T
+
+∥(1 + qw, q x, q y , q z )T ∥ , (5) and subsequently normalize the quaternion to unit length. This formulation provides a continuous, stable rotation rep-resentation, avoiding singularities in e.g . Euler angles. 
+
+Translation Component. To decouple rotational and dis-placement effects, the network predicts a displacement vec-tor d ∈ R3. Since all points lie within the normalized co-ordinate space [−1, 1] 3, we constrain displacements by ap-plying a hyperbolic tangent function: 
+
+ˆd = tanh( α d), α = 0 .1. (6) This formulation prevents excessive displacements while still allowing smooth, learnable displacements. 
+
+Final Transformation. The complete transformation ap-plied to each vertex xi,t key ∈ X tkey can now be expressed as: 
+
+ˆxi,t = R( ˆ qi) xi,t key + ˆdi. (7) Here, R( ˆ q) denotes the rotation matrix corresponding to the unit quaternion ˆq. Together, the per-vertex quaternion-based rotations and bounded displacements form a com-pact and stable transformation representation, facilitating smooth temporal deformations across the sequence. 
+
+3.5. Optimization Objectives 
+
+Starting from the reference surface Xtkey defining the ob-ject topology, we optimize deformation fields that map it di-rectly to each target point cloud Pt. Our objective combines a deformation loss and an isometry loss, which together bal-ance reconstruction accuracy and surface smoothness: 
+
+L = Ldef + wiso Liso . (8) As our MLP architecture inherently promotes smooth de-formations, we use a relatively small isometry weight 
+
+wiso = 100 which downweights Liso to approximately 10% of the magnitude of Ldef .
+
+Preconditioning. To improve convergence stability, we follow PDG [25] and apply Sobolev preconditioning [47] to smooth gradient updates of the latent grids Gp and Gn.The parameters zl of grid level l are updated as 
+
+zl ← zl − η (I + λl Ll)−2 ∂L
+
+∂zl , (9) where η denotes the learning rate, I is the identity matrix, 
+
+λl > 0 controls the strength of spatial smoothing, and Ll
+
+is the Laplacian matrix at level l. Here, (I + λl Ll)−2 acts as a low-pass filter on the gradient, coupling neighboring cells and promoting spatially coherent latent updates that remain temporally stable across the sequence. The band-width parameter λl can be tuned to match the decoder’s effective frequency capacity [60, 70], ensuring that latent-field variations remain within the MLP’s learnable range. In contrast to PDG [25], which preconditions raw defor-mation fields, Neu-PiG applies Sobolev preconditioning to learned latent vectors, allowing high-dimensional features to capture richer local variations, while a single MLP en-sures temporally consistent behavior across space and time. 
+
+Deformation Loss. The main objective function mea-sures the alignment between the deformed surface ˆXt and the input point cloud Pt at each timestep: 
+
+Ldef = 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+wconf (t) · LCD ( ˆXt, Pt), (10) where LCD is the robust Chamfer distance [71], and 
+
+wconf (t) a time-adaptive confidence weight, originally pro-posed in PDG [25]. Although our method estimates the total deformation from the reference surface rather than deforma-tion between consecutive frames, confidence weighting is beneficial, particularly when combined with our frequency-split timestep encoding, which implicitly accounts for past reconstruction accuracy. We define the weight as 
+
+wconf (t) = 
+
+> t
+
+Y 
+
+> τ=tkey
+
+ω(τ )δ , (11) 
+
+ω(τ ) = 11 + max(0 , cd τ − cd tkey ) ∈ [0 , 1] , (12) where ω(τ ) represents the reconstruction performance at time step τ relative to the keyframe tkey . We compute this weight via the Chamfer distance cd τ = LCD (sg( ˆXτ ), Pτ ),where sg denotes the stop-gradient operator. Note that 36543 Figure 3. Qualitative reconstructions on DT4D. Neu-PiG preserves geometry and temporal consistency across complex animal motions. 0s 5s 10s 15s 20s 25s 30s  
+
+> Elapsed Time
+> 246
+> Chamfer Distance  ↓ ×10 5
+> 0.90 0.92 0.94 Normal Consistency  ↑
+
+Figure 4. Convergence of Chamfer Distance and Normal Consis-tency on DT4D, showing high-quality reconstructions in seconds. 
+
+ω(tkey ) = 1 . Additionally, to mitigate optimization dead-locks and improve convergence stability, we employ a catch-up variable δ = 1 − √¯e, which gradually increases the confidence during training. Here, ¯e = e/e max denotes the normalized optimization epoch. 
+
+Isometry Loss. To preserve local structure, we use an isometry loss that penalizes changes in edge lengths 
+
+ˆeij,t = ˆ xi,t − ˆxj,t of the deformed meshes: 
+
+Liso = 1
+
+T |E| 
+
+> T
+
+X
+
+> t=1
+
+X
+
+> (i,j )∈E
+
+∥ˆeij,t ∥ − sg   ˆeij,t key 
+
+ , (13) where E denotes the set of mesh edges. 
+
+Implementation Details. We jointly optimize the grid features and MLP parameters using the Adam opti-mizer [29] with its default parameters. The MLP uses a learning rate of 10 −3, while each grid level l follows a per-level rate of 0.005 × 2.5l. The smoothness weight is defined as λ = 0 .4 × 1.5l. To highlight the trade-off between ac-curacy and runtime, we report two configurations evaluated on a NVIDIA RTX 4090 that differ only in optimization length, 250 epochs (Ours †) and 1000 epochs (Ours). 
+
+# 4. Evaluation 
+
+We evaluate Neu-PiG against state-of-the-art methods, dis-tinguishing between learning-based approaches that rely on 
+
+Table 1. Quantitative comparison on DFAUST, AMA, and DT4D. Neu-PiG achieves best accuracy and temporal coherence while be-ing 60 × faster than prior training-free methods.                                                                                           
+
+> CD [×10 −5]↓NC ↑F-0.5% ↑Corr. ↓Time ↓
+> DFAUST
+> CaDeX 3.68 0.941 0.730 0.013 3 s
+> DynoSurf 2.13 0.953 0.980 0.010 30 min M2V 1.61 0.960 0.877 -4 s PDG 0.46 0.956 0.987 0.017 7 min Ours †0.40 0.967 0.989 0.008 8 s Ours 0.39 0.968 0.989 0.009 32 s
+> DT4D
+> CaDeX 56.51 0.870 0.386 0.050 3 s
+> DynoSurf 15.18 0.919 0.773 0.032 30 min M2V 7.61 0.944 0.792 -4 s PDG 1.67 0.956 0.948 0.043 7 min Ours †0.96 0.969 0.962 0.034 8 s Ours 0.87 0.969 0.968 0.034 32 s
+> AMA  DynoSurf 1.01 0.918 0.921 0.044 30 min PDG 0.79 0.926 0.961 0.037 7 min Ours †0.53 0.946 0.978 0.024 8 s
+> Ours 0.44 0.951 0.988 0.018 32 s
+
+category-specific priors and training-free methods that di-rectly optimize deformations from point clouds without pre-training. The learning-based baselines include CaDeX [32] and M2V [11], the latter requiring predefined inter-frame correspondences. For training-free baselines, we compare against DynoSurf [71] and PDG [25]. Experiments are conducted on three public benchmarks: DFAUST [7] (hu-man motion), AMA [67] (clothed human performance), and DT4D [36] (articulated animals). Unless stated otherwise, each sequence contains T = 17 frames following previous works [25, 71] and consists of 5000 points per timestep. 
+
+Evaluation Metrics. We assess reconstruction quality us-ing ℓ2-Chamfer Distance (CD), Normal Consistency (NC), F-score, and Correspondence Error (Corr.). CD measures bidirectional surface deviations, while NC evaluates local smoothness and normal alignment. The Correspondence Error measures temporal consistency of vertex trajectories across frames and the F-score is chosen with a threshold of 0.5% . We additionally report the average per-sequence 36544 Figure 5. Performance across sequence lengths on AMA. Neu-PiG maintains accuracy and stability as duration increases. 
+
+runtime to evaluate computational efficiency. 
+
+4.1. Quantitative Comparison 
+
+We evaluate Neu-PiG on the DFAUST [7], AMA [67], and DT4D [36] benchmarks, comparing it against both learning-based and training-free baselines (see Tab. 1). Overall, both variants achieve strong performance across all datasets. Al-though the longer schedule increases computation time, the resulting accuracy gains are minor. On DFAUST, the dif-ferences are marginal, while the others benefit only from slight refinement. This behavior aligns with the conver-gence trends shown in Fig. 4, where Neu-PiG yields high-quality reconstructions within a few seconds. Across all benchmarks, Neu-PiG achieves the lowest Chamfer Distance and Correspondence Error, as well as the highest Normal Consistency and F-score, while being more than 60 × faster than prior training-free approaches. It con-sistently outperforms all training-free baselines on human motion datasets and maintains high fidelity on the challeng-ing DT4D animal sequences (see Fig. 3), demonstrating re-liable generalization across diverse motion types. 
+
+Scalability. Maintaining consistent correspondences over long and complex sequences is a persistent challenge in dynamic surface reconstruction, as errors tend to accumu-late with sequence length. To evaluate scalability, we split the AMA dataset into sequences ranging from 40 to 120 frames and report the performance in Tab. 2 and Fig. 5. While PDG requires progressively longer runtimes and ul-timately fails on very long sequences and DynoSurf shows pronounced degradation, Neu-PiG reconstructs complete sequences in under two minutes while maintaining stable correspondences and high geometric fidelity. 
+
+4.2. Ablation Study 
+
+We perform ablations to assess the impact of key design choices, including architectural components, loss weight-ing and temporal frequency encoding. Additional ablation results are provided in the supplementary material. 
+
+Table 2. Scalability on AMA sequences of increasing length. Neu-PiG remains stable and efficient, unlike PDG and DynoSurf.                                                                                       
+
+> TCD [×10 −5]↓NC ↑F-0.5% ↑Corr. ↓Time ↓
+> 40 DynoSurf 4.64 0.857 0.686 0.096 35 min PDG 0.66 0.923 0.971 0.042 28 min Ours 0.53 0.947 0.981 0.019 47 s
+> 60 DynoSurf 14.64 0.778 0.474 0.132 48 min PDG 0.72 0.919 0.960 0.054 63 min Ours 0.60 0.945 0.976 0.020 63 s
+> 80 DynoSurf 16.32 0.759 0.431 0.163 60 min PDG 1.35 0.906 0.931 0.089 93 min Ours 1.04 0.940 0.959 0.023 84 s
+> 100 DynoSurf 26.47 0.706 0.354 0.133 74 min PDG 8.59 0.853 0.720 0.091 124 min Ours 0.95 0.936 0.933 0.024 97 s
+> 120 DynoSurf 39.00 0.673 0.284 0.140 96 min PDG 30.20 0.788 0.571 0.118 158 min Ours 1.31 0.926 0.887 0.028 110 s
+
+Method Components. We evaluate the contribution of individual components by selectively disabling or modify-ing parts of Neu-PiG. Specifically, we remove the normal-direction latent encoding, omit preconditioning, replace the multi-resolution grid with the hash encoding of [44], and test a single-resolution variant matching the finest grid pa-rameters. Each modification degrades reconstruction qual-ity, as shown in Tab. 3, confirming that the full combina-tion of components yields the best overall performance. In particular, hash grids are more memory-efficient but sacri-fice spatial smoothness, which is important in our setting for coherent latent codes and stable deformations. 
+
+Time Frequency Function. We investigate how differ-ent time-encoding formulations affect our temporal defor-mation model. This module maps the normalized timestep 
+
+˜t ∈ [0 , 1] into a high-dimensional representation for the de-formation network. We compare several time–frequency strategies, each transforming ˜t by a distinct function: The first variant employs a polynomial basis , a simple determin-36545 istic encoding that represents time using monomials, 
+
+γpolynomial (t) = ˜tj 2Mj=1 . (14) The second uses a Gaussian Fourier mapping with a stan-dard normal distribution, B ∼ N (0, I),
+
+γgaussian (t) = sin(2 πB˜t), cos(2 πB˜t)Mj=1 . (15) Finally we consider a learned embedding , obtained from a two-layer MLP ψt,
+
+γlearned (t) = ψt(˜ t) ∈ R2M . (16) In addition, we compare these baselines against our pro-posed time-Fourier encoding (Sec. 3.3). All variants are trained under identical settings, with results in Tab. 4 show-ing that the Fourier formulation yields the best balance of reconstruction accuracy and temporal coherence. 
+
+Stability Function. In Sec. 3.5, we adopt the deforma-tion stability scaling proposed in PDG [25], which stabi-lizes optimization by gradually increasing the confidence in later timesteps. While effective, this mechanism can also slow convergence when early-frame reconstructions re-main inaccurate. To assess its influence, we ablate both components of the stability term, the catch-up variable δ
+
+and the temporal weighting ω on sequences of 40 frames, with the results presented in Tab. 5. For the catch-up vari-able δ, which controls the confidence increase over training epochs ˜e, we evaluate four schedules: Constant (δ = 1 ), lin-ear (δ = 1 − ˜e), exponential (δ = e −c ˜e with c = 5 ), inter-polated (wconf (t) = (1 − ˜e) ω(t) + ˜ e). In addition, we test simplified formulations of the temporal weighting ω within the confidence function wconf (t). First, we replace the cu-mulative temporal product with a direct weighting: 
+
+wconf (t) = ω(t)δ (17) Then, we compare three alternative definitions of ω:
+
+Constant (ω(t) = 1 ), delta-based (ω(t) = 0 .5), single 
+
+(ω(t) = 1 /(1 + max(0 , cd t − cd tkey )) ). It isolates the ef-fect of each stabilization term, allowing us to quantify its impact on convergence speed and reconstruction accuracy. 
+
+4.3. Limitations 
+
+While our approach achieves fast and stable reconstruc-tions, several practical limitations remain. The method as-sumes a fixed topology derived from the keyframe mesh, which prevents recovery from incorrect or incomplete ini-tial surfaces. Moreover, the representational capacity of the latent grids and network bounds the sequence length that can be modeled effectively. Finally, as correspondence is inferred implicitly through the Chamfer distance, very large 
+
+Table 3. Ablation on architectural components. Removing any module reduces accuracy, confirming their complementary roles.                                     
+
+> CD [×10 −5]↓NC ↑F-0.5% ↑Corr. ↓
+> Hash Encoding 1.23 0.903 0.947 0.045 w/o Preconditioning 0.98 0.955 0.958 0.036 w/o zn0.91 0.968 0.965 0.036 w/o Liso 1.03 0.961 0.959 0.044 Single Level L= 1 0.98 0.965 0.961 0.036 Ours 0.87 0.969 0.968 0.034
+
+Table 4. Comparison of time encoding strategies. Our Fourier encoding achieves the best accuracy and coherence.                         
+
+> CD [×10 −5]↓NC ↑F-0.5% ↑Corr. ↓
+> Polynomial 0.46 0.951 0.987 0.019 Gaussian 0.77 0.945 0.979 0.046 Learned 0.50 0.950 0.983 0.022 Ours 0.44 0.951 0.989 0.017
+
+Table 5. Ablation of stability terms δ and ω on AMA with T = 40 .Our formulation yields best convergence and accuracy.                                             
+
+> CD [×10 −5]↓NC ↑F-0.5% ↑Corr. ↓
+> δ
+> Constant 3.22 0.905 0.899 0.114 Linear 0.60 0.946 0.971 0.025 Exponential 0.53 0.946 0.982 0.030 Interpolated 0.64 0.945 0.972 0.046 Ours 0.53 0.947 0.981 0.025
+> ω(t)
+> Constant 3.27 0.905 0.898 0.114 Delta-based 2.96 0.909 0.908 0.112 Single 1.15 0.931 0.952 0.098 Ours 0.53 0.947 0.981 0.025
+
+motions or occlusions may reduce reconstruction fidelity, and in rare cases of extreme non-uniform deformation, such as strong local surface shrinkage, may also lead to local face flipping away from the keyframe. 
+
+# 5. Conclusion 
+
+We presented Neu-PiG, a fast method for temporally consis-tent surface reconstruction from unstructured dynamic point clouds. By encoding deformations across all time steps into a preconditioned multi-scale latent grid parameterized by a canonical surface, our method achieved spatially smooth and temporally stable reconstructions without explicit cor-respondences or learned priors. Experiments demonstrated that our method attains higher fidelity and stability than ex-isting state-of-the-art approaches while running over an or-der of magnitude faster. We believe Neu-PiG offers a scal-able foundation for future research in real-time 4D recon-struction and dynamic scene understanding. 36546 Acknowledgements 
+
+This research has been funded by the Federal Ministry of Educa- tion and Research under grant no. 01IS22094A WEST-AI, by the Federal Ministry of Education and Research of Germany as well as the state of North-Rhine Westphalia as part of the Lamarr-Institute for Machine Learning and Artificial Intelligence, by the Ministry of Culture and Science North Rhine-Westphalia under grant number PB22-063A (InVirtuo 4.0: Experimental Research in Virtual Envi- ronments) and by the state of North Rhine-Westphalia as part of the Excellency Start-up Center.NRW (U-BO-GROW) under grant number 03ESCNW18B. 
+
+# References 
+
+[1] Thiemo Alldieck, Marcus Magnor, Bharat Lal Bhatnagar, Christian Theobalt, and Gerard Pons-Moll. Learning to Re-construct People in Clothing from a Single RGB Camera. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. 2 [2] Dragomir Anguelov, Praveen Srinivasan, Daphne Koller, Se-bastian Thrun, Jim Rodgers, and James Davis. SCAPE: Shape Completion and Animation of People. ACM Trans-actions on Graphics (TOG) , 24(3), 2005. 2 [3] Jeongmin Bae, Seoha Kim, Youngsik Yun, Hahyun Lee, Gun Bang, and Youngjung Uh. Per-Gaussian Embedding-Based Deformation for Deformable 3D Gaussian Splatting. In Eu-ropean Conference on Computer Vision (ECCV) , pages 321– 335. Springer, 2024. 3 [4] George Baravdish, Gabriel Eilertsen, Rym Jaroudi, B Tomas Johansson, Luk´ aˇ s Mal` y, and Jonas Unger. A Hybrid Sobolev Gradient Method for Learning NODEs. In Operations Re-search Forum , page 91. Springer, 2024. 3 [5] Bharat Lal Bhatnagar, Garvita Tiwari, Christian Theobalt, and Gerard Pons-Moll. Multi-Garment Net: Learning to Dress 3D People from Images. In IEEE International Con-ference on Computer Vision (ICCV) , 2019. 2 [6] Federica Bogo, Angjoo Kanazawa, Christoph Lassner, Peter Gehler, Javier Romero, and Michael J Black. Keep it SMPL: Automatic Estimation of 3D Human Pose and Shape from a Single Image. In European Conference on Computer Vision (ECCV) , 2016. 2 [7] Federica Bogo, Javier Romero, Gerard Pons-Moll, and Michael J Black. Dynamic FAUST: Registering Human Bod-ies in Notion. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2017. 6, 7 [8] Aljaz Bozic, Pablo Palafox, Michael Zollh¨ ofer, Angela Dai, Justus Thies, and Matthias Nießner. Neural Non-Rigid Tracking. Advanced Neural Information Processing Systems (NeurIPS) , 33, 2020. 2 [9] Aljaz Bozic, Pablo Palafox, Michael Zollhofer, Justus Thies, Angela Dai, and Matthias Nießner. Neural Deformation Graphs for Globally-consistent Non-rigid Reconstruction. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2 [10] Ang Cao and Justin Johnson. HexPlane: A Fast Representa-tion for Dynamic Scenes. In IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 130– 141, 2023. 3 [11] Wei Cao, Chang Luo, Biao Zhang, Matthias Nießner, and Jiapeng Tang. Motion2VecSets: 4D Latent Vector Set Dif-fusion for Non-rigid Shape Reconstruction and Tracking. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2, 3, 6 [12] Wesley Chang, Xuanda Yang, Yash Belhe, Ravi Ramamoor-thi, and Tzu-Mao Li. Spatiotemporal Bilateral Gradient Fil-tering for Inverse Rendering. In SIGGRAPH Asia Confer-ence Papers , 2024. 3 [13] Anpei Chen, Zexiang Xu, Andreas Geiger, Jingyi Yu, and Hao Su. TensoRF: Tensorial Radiance Fields. In European Conference on Computer Vision (ECCV) , pages 333–350. Springer, 2022. 3 [14] Honghu Chen, Bo Peng, Yunfan Tao, and Juyong Zhang. 
+
+D3-Human: Dynamic Disentangled Digital Human from Monocular Video. In IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 10836– 10846, 2025. 2 [15] Jie Chen. Graph Neural Preconditioners for Iterative Solu-tions of Sparse Linear Systems. In International Conference on Learning Representations (ICLR) , 2025. 3 [16] Ricky TQ Chen, Yulia Rubanova, Jesse Bettencourt, and David K Duvenaud. Neural Ordinary Differential Equa-tions. Advanced Neural Information Processing Systems (NeurIPS) , 31, 2018. 2 [17] Namkyeong Cho, Junseung Ryu, and Hyung Ju Hwang. Sobolev Training for Operator Learning. Journal of Com-putational Physics , page 114408, 2025. 3 [18] Sebastian Claici, Mikhail Bessmeltsev, Scott Schaefer, and Justin Solomon. Isometry-Aware Preconditioning for Mesh Parameterization. In Computer Graphics Forum (CGF) ,2017. 3 [19] Ilya Eckstein, J-P Pons, Yiying Tong, C-CJ Kuo, and Math-ieu Desbrun. Generalized Surface Flows for Mesh Process-ing. In Eurographics Symposium on Geometry Processing (SGP) , 2007. 3 [20] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk Warburg, Benjamin Recht, and Angjoo Kanazawa. K-Planes: Explicit Radiance Fields in Space, Time, and Ap-pearance. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 12479–12488, 2023. 3 [21] Paul H¨ ausner, Ozan ¨ Oktem, and Jens Sj¨ olund. Neural in-complete factorization: learning preconditioners for the con-jugate gradient method. Transactions on Machine Learning Research , 2024. 3 [22] Jingwei Huang, Chiyu Max Jiang, Baiqiang Leng, Bin Wang, and Leonidas Guibas. MeshODE: A Robust and Scalable Framework for Mesh Deformation. arXiv preprint arXiv:2005.11617 , 2020. 2 [23] Boyan Jiang, Yinda Zhang, Xingkui Wei, Xiangyang Xue, and Yanwei Fu. Learning Compositional Representation for 4D Captures with Neural ODE. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2 [24] Yucheol Jung, Hyomin Kim, Hyejeong Yoon, and Seungy-ong Lee. Preconditioned Single-step Transforms for Non-rigid ICP. In Computer Graphics Forum (CGF) , 2025. 3 36547 [25] Julian Kaltheuner, Alexander Oebel, Hannah Dr¨ oge, Patrick Stotko, and Reinhard Klein. Preconditioned Deformation Grids. Computer Graphics Forum (CGF) , 2025. 2, 3, 4, 5, 6, 8 [26] Michael Kazhdan and Hugues Hoppe. Screened Poisson Sur-face Reconstruction. ACM Transactions on Graphics (TOG) ,32(3), 2013. 4 [27] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. ACM Transactions on Graphics (TOG) , 42(4), 2023. 2 [28] AOM Kilicsoy, J Liedmann, MA Valdebenito, F-J Barthold, and MGR Faes. Sobolev Neural Network With Residual Weighting as a Surrogate in Linear and Non-Linear Mechan-ics. IEEE Access , 2024. 3 [29] Diederik P Kingma and Jimmy Ba. Adam: A Method for Stochastic Optimization. In International Conference on Learning Representations (ICLR) , 2015. 6 [30] Shahar Z Kovalsky, Meirav Galun, and Yaron Lipman. Ac-celerated Quadratic Proxy for Geometric Optimization. ACM Transactions on Graphics (TOG) , 35(4), 2016. 3 [31] Dilip Krishnan, Raanan Fattal, and Richard Szeliski. Effi-cient Preconditioning of Laplacian Matrices for Computer Graphics. ACM Transactions on Graphics (TOG) , 32(4), 2013. 3 [32] Jiahui Lei and Kostas Daniilidis. CaDeX: Learning Canon-ical Deformation Coordinate Space for Dynamic Surface Representation via Neural Homeomorphism. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2022. 2, 6 [33] Runfa Blark Li, Mahdi Shaghaghi, Keito Suzuki, Xinshuang Liu, Varun Moparthi, Bang Du, Walker Curtis, Martin Ren-schler, Ki Myung Brian Lee, Nikolay Atanasov, and Truong Nguyen. Dynagslam: Real-time gaussian-splatting slam for online rendering, tracking, motion predictions of moving ob-jects in dynamic scenes, 2025. 2 [34] Tianye Li, Timo Bolkart, Michael J Black, Hao Li, and Javier Romero. Learning a model of facial shape and expression from 4D scans. ACM Transactions on Graphics (TOG) , 36 (6), 2017. 1, 2 [35] Yang Li and Tatsuya Harada. Non-rigid Point Cloud Regis-tration with Neural Deformation Pyramid. Advanced Neural Information Processing Systems (NeurIPS) , 35, 2022. 2 [36] Yang Li, Hikari Takehara, Takafumi Taketomi, Bo Zheng, and Matthias Nießner. 4DComplete: Non-Rigid Motion Es-timation Beyond the Observable Surface. In IEEE Interna-tional Conference on Computer Vision (ICCV) , 2021. 6, 7 [37] Yichen Li, Peter Yichen Chen, Tao Du, and Wojciech Ma-tusik. Learning Preconditioners for Conjugate Gradient PDE Solvers. In International Conference on Machine Learning (ICML) , 2023. 3 [38] Zhengqi Li, Simon Niklaus, Noah Snavely, and Oliver Wang. Neural Scene Flow Fields for Space-Time View Synthesis of Dynamic Scenes. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2 [39] Lingjie Liu, Marc Habermann, Viktor Rudnev, Kripasindhu Sarkar, Jiatao Gu, and Christian Theobalt. Neural Actor: Neural Free-view Synthesis of Human Actors with Pose Control. ACM Transactions on Graphics (TOG) , 40(6), 2021. 2 [40] Matthew Loper, Naureen Mahmood, Javier Romero, Ger-ard Pons-Moll, and Michael J Black. SMPL: A Skinned Multi-Person Linear Model. ACM Transactions on Graphics (TOG) , 34(6), 2015. 1, 2 [41] Tobias Martin, Pushkar Joshi, Mikl´ os Bergou, and Nathan Carr. Efficient non-linear optimization via multi-scale gra-dient filtering. In Computer Graphics Forum (CGF) , 2013. 3[42] Hidenobu Matsuki, Gwangbin Bae, and Andrew J Davison. 4dtam: Non-rigid tracking and mapping via dynamic surface gaussians. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [43] Marko Mihajlovic, Siwei Zhang, Gen Li, Kaifeng Zhao, Lea Muller, and Siyu Tang. VolumetricSMPL: A Neural Volu-metric Body Model for Efficient Interactions, Contacts, and Collisions. In IEEE International Conference on Computer Vision (ICCV) , pages 5060–5070, 2025. 2 [44] Thomas M¨ uller, Alex Evans, Christoph Schied, and Alexan-der Keller. Instant Neural Graphics Primitives with a Mul-tiresolution Hash Encoding. ACM Transactions on Graphics (TOG) , 41(4):1–15, 2022. 3, 7 [45] JW Neuberger. Steepest descent and differential equations. 
+
+Journal of the Mathematical Society of Japan , 37(2), 1985. 3[46] Richard A Newcombe, Dieter Fox, and Steven M Seitz. DynamicFusion: Reconstruction and Tracking of Non-rigid Scenes in Real-Time. In IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2015. 2 [47] Baptiste Nicolet, Alec Jacobson, and Wenzel Jakob. Large Steps in Inverse Rendering of Geometry. ACM Transactions on Graphics (TOG) , 40(6), 2021. 3, 5 [48] Michael Niemeyer, Lars Mescheder, Michael Oechsle, and Andreas Geiger. Occupancy Flow: 4D Reconstruction by Learning Particle Dynamics. In IEEE International Confer-ence on Computer Vision (ICCV) , 2019. 2 [49] Awais Nizamani, Hamid Laga, Guanjin Wang, Farid Bous-said, Mohammed Bennamoun, and Anuj Srivastava. Dy-namic neural surfaces for elastic 4d shape representation and analysis, 2025. 2 [50] Jong Kwon Oh, Hanbaek Lyu, and Hwijae Son. Sobolev acceleration for neural networks. arXiv preprint arXiv:2509.19773 , 2025. 3 [51] Jinhyung Park, Javier Romero, Shunsuke Saito, Fabian Prada, Takaaki Shiratori, Yichen Xu, Federica Bogo, Shoou-I Yu, Kris Kitani, and Rawal Khirodkar. ATLAS: Decou-pling Skeletal and Shape Parameters for Expressive Paramet-ric Human Modeling. In IEEE International Conference on Computer Vision (ICCV) , pages 6508–6518, 2025. 2 [52] Keunhong Park, Utkarsh Sinha, Jonathan T Barron, Sofien Bouaziz, Dan B Goldman, Steven M Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable Neural Radiance Fields. In IEEE International Conference on Computer Vi-sion (ICCV) , 2021. 2, 3 [53] Georgios Pavlakos, Vasileios Choutas, Nima Ghorbani, Timo Bolkart, Ahmed AA Osman, Dimitrios Tzionas, and 36548 Michael J Black. Expressive Body Capture: 3D Hands, Face, and Body from a Single Image. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. 1, 2[54] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-NeRF: Neural Radiance Fields for Dynamic Scenes. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2, 3 [55] Robert J Renka. Constructing fair curves and surfaces with a Sobolev gradient method. Computer Aided Geometric De-sign , 21(2), 2004. 3 [56] Robert J Renka and JW Neuberger. Minimal Surfaces and Sobolev Gradients. SIAM Journal on Scientific Computing ,16(6), 1995. 3 [57] Javier Romero, Dimitrios Tzionas, and Michael J Black. Em-bodied Hands: Modeling and Capturing Hands and Bodies Together. ACM Transactions on Graphics (TOG) , 36(6), 2017. 1 [58] Alexander Rudikov, Vladimir Fanaskov, Ekaterina Muravl-eva, Yuri M Laevsky, and Ivan Oseledets. Neural opera-tors meet conjugate gradients: The FCG-NO method for effi-cient PDE solving. In International Conference on Machine Learning (ICML) , 2024. 3 [59] Soubhik Sanyal, Timo Bolkart, Haiwen Feng, and Michael J Black. Learning to Regress 3D Face Shape and Expres-sion from an Image without 3D Supervision. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. 2 [60] Hao Shi, Hongyi Wang, Yifan Jiang, Jie Zhang, and Jingyi Yu. Improved implicit neural representation with fourier reparameterized training. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 5 [61] Miroslava Slavcheva, Maximilian Baust, and Slobodan Ilic. SobolevFusion: 3D Reconstruction of Scenes Undergoing Free Non-rigid Motion. In IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2018. 3 [62] Robert W Sumner, Johannes Schmid, and Mark Pauly. Em-bedded deformation for shape manipulation. ACM Transac-tions on Graphics (TOG) , 26(3), 2007. 2 [63] Matthew Tancik, Pratul P. Srinivasan, Ben Mildenhall, Sara Fridovich-Keil, Nithin Raghavan, Utkarsh Singhal, Ravi Ra-mamoorthi, Jonathan T. Barron, and Ren Ng. Fourier fea-tures let networks learn high frequency functions in low di-mensional domains, 2020. 4 [64] Jiapeng Tang, Dan Xu, Kui Jia, and Lei Zhang. Learn-ing Parallel Dense Correspondence from Spatio-Temporal Descriptors for Efficient and Robust 4D Reconstruction. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2 [65] Garvita Tiwari, Bharat Lal Bhatnagar, Tony Tung, and Ger-ard Pons-Moll. SIZER: A Dataset and Model for Parsing 3D Clothing and Learning Size Sensitive 3D Clothing. In 
+
+European Conference on Computer Vision (ECCV) , 2020. 2 [66] Vladislav Trifonov, Alexander Rudikov, Oleg Iliev, Yuri M Laevsky, Ivan Oseledets, and Ekaterina Muravleva. Learning from Linear Algebra: A Graph Neural Network Approach to Preconditioner Design for Conjugate Gradient Solvers. 
+
+arXiv preprint arXiv:2405.15557 , 2024. 3 [67] Daniel Vlasic, Ilya Baran, Wojciech Matusik, and Jovan Popovi´ c. Articulated Mesh Animation from Multi-view Sil-houettes. ACM Transactions on Graphics (TOG) , 27(3), 2008. 6, 7 [68] Lizhen Wang, Zhiyuan Chen, Tao Yu, Chenguang Ma, Liang Li, and Yebin Liu. FaceVerse: a Fine-grained and Detail-controllable 3D Face Morphable Model from a Hy-brid Dataset. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2022. 2 [69] Hongyi Xu, Eduard Gabriel Bazavan, Andrei Zanfir, William T Freeman, Rahul Sukthankar, and Cristian Smin-chisescu. GHUM & GHUML: Generative 3D Human Shape and Articulated Pose Models. In IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. 2 [70] Zhenyu Xu, Yihe Ma, Zhihao Chen, Rui Yang, et al. Signal processing for implicit neural representations. In Advances in Neural Information Processing Systems (NeurIPS) , 2022. 5[71] Yuxin Yao, Siyu Ren, Junhui Hou, Zhi Deng, Juyong Zhang, and Wenping Wang. DynoSurf: Neural Deformation-based Temporally Consistent Dynamic Surface Reconstruction. In 
+
+European Conference on Computer Vision (ECCV) , 2024. 2, 5, 6 [72] Tarun Yenamandra, Ayush Tewari, Florian Bernard, Hans-Peter Seidel, Mohamed Elgharib, Daniel Cremers, and Christian Theobalt. i3DMM: Deep Implicit 3D Morphable Model of Human Heads. In IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2021. 2 [73] Jianhao Zheng, Zihan Zhu, Valentin Bieri, Marc Pollefeys, Songyou Peng, and Iro Armeni. Wildgs-slam: Monocu-lar gaussian splatting slam in dynamic environments. In 
+
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [74] Jiaxuan Zhu and Hao Tang. Dynamic Scene Reconstruc-tion: Recent Advance in Real-time Rendering and Stream-ing. arXiv preprint arXiv:2503.08166 , 2025. 3 36549

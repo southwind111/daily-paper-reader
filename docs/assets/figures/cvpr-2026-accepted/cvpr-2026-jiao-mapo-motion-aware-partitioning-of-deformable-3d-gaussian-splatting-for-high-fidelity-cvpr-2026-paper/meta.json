@@ -1,0 +1,310 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-001.webp",
+      "caption": "",
+      "page": 4,
+      "index": 1,
+      "width": 1280,
+      "height": 960
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-002.webp",
+      "caption": "",
+      "page": 5,
+      "index": 2,
+      "width": 1511,
+      "height": 1557
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-003.webp",
+      "caption": "",
+      "page": 5,
+      "index": 3,
+      "width": 1511,
+      "height": 1541
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-004.webp",
+      "caption": "",
+      "page": 5,
+      "index": 4,
+      "width": 1511,
+      "height": 1554
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-005.webp",
+      "caption": "",
+      "page": 5,
+      "index": 5,
+      "width": 703,
+      "height": 716
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-006.webp",
+      "caption": "",
+      "page": 6,
+      "index": 6,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-007.webp",
+      "caption": "",
+      "page": 6,
+      "index": 7,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-008.webp",
+      "caption": "",
+      "page": 6,
+      "index": 8,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-009.webp",
+      "caption": "",
+      "page": 6,
+      "index": 9,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-010.webp",
+      "caption": "",
+      "page": 6,
+      "index": 10,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-011.webp",
+      "caption": "",
+      "page": 6,
+      "index": 11,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-012.webp",
+      "caption": "",
+      "page": 6,
+      "index": 12,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-013.webp",
+      "caption": "",
+      "page": 6,
+      "index": 13,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-014.webp",
+      "caption": "",
+      "page": 6,
+      "index": 14,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-015.webp",
+      "caption": "",
+      "page": 6,
+      "index": 15,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-016.webp",
+      "caption": "",
+      "page": 6,
+      "index": 16,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-017.webp",
+      "caption": "",
+      "page": 6,
+      "index": 17,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-018.webp",
+      "caption": "",
+      "page": 6,
+      "index": 18,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-019.webp",
+      "caption": "",
+      "page": 6,
+      "index": 19,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-020.webp",
+      "caption": "",
+      "page": 6,
+      "index": 20,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-021.webp",
+      "caption": "",
+      "page": 6,
+      "index": 21,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-022.webp",
+      "caption": "",
+      "page": 6,
+      "index": 22,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-023.webp",
+      "caption": "",
+      "page": 6,
+      "index": 23,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-024.webp",
+      "caption": "",
+      "page": 6,
+      "index": 24,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-025.webp",
+      "caption": "",
+      "page": 6,
+      "index": 25,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-026.webp",
+      "caption": "",
+      "page": 6,
+      "index": 26,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-027.webp",
+      "caption": "",
+      "page": 6,
+      "index": 27,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-028.webp",
+      "caption": "",
+      "page": 6,
+      "index": 28,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-029.webp",
+      "caption": "",
+      "page": 6,
+      "index": 29,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-030.webp",
+      "caption": "",
+      "page": 6,
+      "index": 30,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-031.webp",
+      "caption": "",
+      "page": 6,
+      "index": 31,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-032.webp",
+      "caption": "",
+      "page": 6,
+      "index": 32,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-033.webp",
+      "caption": "",
+      "page": 6,
+      "index": 33,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-034.webp",
+      "caption": "",
+      "page": 6,
+      "index": 34,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-035.webp",
+      "caption": "",
+      "page": 6,
+      "index": 35,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-036.webp",
+      "caption": "",
+      "page": 7,
+      "index": 36,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-037.webp",
+      "caption": "",
+      "page": 7,
+      "index": 37,
+      "width": 1352,
+      "height": 1014
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-jiao-mapo-motion-aware-partitioning-of-deformable-3d-gaussian-splatting-for-high-fidelity-cvpr-2026-paper/fig-038.webp",
+      "caption": "",
+      "page": 7,
+      "index": 38,
+      "width": 1352,
+      "height": 1014
+    }
+  ]
+}

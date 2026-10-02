@@ -1,0 +1,1400 @@
+Mesh4D: 4D Mesh Reconstruction and Tracking from Monocular Video
+Zeren Jiang1
+Chuanxia Zheng1,2
+Iro Laina1
+Diane Larlus3
+Andrea Vedaldi1
+1VGG, University of Oxford
+2Nanyang Technological University
+3Naver Labs Europe
+{zeren, cxzheng, iro, vedaldi}@robots.ox.ac.uk
+diane.larlus@naverlabs.com
+mesh-4d.github.io
+…
+…
+…
+…
+Reconstructed 4D Mesh
+Input: Monocular RGB Video
+Figure 1.
+Illustration of Mesh4D. Given a monocular RGB video as input, Mesh4D generates a complete animated 3D mesh and its
+deformation. Each 4D reconstruction is shown at several time steps, the top layer displaying normals and the bottom one textured meshes.
+Abstract
+We propose Mesh4D, a feed-forward model for monocular
+4D mesh reconstruction. Given a monocular video of a dy-
+namic object, our model reconstructs the object’s complete
+3D shape and motion, represented as a deformation ﬁeld.
+Our key contribution is a compact latent space that encodes
+the entire animation sequence. This latent space is learned
+by an autoencoder that, during training, is guided by the
+skeletal structure of the training objects, providing strong
+priors on plausible deformations.
+Crucially, skeletal in-
+formation is not required at inference time. The encoder
+employs spatio-temporal attention, yielding a more stable
+representation of the object’s overall deformation. Build-
+ing on this representation, we train a latent diffusion model
+that, conditioned on the input video and the mesh recon-
+structed from the ﬁrst frame, predicts the full animation in
+one shot. We evaluate Mesh4D on reconstruction and novel
+view synthesis benchmarks, outperforming prior methods in
+recovering accurate 3D shape and deformation.
+1. Introduction
+In monocular 4D shape reconstruction, we are interested in
+reconstructing the 3D shape and motion of a dynamic ob-
+ject captured in a monocular RGB video. 4D reconstruction
+has many applications in vision, graphics, and robotics. For
+example, it can be used to automate the creation of 3D ani-
+mations, which is costly and time-consuming to do by hand,
+and requires domain expertise. However, 4D reconstruction
+is very challenging as the monocular video contains limited
+information about the 3D shape and motion of the object,
+which instead must be recovered in full, beyond what is vis-
+ible in the video.
+Often [16, 35, 77] this problem has been tackled using
+analysis-by-synthesis, where an animated 3D shape is opti-
+mized iteratively to ﬁt the input RGB(D) frames. However,
+these methods can only reconstruct the visible portion of
+the object and often produce noisy results due to occlusions
+and ambiguity. Recent feed-forward methods [11, 19, 44]
+have emerged as promising alternatives. These networks
+learn to reconstruct in 3D a frame of a monocular video, as
+This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+Except for this watermark, it is identical to the accepted version;
+the final published version of the proceedings is available on IEEE Xplore.
+14524
+
+
+well as the scene motion between that frame and another.
+However, each application of the network only recovers the
+3D points that are visible, and their motion only between
+the two frames rather than across the whole sequence. As
+a result, they are insufﬁcient to recover the complete 4D
+structure of an animated object.
+Reconstructing and tracking the parts of the geometry
+that are not visible in the video requires strong 3D and phys-
+ical priors that can only be learned from data. This calls
+for latent 3D generative models, which have been shown to
+capture rich priors on 3D shapes [20, 46, 62], at least in the
+static case. In this paper, we thus ask whether such gen-
+erative models can be extended to solve 4D reconstruction,
+implicitly capturing cues such as symmetry and smoothness
+that can help to recover the 3D shape and its motion beyond
+what is directly visible in the video. Recent contributions
+such as GVFD [73] have already explored this idea and in-
+troduced versions of 3D generators [46, 62] that can handle
+dynamics. However, their ultimate aim is to generate good-
+looking images of the object and they are less concerned
+with accurately recovering the 3D shape and motion.
+In this work, we introduce Mesh4D, a feed-forward
+model that learns to accurately reconstruct 3D objects and
+their motion from a monocular RGB video (see illustra-
+tion Fig. 1). We represent the object’s shape as a 3D mesh
+extracted from the ﬁrst frame of the input video, and then
+generate a deformation ﬁeld that displaces the surface of
+the mesh to represent the deformation of the object over
+time. This representation is intuitive as it factorizes the 3D
+shape and motion. By comparison, others [18, 41, 54, 69]
+have approached 4D reconstruction by outputting indepen-
+dent 3D reconstructions of each frame and thus do not ex-
+plicitly model the object’s motion. Explicitly modeling mo-
+tion is often crucial, for example, to texture the 3D object
+consistently over time.
+We argue that, in order to accurately recover the motion
+of objects, animations should be modeled holistically from
+the beginning to the end of the video. To make this feasi-
+ble, we introduce a new Variational Auto-Encoder (VAE)
+to encode the shape deformation in a compact latent space.
+Prior work like Motion2VecSet [5] has proposed analogous
+encodings, but only for two frames at once. In contrast,
+we show that a latent space representing the motion of the
+object throughout the whole sequence performs better. To
+this end, we build a transformer [50] encoder that uses
+spatial, temporal, and global attention modules [14, 51] in
+each block, capturing long-term spation-temporal correla-
+tions among points.
+We also argue for using motion-related information to
+guide VAE training. In particular, we propose using the ob-
+ject’s skeleton, as a cue on the space of possible deforma-
+tions of the object. As shown in Fig. 2, we leverage both
+skinning weights and bone information as additional inputs
+to the encoder, which signiﬁcantly improves the quality of
+the learned latent space. Importantly, the skeleton is privi-
+leged information which is not needed at inference time.
+Another challenge in monocular 4D mesh reconstruction
+is the lack of suitable 4D datasets for training and bench-
+marking. Following recent works [18, 20, 32, 65], we do not
+train our deformation model from scratch, but start from a
+static 3D generator [46]. Because the latter is pretrained on
+large datasets of 3D objects, it helps to achieve robustness
+and generalization to a wide variety of object types. We
+then use a dataset of animated 3D objects (with annotated
+3D tracks) for training and evaluation. As there are few such
+datasets, we build one by ﬁltering 3D animated assets from
+Objaverse [9], selecting high-quality dynamic 3D meshes
+with skeletons. For evaluation, we propose a new bench-
+mark focusing on the quality of 3D shape and motion recon-
+struction rather than just the visual quality of the rendered
+video, which has been the focus of some prior work [5]. To
+do so, we collect 50 animated 3D assets with signiﬁcant ob-
+ject motion, high-quality textures, and no overlap with our
+training data.
+To summarize, our contributions are as follows. First,
+we propose a new model, Mesh4D, for monocular 4D mesh
+reconstruction. This model reconstructs the 3D shape and
+deformation of an object from a monocular video. Second,
+we build our model on top of a new VAE that encodes the
+object’s deformation from the beginning to the end of the
+sequence in a compact latent space, suitable for latent diffu-
+sion. We then train a diffusion model to generate the motion
+of the object observer in the input video. Third, we propose
+a benchmark to assess monocular 4D shape reconstruction
+models with a focus on 3D reconstruction quality instead of
+2D rendering quality.
+2. Related work
+2.1. Optimization-based 4D reconstruction
+Iterative or optimization-based methods reconstruct from
+monocular or multi-view videos by iteratively ﬁtting a 4D
+representation to them [4, 10, 12, 25, 26, 35, 37, 39, 48, 53,
+56, 58, 67, 68]. With the advent of neural radiance ﬁelds
+(NeRFs) [33] and 3D Gaussian Splatting (3D-GS) [21],
+many time-dependent NeRFs [4, 10, 12, 25, 26, 37, 39] and
+dynamic 3D Gaussian Splatting methods [53, 56, 58, 67, 68]
+have been proposed for 4D reconstruction. Although sig-
+niﬁcant progress has been made, most approaches are eval-
+uated on simple scenarios with quasi-static scenes [37, 58]
+and relatively small datasets [13, 22, 70].
+To demonstrate effectiveness on diverse scenarios, recent
+works explore priors from large-scale pretrained models.
+One popular direction is to generate multi-view videos with
+pretrained video diffusion models [1–3, 15] and then per-
+form 4D reconstruction via per-scene optimization [59, 63,
+14525
+
+
+71]. Another line of work [8, 17, 27, 40, 74] directly dis-
+tills 4D knowledge from large-scale diffusion models us-
+ing slow score-distillation sampling iterations [38]. How-
+ever, these methods focus on “plausible” novel view syn-
+thesis (NVS), rather than accurate geometry and tracking.
+More recently, feed-forward 3D generators, such as Hun-
+yuan3D [45–47], TripoSG [24], Trellis [62], and Step1X-
+3D [23], have shown impressive results on diverse and
+complex scenarios, but they focus only on static 3D re-
+construction. Building upon these feed-forward 3D gen-
+erators, V2M4 [6] reconstructs 4D meshes from monoc-
+ular videos by generating per-frame 3D meshes indepen-
+dently, followed by an optimization step to ensure tempo-
+ral coherence. However, they still require per-scene opti-
+mization to achieve consistent 4D reconstruction, which is
+time-consuming and less ﬂexible. In contrast, our approach
+directly reconstructs temporally coherent 4D meshes along
+with tracking from monocular videos in a feed-forward
+manner.
+It generalizes to diverse scenarios without per-
+scene optimization and is therefore much more efﬁcient.
+2.2. Feed-forward 4D reconstruction
+Like our method, feed-forward 4D reconstruction directly
+infers a 4D representation from monocular videos in a sin-
+gle pass. MonST3R [75] effectively reconstructs dynamic
+scenes by adapting the static 3D reconstruction produced by
+DUSt3R [55] with dynamic scene supervision. Numerous
+follow-ups take a similar path [11, 19, 44], adding func-
+tionalities like tracking.
+However, they mainly work on
+pairwise frames or stereo videos. To handle long monoc-
+ular videos, Cut3R [54] introduces a memory bank to
+store spatial and temporal information, enabling continu-
+ous static and dynamic scene reconstruction from a stream
+of monocular images. ω3 [57] further improves scalability
+by building a permutation-equivariant architecture on top of
+VGGT [51]. Beyond DUSt3R-based methods, Geo4D [18]
+leverages video generators [64] to infer 4D point maps
+from monocular videos. 4DGT [66] proposes a transformer
+model to predict dynamic 3D Gaussian representations [21]
+from monocular videos. However, these approaches mainly
+focus on visible geometry reconstruction, whereas we ad-
+dress the more challenging task of complete 4D mesh re-
+construction with tracking. This is harder due to the need
+to infer the invisible parts of surfaces and establish dense
+correspondences over time.
+Some recent works also explore complete 4D recon-
+struction from monocular videos in a feed-forward manner.
+L4GM [41] leverages a pretrained ImageDream [52] to gen-
+erate missing-view images, which are then used to train a
+feed-forward 4D Gaussian reconstructor. GVFD [73] em-
+beds the 4D mesh data into a Gaussian Variation Field us-
+ing a compact latent space, and then trains a video-to-4D
+Gaussian model by inferring latent codes from monocular
+videos. However, they still focus on producing plausible
+novel view synthesis, rather than aiming for accurate ge-
+ometry. More closely related to our task, concurrent work
+ShapeGen4D [69] encodes a 4D mesh sequence into a se-
+quence of latents and then learns a diffusion model to pre-
+dict the latents directly, conditioned on monocular videos.
+However, they align the latents only with a shared set of
+query points from the ﬁrst frame and do not directly predict
+dense correspondences. Instead, our Mesh4D is based on
+a novel spatio-temporal Transformer architecture operating
+directly on 4D meshes, which can effectively capture tem-
+poral coherence and establish dense correspondences over
+time. Moreover, compared to Motion2VecSets [5] which
+processes two meshes at a time, Mesh4D encodes sequences
+of 4D meshes jointly, and directly predicts complete 4D
+meshes from monocular videos.
+3. Method
+Given a monocular video of a moving object, our goal
+is to reconstruct its 3D shape and motion. Formally, the
+video I = {It}T
+t=1 is a sequence of T RGB images It →
+RH→W →3. The 3D shape of the object in the ﬁrst frame of
+the video is captured by the 3D mesh M1 = ↑V1, F1↓, con-
+sisting of an array of 3D vertices V1 →RNv→3 and triangu-
+lar faces F1 →NNf →3 indexing the vertices. The motion
+of the object is captured by a dense deformation ﬁeld T1↑t
+that speciﬁes the displacement of all points on the mesh (in-
+cluding both vertices and faces) from time 1 to time t. In
+particular, we can use this deformation ﬁeld to write the de-
+formed mesh at time t as Mt = ↑V1 + T1↑t(V1), F1↓.
+We cast our problem as learning a neural network ! that,
+given the input video, outputs both the 3D shape and motion
+of the object:
+! : I ↔↗M1, {T1↑t}T
+t=1.
+(1)
+To ensure that the model generalizes well, especially given
+the limited availability of 4D training data, we build it on
+top of a pre-trained image-to-3D generator. We opt for a
+3D latent space model due to its robustness and ability to
+hallucinate complete objects even though only one aspect
+of them is visible in the image.
+Our method has thus three main components. First, it
+uses an off-the-shelf ‘backbone’ network for image-to-3D
+reconstruction, which we introduce in Sec. 3.1. Its purpose
+is to reconstruct the mesh M1 from the ﬁrst frame I1 of the
+video. Second, it uses a new 4D Variational Auto-Encoder
+(VAE) to encode the deformation ﬁeld T in a compact latent
+space (Sec. 3.2). Third, it uses a generator that outputs the
+deformation latent code conditioned on the input video I
+and the reference mesh M1 (Sec. 3.3).
+14526
+
+
+Mesh
+Surface 
+Sample
+Aligned 
+Point Cloud
+Position Embedding & Projection
+!!
+Extract skinning weights "
+Self Attention Layer
+Projected 
+Token #
+Mask
+Q,K,V
+Extract skeleton
+Cross Attention
+Q
+K,V
+Q
+K,V
+Q
+K,V
+FPS
+Cross Attention
+Q
+KV
+Spatio-temporal attention
+Aligned
+Motion
+Latent $"
+Spatio-temporal attention
+Cross Attention
+Canonical vertices as query %
+Deformation 
+Field
+Spatio-temporal 
+Attention
+RoPE
+RoPE
+Temp Attn
+Global Attn
+Spatial Attn
+ℳ! 
+ℳ# 
+ℳ$ 
+…
+…
+(! 
+(# 
+($ 
+Skinning 
+Weights "
+!#
+!$
+Dense Latent #%
+Sparse Latent #%%
+x 8
+x 16
+)!→!
+)!→#
+)!→$
+Figure 2. Overall Deformation VAE pipeline. (Left) Given a sequence of 3D meshes as input, we uniformly sample a sequence of
+corresponding points. We inject skeleton information with masked self- and cross-attention. We then apply Farthest Point Sampling (FPS)
+along the spatial dimension to compress the latent features, followed by eight layers of spatio-temporal attention. The deformation ﬁeld is
+decoded by additional spatio-temporal attention layers, followed by cross-attention where canonical vertices serve as query points. (Right)
+Each spatio-temporal attention layer sequentially performs temporal, global, and spatial attention. For temporal and global attention, we
+additionally apply 1D RoPE [43] embeddings along the temporal dimension.
+3.1. Preliminaries: Latent 3D reconstruction model
+Following recent works on 3D diffusion [18, 20, 30, 32], we
+build Mesh4D on top of a pre-trained latent 3D reconstruc-
+tion model for static objects. We use Hunyuan3D 2.1 [46],
+an excellent model learned from millions of 3D data sam-
+ples, but any other similar model could be used instead.
+The model uses a VAE to map the 3D mesh M to a com-
+pact latent code zs based on the VecSet representation [72].
+The encoder zs = Es(P; n) computes the latents by ﬁrst
+uniformly sampling a point cloud P →RM→3 from the
+mesh M, augmented with their normals n →RM→3, and
+then applying a neural network to it. Given the code zs, a
+decoder Ds(Q; zs) recovers the 3D shape of the object by
+computing its signed distance function (SDF) in correspon-
+dence of a set of 3D grid query points Q →R(H→W →D)→3.
+These are ﬁnally converted to a triangle mesh via the march-
+ing cubes algorithm [31].
+Given the VAE, 3D reconstruction amounts to learning
+a conditional denoising diffusion generator that can sample
+the latent code zs ↘p(zs|I) given the image I. This model
+is trained by minimizing the ﬂow matching objective [29]:
+min
+ω E(zs,I),t,εs↓N (0,1) ≃vs ⇐vs
+ω (zs
+t , t, I)≃2
+2 ,
+(2)
+where zs
+t = tzs + (1 ⇐t)ωs is the noisy sample at timestep
+t ↘U(0, 1), and vs = zs⇐ω is the velocity ﬁeld that moves
+the noisy sample zs
+t towards the data zs, and vs
+ω denotes the
+velocity prediction model where ε are the model parame-
+ters. Once trained, one randomly samples the noise from a
+Gaussian distribution and uses a ﬁrst-order Euler ordinary
+differential equation to iteratively transfer the noise ωs to
+the data ˆzs. Finally, the denoised shape latent ˆzs together
+with the 3D grid query points Q are fed into the decoder to
+output the ﬁnal mesh.
+To obtain a textured mesh, a separate material generation
+model is used. For this, the input image, rendered multi-
+view normal maps as well as canonical coordinate maps are
+taken as condition to generate a PBR texture. Since tex-
+turing is orthogonal to our main contribution, we refer the
+reader to Hunyuan3D 2.1 [46] for more details. Note that
+this latent 3D reconstruction model is only used to recon-
+struct the static mesh M1 from the ﬁrst frame I1, which is
+used as the reference view for both geometry and texture.
+3.2. Deformation variational auto-encoder
+In Sec. 3.1, we have obtained the canonical mesh M1 =
+↑V1, F1↓from the ﬁrst frame I1 of the video using an off-
+the-shelf model. Our contribution is to reconstruct the de-
+formation ﬁeld T1↑t from M1 and the video I as a whole.
+Just like the SDF deﬁning the 3D shape of the object,
+the deformation ﬁeld T1↑t is an inﬁnite-dimensional object.
+The key to our method is to learn a deformation VAE that
+encodes the deformation ﬁeld into a compact latent space.
+The encoder zd ↘Ed({Mt}T
+t=1; n, w, b) maps a sequence
+of meshes {Mt}T
+t=1 to a latent code zd, while the decoder
+takes this latent code and reconstructs the deformation ﬁeld
+T1↑t(V1) = Dd
+t (V1; zd) in correspondence of the vertices
+V1. The encoder also uses the normal vectors n, skinning
+weights w, and bones b to improve the encoding, as we
+show in Fig. 2 and explain below.
+Encoding points in time. Inspired by the design of the
+VAE in Sec. 3.1, we build our deformation encoder by ﬁrst
+extracting a 3D point cloud from the mesh. However, in this
+4
+14527
+
+
+case we are interested in encoding an animated mesh se-
+quence {Mt}T
+t=1. We assume that meshes in the sequence
+correspond, meaning that the i-th vertex in each mesh cor-
+responds to the i-th vertex in every other mesh. We ﬁrst
+extract a point cloud P1 by sampling mesh M1 as before.
+We then express each 3D point in terms of V1 by ﬁnding
+its barycentric coordinates with respect to the face it be-
+longs to, and determine its corresponding location at time t
+by reconstructing it from vertices Vt. With this, we build a
+sequence of point clouds {Pt}T
+t=1 that correspond to each
+other across time.
+These points and corresponding normal vectors are com-
+bined and projected to a higher dimensionality:
+ht = fl(PE(P1) ⇒n1 ⇒PE(Pt) ⇒nt),
+(3)
+where PE is positional embedding, ⇒is the channel-wise
+concatenation operation (which makes sense because points
+correspond over time), and fl is a linear layer. By pairing
+points at time 1 and t, we help the model ﬁgure out the
+motion of the object; by passing the normals, we further
+help it to determine the local motion. Overall, we obtain a
+sequence of point features {ht}T
+t=1, where ht →RM→c and
+c is the feature dimension.
+Injecting skeleton information. Note that the VAE en-
+coder takes in more information than the decoder out-
+puts. The encoder takes as input the full mesh sequence
+{Mt}T
+t=1, while the decoder only outputs the displacement
+T1↑t(V1) of the vertices. In fact, the encoder takes as in-
+put also the n, skinning weights w and bones b. This can
+be considered ‘privileged’ information available at training
+time to learn a better latent space, but not used at inference
+time, where the latent code is output by a generator from
+the monocular video. While points and normals have been
+used before for a similar purpose (e.g., in VecSet), here we
+propose to use the skeleton of the object too. This is cap-
+tured by the skinning weights w →RM→Bmax that represent
+the inﬂuence of each bone on each point, where Bmax is the
+maximum number of bones (we set Bmax = 64 and unused
+bones simply get zero weights). To account for the skin-
+ning weights, we apply self-attention to the point features
+ht with a bias that depends on skinning:
+ˆht = softmax
+!
+htht
+↔+ M s
+⇑c
+"
+ht + ht
+M s =
+#
+0
+if ww↔> ε s
+⇐inf
+if ww↔⇓ε s ,
+(4)
+where c is the channel dimension and M s →RM→M is the
+attention mask, which is calculated based on the similarity
+of the skinning weights and the threshold ε s.
+In addition to biasing the self-attention layer, we incor-
+porate the bone information via cross-attention. Each bone
+is ﬁrst represented by the position of its head and tail in each
+frame, captured by matrices bh
+t , bt
+t →RBmax→3. Again, the
+unused bones are padded with zeros. The bone parameters
+are then mapped to the same feature dimension as the point
+features ht via a linear layer hb
+t = f b
+l (PE(bt
+1) ⇒PE(bh
+1) ⇒
+PE(bt
+t) ⇒PE(bh
+t )), hb
+t →RBmax→c. Then, the point features
+attend these bone features via cross-attention:
+h↗
+t = softmax
+! ˆhthb
+t
+↔+ M b
+⇑c
+"
+hb
+t + ˆht
+M b =
+#
+0
+if w > ε b
+⇐inf
+if w ⇓ε b ,
+(5)
+where M b →RM→Bmax is the attention mask calculated
+based on the skinning weights. In Tab. 3, we show that in-
+corporating the skeleton information in the encoder brings
+signiﬁcant gain.
+Spatio-temporal attention. Rather than modeling the mo-
+tion of each frame independently [5], we use a trans-
+former [50] with alternating spatial, temporal, and global
+attention layers [51] to allow the model to correlate the tra-
+jectories of different points on the mesh across the frames.
+However, the computational cost of applying attention
+on all points across all frames is prohibitive. Hence, we fur-
+ther downsample the points by applying Farthest Point Sam-
+pling (FPS), obtaining h↗↗
+t →RN→c and performing cross-
+attention with h↗
+t →RM→c to obtain a sparser set of latent
+vectors {h0
+t}T
+t=1, h0
+t →RN→c,
+h0
+t = softmax
+!
+h↗↗
+t h↗
+t
+↔
+⇑c
+"
+h↗
+t,
+(6)
+where N ⇔M and c is the channel dimension. Then,
+as shown in Fig. 2 (right), we apply spatial self-attention
+to the tokens hl
+t within each frame separately, temporal
+self-attention to the tokens across all frames but separate
+points, and global attention to all tokens ↖T
+t=1{hl
+t} across
+all frames jointly.
+These attention layers are interleaved
+with MLP layers to further enhance the representation.
+After L = 8 layers of alternating attention, an addi-
+tional linear projection layer is applied to obtain the mean
+E(hL
+t ) →RN→co and variance Var(hL
+t ) →RN→co of the
+deformation latent distribution for each frame t, where hL
+t
+is the output of the last attention layer L for frame t, and
+co ⇔c. Finally, the latent zd output by the encoder is sam-
+pled from N(E(hL), Var(hL)).
+Deformation ﬁeld decoder. The decoder T1↑t(V1)
+=
+Dd
+t (V1; zd) recovers the deformation ﬁeld in correspon-
+dence of the mesh vertices from the latent code zd output
+by the encoder. First, we use a linear layer to project zd
+from dimension co to a higher dimension c. Then, we apply
+16 layers of spatio-temporal attention blocks as described
+14528
+
+
+Noisy
+Latent
+Canonical
+Point Cloud
+Temp. 
+Emb.
+Spatial
+Emb.
+Spatial Attn
+Temp Attn
+Cross Attn
+Cross Attn
+MoE
+Skip
+Latent
+⨁
+Canonical
+Mesh
+HY3D
+ShapeVAE
+DINO
+Video
+Predicted
+Latent
+DiT Block
+ ×K 
+Q
+KV
+Q
+KV
+ℳ! 
+%" 
+Figure 3. Overall deformation diffusion model pipeline. We
+build it based on HY3D 2.1 [46] shape diffusion model with ad-
+ditional spatial and temporal embedding as well as cross attention
+layer to condition the deformation ﬁeld generation on the canoni-
+cal mesh and input video.
+in Fig. 2 to further enhance the feature representation. Fi-
+nally, the vertices V1 are used as queries to recover the de-
+formation ﬁeld T1↑t(V1) via cross attention.
+Training objective. The deformation VAE is trained by
+minimizing the following loss:
+LVAE =
+T
+$
+t=1
+%%(Vt ⇐V1) ⇐Dd
+t (V1; zd)
+%%2
+2 + ϑLKL,
+zd ↘Ed({Mt}T
+t=1; n, w, b).
+(7)
+LKL is a KL divergence loss that regularizes the latent
+space. In practice, we evaluate this loss only for a random
+subset of vertices for efﬁciency.
+3.3. Deformation diffusion model
+As shown in Fig. 3, given the reconstructed canonical mesh
+M1 and the input video I, we use a diffusion model to gen-
+erate the deformation latent zd ↘p(zd|M1, I) conditioned
+on both signals. To build the deformation diffusion model,
+we extend the shape diffusion model in Sec. 3.1 so that it
+learns a velocity ﬁeld vd
+ω with additional temporal embed-
+dings and spatial embeddings p1 →RN→3 sampled from
+M1, as well as extra attention layers in each DiT block
+to fuse temporal video cues and canonical shape informa-
+tion. Video features are extracted from DINO-Giant [36]
+frame by frame and cross-attended by the corresponding la-
+tent tokens. Similar to GVFD [60], the spatial embedding
+p1 endows the initial noise with spatial awareness, which
+improves spatial consistency. During training, we use the
+positions of the FPS-sampled sparse features h↗↗as spa-
+tial embeddings to align each latent target with its embed-
+ding. During inference, we perform FPS sampling on the
+reconstructed canonical mesh to obtain the required spatial
+embedding. Different from GVFD [60], we also incorpo-
+rate temporal embeddings for better temporal consistency
+and leverage the extracted high-dimensional shape feature
+zs from the canonical mesh for detailed conditioning. The
+training objective matches Eq. (2).
+Method
+Reconstruction
+Tracking
+IoU ↙
+P2S ∝
+Chamfer ∝
+ϖ2-Corr ∝
+HY3D 2.1 [46]
+0.3071
+0.0376
+0.0370
+N/A
+L4GM [41]
+N/A
+0.0459
+0.0505
+N/A
+GVFD [73]
+N/A
+0.0345
+0.0378
+0.0514
+Ours
+0.3731
+0.0287
+0.0273
+0.0384
+Ours (Aligned)
+0.3949
+0.0261
+0.0243
+0.0338
+Table 1. Quantitative evaluation for geometry and tracking on
+our proposed benchmark, a subset of Objaverse. All instantiations
+of our model outperform prior state-of-the-art methods. 3D-GS
+based methods do not explicitly deﬁne inner or outer surfaces, so
+volumetric IoU is not applicable. HY3D [46] and L4GM [41] pre-
+dict independent meshes or points per frame, so they do not di-
+rectly support tracking evaluation.
+4. Experiments
+4.1. Experimental settings
+Dataset. We start from the curated version of Objaverse-
+1.0 [9] released by Diffusion4D [28], where objects ani-
+mated with limited motion or large distortions are ﬁltered
+out. We extract the skeleton, skinning weights, and the se-
+quence of meshes with corresponding vertices. We then ﬁl-
+ter out objects with an excessively large number of vertices
+or bones, retaining approximately 9k instances. Each in-
+stance is rendered as a frontal video with up to 100 frames.
+For testing, we select a disjoint set of 50 sequences with sig-
+niﬁcant object motion and high-quality textures. We render
+four ﬁxed-view videos for each sequence at azimuth angles
+0↘, 90↘, 180↘, 270↘. One view is used as the input and the
+other three for novel view synthesis (NVS) evaluation.
+Baselines. We compare our method with three state-of-
+the-art latent 3D reconstruction models: Hunyuan3D 2.1
+(HY3D) [46], L4GM [41], and GVFD [73]. Since HY3D is
+an image-to-3D reconstruction method, we run it frame by
+frame with shared noise to improve temporal consistency.
+For L4GM and GVFD, we take the centers of Gaussian
+primitives with opacity greater than 0.01 as a point cloud
+for geometry evaluation. To align the reconstructed mesh
+with the ground-truth mesh, we perform Coherent Point
+Drift (CPD) [34] to optimize the scale and rigid transfor-
+mation of the ﬁrst-frame mesh. As shown in Tabs. 1 and 2,
+entries with the Aligned annotation indicate that the aligned
+canonical shape is used as input to our deformation diffu-
+sion model, whereas entries without this annotation indicate
+that alignment is performed immediately before evaluation.
+Metrics. For frame-wise geometry evaluation we report
+volumetric IoU, point-to-surface distance (P2S), and Cham-
+fer distance. For tracking, we measure the Euclidean dis-
+tance between corresponding points (nearest neighbors on
+the ﬁrst frame) on the predicted and ground-truth meshes
+(ϖ2-Corr). For novel view synthesis (NVS) [7, 76], we report
+14529
+
+
+GT
+Ours
+HY3D 2.1
+View1 (Input)
+View2
+View1
+View2
+View1
+View2
+Normal
+Map
+Textured
+Mesh
+T1
+T1
+T1
+T1
+T1
+T1
+T2
+T2
+T2
+T2
+T2
+T2
+Error 
+Map
+Normal
+Map
+Textured 
+Mesh
+Error 
+Map
+Normal 
+Map
+Normal
+Map
+Low
+Error
+High
+Error
+Figure 4. Qualitative results on geometry reconstruction. We show both the normal map and the error map, with bluer tones indicating
+lower error. HY3D 2.1 [46] suffers from inaccurate pose and shape estimation because it lacks temporal information. Thanks to spatio-
+temporal attention, our method reconstructs meshes that follow the input frames with accurate pose and similar shape.
+Peak Signal-to-Noise Ratio (PSNR), Structural Similarity
+Index Measure (SSIM), Learned Perceptual Image Patch
+Similarity (LPIPS), and CLIP similarity. We also report
+FVD [49] to assess the temporal consistency of generated
+novel-view videos.
+4.2. Geometry and tracking evaluation
+In Fig. 4 we qualitatively compare our method with frame-
+wise HY3D inference [46].
+Due to the lack of tempo-
+ral attention across frames, HY3D suffers from inaccurate
+pose (incorrect pose of the chimpanzee’s arm in the blue
+box) and shape (incorrect bat wing shape in the orange
+box). This is conﬁrmed by the quantitative results in Tab. 1,
+where Mesh4D achieves state-of-the-art reconstruction and
+tracking performance by leveraging information across the
+whole sequence. 3D-GS-based methods do not inherently
+focus on geometry or dense tracking, which is also reﬂected
+in the ghost artifacts (see Fig. 5 discussed next).
+4.3. Novel view synthesis evaluation
+In Fig. 5 we qualitatively assess NVS results on both the
+input view and a novel view at different time steps. Typical
+errors fall into four categories, described below.
+Inaccurate pose estimation. As shown in the blue boxes
+of Fig. 5, HY3D predicts inaccurate poses (e.g., human legs,
+mantis limb). In contrast, our method predicts pixel-aligned
+pose estimates via temporal and global attention, yielding
+better PSNR, SSIM, and LPIPS (see Tab. 2).
+Inconsistent texture. Although using shared noise im-
+proves HY3D frame-to-frame consistency, it still exhibits
+jittery geometry and texture ﬂicker (see the orange boxes).
+Our model produces consistent texture and geometry thanks
+to dense correspondences modeled by the spatio-temporal
+attention, leading to a lower FVD (Tab. 2).
+Method
+Per-frame Quality
+Consistency
+PSNR ↙
+SSIM ↙
+LPIPS ∝
+CLIP ↙
+FVD ∝
+HY3D 2.1 [46]
+19.14
+0.8976
+0.1195
+0.9174
+692.2
+L4GM [41]
+18.07
+0.8939
+0.1453
+0.8954
+747.3
+GVFD [73]
+17.31
+0.8912
+0.1459
+0.8802
+905.0
+Ours
+19.67
+0.9018
+0.1087
+0.9141
+601.9
+Ours (Aligned)
+19.88
+0.9030
+0.1052
+0.9141
+572.7
+Table 2. Quantitative evaluation for novel view synthesis on our
+proposed benchmark, a subset of Objaverse. We achieve the best
+performance on both frame-wise quality and video consistency.
+Method
+Reconstruction
+Tracking
+IoU ↙
+P2S ∝
+Chamfer ∝
+ϖ2-Corr ∝
+w/o temp&global attention
+0.6328
+0.0153
+0.0113
+0.0160
+w/o skeleton information
+0.6704
+0.0148
+0.0107
+0.0138
+Ours
+0.7039
+0.0144
+0.0099
+0.0117
+Table 3. Quantitative ablation study for our deformation VAE on
+our proposed benchmark, a subset of Objaverse. We demonstrate
+the effectiveness of our key designs.
+Incorrect canonical mesh. Our method builds upon a
+large-scale 3D reconstruction model that produces reason-
+ably accurate canonical shapes for diverse objects. On the
+contrary, GVFD and L4GM often fail to recover an accurate
+canonical shape, a prerequisite for high-quality 4D recon-
+struction (black boxes in Fig. 5).
+Artifacts of deformed 3D-GS. Prior methods that gener-
+ate 3D-GS representations rely on photometric losses with-
+out shape and motion priors. They suffer from ghost arti-
+facts under large motion (red box in Fig. 5).
+Our texture map is generated from only the ﬁrst input
+frame, so our method yields a lower CLIP score compared
+to HY3D, which generates a new texture for each frame.
+However, thanks to the reconstructed deformation ﬁeld, we
+estimate more accurate motion and alignment, achieving
+state-of-the-art results on all other metrics (Tab. 2).
+14530
+
+
+L4GM
+GT
+Ours
+T0
+T1
+GVDF
+T0
+T1
+HY3D 2.1
+View1 
+(Input)
+View2 
+(Novel)
+View1
+View2
+View1
+View2
+View1
+View2
+View1
+View2
+Figure 5. Qualitative results on novel view synthesis. All state-of-the-art methods suffer from inaccurate pose estimation, either
+because they lack temporal attention (HY3D [46]) or because they neglect geometric supervision (GVDF [73], L4GM [41]). 3D-GS based
+methods occasionally exhibit ghost artifacts because they lack topology constraints during deformation, while frame-wise reconstruction
+methods produce inconsistent shape and texture. Leveraging a large reconstruction model prevents extremely incorrect canonical
+meshes. Thanks to the skeleton information and spatio-temporal attention, Mesh4D reconstructs accurate pose and geometry and produces
+temporally consistent novel-view videos.
+Ours
+GT
+w/o 
+temp & global attn.
+w/o 
+Skeleton info.
+Figure 6. Ablating key components of the deformation VAE.
+We visualize the error map of the chamfer distance. Blue indi-
+cates lower error, corresponding to better reconstruction quality.
+Injecting skeleton information helps the model better capture rigid
+deformation. Spatio-temporal fusion reduces jittering effects.
+4.4. Ablation study
+We ablate key design choices of the deformation VAE. We
+train two variants: one without skeleton information and
+one without temporal and global attention. At test time we
+use the ground-truth ﬁrst-frame mesh as the canonical mesh
+and evaluate the reconstructed deformation ﬁeld. As shown
+in the orange box of Fig. 6, removing skeleton information
+impairs rigid transformations, resulting in a twisted stick.
+As shown in the purple box, removing temporal and global
+attention causes jittery motion and larger errors near the
+feet. These observations align with the quantitative results
+in Tab. 3, conﬁrming the effectiveness of our VAE design.
+5. Conclusion
+We introduced Mesh4D, a feed-forward model for 4D mesh
+reconstruction from monocular videos. Starting from a la-
+tent 3D reconstruction model pre-trained on a large collec-
+tion of static objects, we add a new VAE that encodes the
+object deformation in a compact latent space. We further
+introduce a method that uses skeleton information to super-
+vise this VAE and a diffusion model built on top of these
+components. Thanks to this design, Mesh4D predicts the
+full 3D shape of the object as well as its deformation, track-
+ing vertices throughout the entire video sequence.
+On the Objaverse benchmark, Mesh4D achieves state-
+of-the-art reconstruction quality for geometry, motion, and
+appearance, while reducing temporal artifacts relative to
+competing approaches. Our ablations highlight the value
+of our contributions, including using skeletal cues and
+spatio-temporal attention in the VAE architecture. Limita-
+tions include reliance on a high-quality canonical mesh and
+skeletons for training, the inability to represent topological
+changes in the mesh, and difﬁculty in reconstructing very
+non-rigid objects. Code, models, benchmark splits, and the
+full evaluation framework are available.
+14531
+
+
+Acknowledgments. The authors of this work were sup-
+ported by Clarendon Scholarship, NTU SUG-NAP, NRF-
+NRFF17-2025-0009, ERC 101001212-UNION, and EP-
+SRC EP/Z001811/1 SYN3D.
+References
+[1] Omer Bar-Tal, Hila Chefer, Omer Tov, Charles Her-
+rmann, Roni Paiss, Shiran Zada, Ariel Ephrat, Junhwa Hur,
+Guanghui Liu, Amit Raj, et al. Lumiere: A space-time diffu-
+sion model for video generation. In SIGGRAPH Asia 2024
+Conference Papers, pages 1–11, 2024. 2
+[2] Andreas Blattmann, Tim Dockhorn, Sumith Kulal, Daniel
+Mendelevitch, Maciej Kilian, Dominik Lorenz, Yam Levi,
+Zion English, Vikram Voleti, Adam Letts, et al. Stable video
+diffusion: Scaling latent video diffusion models to large
+datasets. arXiv preprint arXiv:2311.15127, 2023.
+[3] Andreas Blattmann, Robin Rombach, Huan Ling, Tim Dock-
+horn, Seung Wook Kim, Sanja Fidler, and Karsten Kreis.
+Align your latents: High-resolution video synthesis with la-
+tent diffusion models. In Proceedings of the IEEE/CVF con-
+ference on computer vision and pattern recognition (CVPR),
+pages 22563–22575, 2023. 2
+[4] Ang Cao and Justin Johnson. Hexplane: A fast representa-
+tion for dynamic scenes. In Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 130–141, 2023. 2
+[5] Wei Cao, Chang Luo, Biao Zhang, Matthias Nießner, and Ji-
+apeng Tang. Motion2vecsets: 4d latent vector set diffusion
+for non-rigid shape reconstruction and tracking. In Proceed-
+ings of the IEEE/CVF conference on computer vision and
+pattern recognition (CVPR), pages 20496–20506, 2024. 2,
+3, 5
+[6] Jianqi Chen, Biao Zhang, Xiangjun Tang, and Peter Wonka.
+V2m4: 4d mesh animation reconstruction from a single
+monocular video. In Proceedings of the IEEE/CVF Inter-
+national Conference on Computer Vision (ICCV), 2025. 3
+[7] Yuedong Chen, Haofei Xu, Chuanxia Zheng, Bohan Zhuang,
+Marc Pollefeys, Andreas Geiger, Tat-Jen Cham, and Jianfei
+Cai. Mvsplat: Efﬁcient 3d gaussian splatting from sparse
+multi-view images. In Proceedings of the European Confer-
+ence on Computer Vision (ECCV), pages 370–386. Springer,
+2024. 6
+[8] Wen-Hsuan Chu, Lei Ke, and Katerina Fragkiadaki. Dream-
+Scene4D: Dynamic multi-object scene generation from
+monocular videos. Advances in Neural Information Process-
+ing Systems (NeurIPS), 2024. 3
+[9] Matt Deitke, Dustin Schwenk, Jordi Salvador, Luca Weihs,
+Oscar Michel, Eli VanderBilt, Ludwig Schmidt, Kiana
+Ehsani, Aniruddha Kembhavi, and Ali Farhadi. Objaverse:
+A universe of annotated 3d objects.
+In Proceedings of
+the IEEE/CVF conference on computer vision and pattern
+recognition (CVPR), pages 13142–13153, 2023. 2, 6
+[10] Yilun Du, Yinan Zhang, Hong-Xing Yu, Joshua B Tenen-
+baum, and Jiajun Wu.
+Neural radiance ﬂow for 4d view
+synthesis and video processing.
+In 2021 IEEE/CVF In-
+ternational Conference on Computer Vision (ICCV), pages
+14304–14314. IEEE Computer Society, 2021. 2
+[11] Haiwen Feng, Junyi Zhang, Qianqian Wang, Yufei Ye,
+Pengcheng Yu, Michael J. Black, Trevor Darrell, and Angjoo
+Kanazawa. St4rtrack: Simultaneous 4d reconstruction and
+tracking in the world. In Proceedings of the IEEE/CVF In-
+ternational Conference on Computer Vision (ICCV), 2025.
+1, 3
+[12] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk
+Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes:
+Explicit radiance ﬁelds in space, time, and appearance. In
+Proceedings of the IEEE/CVF Conference on Computer Vi-
+sion and Pattern Recognition (CVPR), pages 12479–12488,
+2023. 2
+[13] Hang Gao, Ruilong Li, Shubham Tulsiani, Bryan Russell,
+and Angjoo Kanazawa. Monocular dynamic view synthe-
+sis: A reality check. Neural Information Processing Systems
+(NeurIPS), 35:33768–33780, 2022. 2
+[14] Michal Geyer, Omer Bar-Tal, Shai Bagon, and Tali Dekel.
+Tokenﬂow: Consistent diffusion features for consistent video
+editing. In International Conference on Learning Represen-
+tations (ICLR), 2024. 2
+[15] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William
+Chan, Mohammad Norouzi, and David J Fleet.
+Video
+diffusion models. Neural Information Processing Systems
+(NeurIPS), 35:8633–8646, 2022. 2
+[16] Matthias Innmann, Michael Zollh¨ofer, Matthias Nießner,
+Christian Theobalt, and Marc Stamminger. Volumedeform:
+Real-time volumetric non-rigid reconstruction.
+In Euro-
+pean conference on computer vision (ECCV), pages 362–
+379. Springer, 2016. 1
+[17] Yanqin Jiang, Li Zhang, Jin Gao, Weiming Hu, and Yao
+Yao.
+Consistent4d: Consistent 360° dynamic object gen-
+eration from monocular video. In The Twelfth International
+Conference on Learning Representations, 2024. 3
+[18] Zeren Jiang, Chuanxia Zheng, Iro Laina, Diane Larlus, and
+Andrea Vedaldi. Geo4d: Leveraging video generators for
+geometric 4d scene reconstruction.
+In Proceedings of the
+IEEE/CVF International Conference on Computer Vision
+(ICCV), 2025. 2, 3, 4, 13
+[19] Linyi Jin, Richard Tucker, Zhengqi Li, David Fouhey, Noah
+Snavely, and Aleksander Holynski. Stereo4d: Learning how
+things move in 3d from internet stereo videos. In Proceed-
+ings of the IEEE/CVF International Conference on Com-
+puter Vision (ICCV), 2025. 1, 3
+[20] Bingxin Ke, Anton Obukhov, Shengyu Huang, Nando Met-
+zger, Rodrigo Caye Daudt, and Konrad Schindler. Repurpos-
+ing diffusion-based image generators for monocular depth
+estimation.
+In Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR), pages
+9492–9502, 2024. 2, 4
+[21] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨uhler,
+and George Drettakis.
+3d gaussian splatting for real-time
+radiance ﬁeld rendering. ACM Trans. Graph., 42(4):139–1,
+2023. 2, 3
+[22] Tianye Li, Mira Slavcheva, Michael Zollhoefer, Simon
+Green, Christoph Lassner, Changil Kim, Tanner Schmidt,
+Steven Lovegrove, Michael Goesele, Richard Newcombe,
+et al.
+Neural 3d video synthesis from multi-view video.
+14532
+
+
+In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 5521–5531,
+2022. 2
+[23] Weiyu Li, Xuanyang Zhang, Zheng Sun, Di Qi, Hao Li,
+Wei Cheng, Weiwei Cai, Shihao Wu, Jiarui Liu, Zihao
+Wang, et al.
+Step1x-3d: Towards high-ﬁdelity and con-
+trollable generation of textured 3d assets.
+arXiv preprint
+arXiv:2505.07747, 2025. 3
+[24] Yangguang Li, Zi-Xin Zou, Zexiang Liu, Dehu Wang, Yuan
+Liang, Zhipeng Yu, Xingchao Liu, Yuan-Chen Guo, Ding
+Liang, Wanli Ouyang, et al. Triposg: High-ﬁdelity 3d shape
+synthesis using large-scale rectiﬁed ﬂow models.
+arXiv
+preprint arXiv:2502.06608, 2025. 3
+[25] Zhengqi Li, Simon Niklaus, Noah Snavely, and Oliver Wang.
+Neural scene ﬂow ﬁelds for space-time view synthesis of dy-
+namic scenes. In Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR), pages
+6498–6508, 2021. 2
+[26] Zhengqi Li, Qianqian Wang, Forrester Cole, Richard Tucker,
+and Noah Snavely. Dynibar: Neural dynamic image-based
+rendering. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), pages
+4273–4284, 2023. 2
+[27] Zhiqi Li, Yiming Chen, and Peidong Liu. DreamMesh4D:
+Video-to-4d generation with sparse-controlled gaussian-
+mesh hybrid representation. In Advances in Neural Infor-
+mation Processing Systems (NeurIPS), 2024. 3
+[28] Hanwen Liang, Yuyang Yin, Dejia Xu, Hanxue Liang,
+Zhangyang Wang, Konstantinos N Plataniotis, Yao Zhao,
+and Yunchao Wei. Diffusion4d: Fast spatial-temporal consis-
+tent 4d generation via video diffusion models. arXiv preprint
+arXiv:2405.16645, 2024. 6
+[29] Yaron Lipman, Ricky T. Q. Chen, Heli Ben-Hamu, Maxim-
+ilian Nickel, and Matthew Le. Flow matching for genera-
+tive modeling. In The Eleventh International Conference on
+Learning Representations (ICLR), 2023. 4
+[30] Ruoshi Liu, Rundi Wu, Basile Van Hoorick, Pavel Tok-
+makov, Sergey Zakharov, and Carl Vondrick.
+Zero-1-to-
+3: Zero-shot one image to 3d object.
+In Proceedings of
+the IEEE/CVF international conference on computer vision
+(ICCV), pages 9298–9309, 2023. 4
+[31] William E Lorensen and Harvey E Cline. Marching cubes:
+A high resolution 3d surface construction algorithm. In Sem-
+inal graphics: pioneering efforts that shaped the ﬁeld, pages
+347–353. 1998. 4
+[32] Yuanxun Lu, Jingyang Zhang, Tian Fang, Jean-Daniel Nah-
+mias, Yanghai Tsin, Long Quan, Xun Cao, Yao Yao, and Shi-
+wei Li. Matrix3d: Large photogrammetry model all-in-one.
+In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), 2025. 2, 4
+[33] B Mildenhall, PP Srinivasan, M Tancik, JT Barron, R Ra-
+mamoorthi, and R Ng. Nerf: Representing scenes as neural
+radiance ﬁelds for view synthesis. In European conference
+on computer vision (ECCV), 2020. 2
+[34] Andriy Myronenko and Xubo B. Song. Point-set registration:
+Coherent point drift. CoRR, abs/0905.2635, 2009. 6
+[35] Richard A Newcombe, Dieter Fox, and Steven M Seitz.
+Dynamicfusion: Reconstruction and tracking of non-rigid
+scenes in real-time. In Proceedings of the IEEE conference
+on computer vision and pattern recognition (CVPR), pages
+343–352, 2015. 1, 2
+[36] Maxime Oquab, Timoth´ee Darcet, Th´eo Moutakanni, Huy V
+Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez,
+Daniel HAZIZA, Francisco Massa, Alaaeldin El-Nouby,
+et al. Dinov2: Learning robust visual features without super-
+vision. Transactions on Machine Learning Research, 2024.
+6
+[37] Keunhong Park, Utkarsh Sinha, Jonathan T Barron, Soﬁen
+Bouaziz, Dan B Goldman, Steven M Seitz, and Ricardo
+Martin-Brualla. Nerﬁes: Deformable neural radiance ﬁelds.
+In Proceedings of the IEEE/CVF International Conference
+on Computer Vision (ICCV), pages 5865–5874, 2021. 2
+[38] Ben Poole, Ajay Jain, Jonathan T Barron, and Ben Milden-
+hall. DreamFusion: text-to-3d using 2d diffusion. In The
+Eleventh International Conference on Learning Representa-
+tions (ICLR), 2023. 3
+[39] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and
+Francesc Moreno-Noguer. D-nerf: Neural radiance ﬁelds for
+dynamic scenes. In Proceedings of the IEEE/CVF Confer-
+ence on Computer Vision and Pattern Recognition (CVPR),
+pages 10318–10327, 2021. 2
+[40] Jiawei Ren, Liang Pan, Jiaxiang Tang, Chi Zhang, Ang Cao,
+Gang Zeng, and Ziwei Liu.
+DreamGaussian4D: Genera-
+tive 4d gaussian splatting. arXiv preprint arXiv:2312.17142,
+2023. 3
+[41] Jiawei Ren, Kevin Xie, Ashkan Mirzaei, Hanxue Liang, Xi-
+aohui Zeng, Karsten Kreis, Ziwei Liu, Antonio Torralba,
+Sanja Fidler, Seung Wook Kim, and Huan Ling.
+L4gm:
+Large 4d gaussian reconstruction model. Advances in Neural
+Information Processing Systems (NeurIPS), 2024. 2, 3, 6, 7,
+8, 13
+[42] Yahao Shi, Yang Liu, Yanmin Wu, Xing Liu, Chen Zhao, Jie
+Luo, and Bin Zhou. Drive any mesh: 4d latent diffusion for
+mesh deformation from video, 2025. 15
+[43] Jianlin Su, Yu Lu, Shengfeng Pan, Bo Wen, and Yunfeng
+Liu. Roformer: Enhanced transformer with rotary position
+embedding. CoRR, abs/2104.09864, 2021. 4
+[44] Edgar Sucar, Zihang Lai, Eldar Insafutdinov, and Andrea
+Vedaldi. Dynamic point maps: A versatile representation for
+dynamic 3d reconstruction. In Proceedings of the IEEE/CVF
+International Conference on Computer Vision (ICCV), 2025.
+1, 3
+[45] Tencent Hunyuan3D Team.
+Hunyuan3d 1.0:
+A uniﬁed
+framework for text-to-3d and image-to-3d generation, 2024.
+3
+[46] Tencent Hunyuan3D Team. Hunyuan3d 2.1: From images
+to high-ﬁdelity 3d assets with production-ready pbr material,
+2025. 2, 4, 6, 7, 8, 13
+[47] Tencent Hunyuan3D Team. Hunyuan3d 2.0: Scaling diffu-
+sion models for high resolution textured 3d assets generation,
+2025. 3
+[48] Edgar Tretschk, Ayush Tewari, Vladislav Golyanik, Michael
+Zollh¨ofer, Christoph Lassner, and Christian Theobalt. Non-
+rigid neural radiance ﬁelds: Reconstruction and novel view
+synthesis of a dynamic scene from monocular video.
+In
+14533
+
+
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 12959–12970, 2021. 2
+[49] Thomas Unterthiner, Sjoerd van Steenkiste, Karol Kurach,
+Rapha¨el Marinier, Marcin Michalski, and Sylvain Gelly.
+FVD: A new metric for video generation, 2019. 7
+[50] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-
+reit, Llion Jones, Aidan N Gomez, !ukasz Kaiser, and Illia
+Polosukhin. Attention is all you need. Advances in neural
+information processing systems (NeurIPS), 30, 2017. 2, 5
+[51] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea
+Vedaldi, Christian Rupprecht, and David Novotny.
+Vggt:
+Visual geometry grounded transformer. In Proceedings of
+the Computer Vision and Pattern Recognition Conference
+(CVPR), pages 5294–5306, 2025. 2, 3, 5
+[52] Peng Wang and Yichun Shi. Imagedream: Image-prompt
+multi-view diffusion for 3d generation.
+arXiv preprint
+arXiv:2312.02201, 2023. 3
+[53] Qianqian Wang, Vickie Ye, Hang Gao, Weijia Zeng, Jake
+Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of mo-
+tion: 4d reconstruction from a single video. In International
+Conference on Computer Vision (ICCV), 2025. 2
+[54] Qianqian
+Wang,
+Yifei
+Zhang,
+Aleksander
+Holynski,
+Alexei A Efros, and Angjoo Kanazawa.
+Continuous 3d
+perception model with persistent state.
+In Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), 2025. 2, 3
+[55] Shuzhe Wang,
+Vincent Leroy,
+Yohann Cabon,
+Boris
+Chidlovskii, and Jerome Revaud. Dust3r: Geometric 3d vi-
+sion made easy. In Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR), pages
+20697–20709, 2024. 3
+[56] Yifan Wang, Peishan Yang, Zhen Xu, Jiaming Sun, Zhan-
+hua Zhang, Yong Chen, Hujun Bao, Sida Peng, and Xiaowei
+Zhou. Freetimegs: Free gaussian primitives at anytime any-
+where for dynamic scene reconstruction. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 21750–21760, 2025. 2
+[57] Yifan Wang, Jianjun Zhou, Haoyi Zhu, Wenzheng Chang,
+Yang Zhou, Zizun Li, Junyi Chen, Jiangmiao Pang, Chunhua
+Shen, and Tong He. Scalable permutation-equivariant visual
+geometry learning. arXiv preprint arXiv:2507.13347, 2025.
+3
+[58] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng
+Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang.
+4d gaussian splatting for real-time dynamic scene render-
+ing. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR), pages 20310–
+20320, 2024. 2
+[59] Rundi Wu, Ruiqi Gao, Ben Poole, Alex Trevithick, Changxi
+Zheng, Jonathan T Barron, and Aleksander Holynski. Cat4d:
+Create anything in 4d with multi-view video diffusion mod-
+els.
+In Proceedings of the Computer Vision and Pattern
+Recognition Conference (CVPR), pages 26057–26068, 2025.
+2
+[60] Tianhao Wu, Chuanxia Zheng, Qianyi Wu, and Tat-Jen
+Cham. Clusteringsdf: Self-organized neural implicit surfaces
+for 3d decomposition. In European Conference on Computer
+Vision (ECCV), pages 255–272. Springer, 2024. 6
+[61] Zijie Wu, Chaohui Yu, Fan Wang, and Xiang. Bai.
+An-
+imateanymesh: A feed-forward 4d foundation model for
+text-driven universal mesh animation.
+arXiv preprint
+arxiv:2506.09982, 2025. 15
+[62] Jianfeng Xiang, Zelong Lv, Sicheng Xu, Yu Deng, Ruicheng
+Wang, Bowen Zhang, Dong Chen, Xin Tong, and Jiaolong
+Yang.
+Structured 3d latents for scalable and versatile 3d
+generation. In Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition (CVPR), 2025. 2,
+3
+[63] Yiming Xie, Chun-Han Yao, Vikram Voleti, Huaizu Jiang,
+and Varun Jampani. SV4D: Dynamic 3d content generation
+with multi-frame and multi-view consistency. arXiv preprint
+arXiv:2407.17470, 2024. 2
+[64] Jinbo Xing, Menghan Xia, Yong Zhang, Haoxin Chen,
+Wangbo Yu, Hanyuan Liu, Gongye Liu, Xintao Wang, Ying
+Shan, and Tien-Tsin Wong.
+Dynamicrafter:
+Animating
+open-domain images with video diffusion priors. In Euro-
+pean Conference on Computer Vision (ECCV), pages 399–
+417. Springer, 2024. 3
+[65] Tian-Xing Xu, Xiangjun Gao, Wenbo Hu, Xiaoyu Li, Song-
+Hai Zhang, and Ying Shan. Geometrycrafter: Consistent ge-
+ometry estimation for open-world videos with diffusion pri-
+ors. In Proceedings of the IEEE/CVF International Confer-
+ence on Computer Vision (ICCV), 2025. 2
+[66] Zhen Xu, Zhengqin Li, Zhao Dong, Xiaowei Zhou, Richard
+Newcombe, and Zhaoyang Lv. 4DGT: learning a 4d gaussian
+transformer using real-world monocular videos. In Advances
+in neural information processing systems (NeurIPS), 2025. 3
+[67] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing
+Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-
+ﬁdelity monocular dynamic scene reconstruction.
+In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 20331–20341, 2024.
+2
+[68] Zeyu Yang, Hongye Yang, Zijie Pan, and Li Zhang. Real-
+time photorealistic dynamic scene representation and render-
+ing with 4d gaussian splatting. In International Conference
+on Learning Representations (ICLR), 2024. 2
+[69] Jiraphon Yenphraphai, Ashkan Mirzaei, Jianqi Chen, Jiaxu
+Zou, Sergey Tulyakov, Raymond A. Yeh, Peter Wonka, and
+Chaoyang Wang.
+Shapegen4d: Towards high quality 4d
+shape generation from videos. arXiv preprint, 2025. 2, 3
+[70] Jae Shin Yoon, Kihwan Kim, Orazio Gallo, Hyun Soo Park,
+and Jan Kautz. Novel view synthesis of dynamic scenes with
+globally coherent depths from a monocular camera. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 5336–5345, 2020. 2
+[71] Yifei Zeng, Yanqin Jiang, Siyu Zhu, Yuanxun Lu, Youtian
+Lin, Hao Zhu, Weiming Hu, Xun Cao, and Yao Yao. Stag4d:
+Spatial-temporal anchored generative 4d gaussians. In Euro-
+pean Conference on Computer Vision (ECCV), pages 163–
+179. Springer, 2024. 3
+[72] Biao Zhang, Jiapeng Tang, Matthias Niessner, and Peter
+Wonka. 3dshape2vecset: A 3d shape representation for neu-
+ral ﬁelds and generative diffusion models. ACM Transactions
+On Graphics (TOG), 42(4):1–16, 2023. 4
+14534
+
+
+[73] Bowen Zhang, Sicheng Xu, Chuxin Wang, Jiaolong Yang,
+Feng Zhao, Dong Chen, and Baining Guo. Gaussian varia-
+tion ﬁeld diffusion for high-ﬁdelity video-to-4d synthesis. In
+Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 12502–12513, 2025. 2, 3, 6,
+7, 8
+[74] Haiyu Zhang, Xinyuan Chen, Yaohui Wang, Xihui Liu, Yun-
+hong Wang, and Yu Qiao. 4diffusion: Multi-view video dif-
+fusion model for 4d generation. Advances in Neural Informa-
+tion Processing Systems (NeurIPS), 37:15272–15295, 2024.
+3
+[75] Junyi Zhang, Charles Herrmann, Junhwa Hur, Varun Jam-
+pani, Trevor Darrell, Forrester Cole, Deqing Sun, and Ming-
+Hsuan Yang. Monst3r: A simple approach for estimating
+geometry in the presence of motion. In International Con-
+ference on Learning Representations (ICLR), 2025. 3
+[76] Chuanxia Zheng and Andrea Vedaldi. Free3d: Consistent
+novel view synthesis without 3d representation. In Proceed-
+ings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition (CVPR), pages 9720–9731, 2024. 6
+[77] Michael Zollh¨ofer,
+Matthias Nießner,
+Shahram Izadi,
+Christoph Rehmann, Christopher Zach, Matthew Fisher,
+Chenglei Wu, Andrew Fitzgibbon, Charles Loop, Christian
+Theobalt, et al. Real-time non-rigid reconstruction using an
+rgb-d camera. ACM Transactions on Graphics (ToG), 33(4):
+1–12, 2014. 1
+14535

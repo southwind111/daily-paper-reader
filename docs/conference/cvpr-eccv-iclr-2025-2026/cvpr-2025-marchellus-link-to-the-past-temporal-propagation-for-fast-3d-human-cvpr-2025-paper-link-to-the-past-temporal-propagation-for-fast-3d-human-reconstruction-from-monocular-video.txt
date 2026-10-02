@@ -1,0 +1,216 @@
+Title: Link to the Past: Temporal Propagation for Fast 3D Human Reconstruction from Monocular Video
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Marchellus_Link_to_the_Past_Temporal_Propagation_for_Fast_3D_Human_CVPR_2025_paper.pdf
+
+Published Time: Sun, 18 May 2025 22:22:21 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# Link to the Past: Temporal Propagation for Fast 3D Human Reconstruction from Monocular Video 
+
+# Matthew Marchellus, Nadhira Noor, and In Kyu Park Department of Electrical and Computer Engineering, Inha University Incheon 22212, Korea    
+
+> {marchellusmatthew@gmail.com, nadhirannoor@gmail.com, pik@inha.ac.kr }
+> Figure 1. We propose TemPoFast3D , a novel pipeline to leverage the temporal coherency of human appearance for efficient and accurate 3D human reconstruction from monocular videos. We temporally propagate information from the past frames result by blending the pixel-aligned implicit function and avatar reconstruction method.
+
+# Abstract 
+
+Fast 3D clothed human reconstruction from monocular video remains a significant challenge in computer vision, particularly in balancing computational efficiency with re-construction quality. Current approaches are either focused on static image reconstruction but too computationally in-tensive, or achieve high quality through per-video optimiza-tion that requires minutes to hours of processing, making them unsuitable for real-time applications. To this end, we present TemPoFast3D, a novel method that leverages tem-poral coherency of human appearance to reduce redundant computation while maintaining reconstruction quality. Our approach is a “plug-and play” solution that uniquely trans-forms pixel-aligned reconstruction networks to handle con-tinuous video streams by maintaining and refining a canon-ical appearance representation through efficient coordinate mapping. Extensive experiments demonstrate that TemPo-Fast3D matches or exceeds state-of-the-art methods across standard metrics while providing high-quality textured re-construction across diverse pose and appearance, with a maximum speed of 12 FPS. 
+
+# 1. Introduction 
+
+Real-time 3D human reconstruction from monocular video streams is a fundamental challenge that could revolution-ize virtual reality, telepresence, and human-computer inter-action. These applications demand methods that can ac-curately reconstruct 3D clothed humans from single im-ages or video streams, capturing both detailed geometry and realistic appearance. However, existing approaches often struggle to balance the computational efficiency required for video with the high fidelity demanded by real-world ap-plications. Recent approaches to 3D clothed human reconstruc-tion primarily follow two distinct paradigms. (i) Single-image reconstruction methods rely on pixel-aligned fea-tures [1, 9, 30, 31, 36, 37, 43, 45] to capture detailed geome-try and textures through implicit functions. (ii) Video-based reconstruction methods leverage pose deformation with ei-ther implicit neural fields [7, 13–15, 27, 33–35] or Gaus-sian splatting [11, 23, 28, 32] for articulated 3D modeling. While producing high-quality results, these methods require extensive optimization ( i.e. minutes to hours) and multi-ple passes over the video, making them unsuitable for real-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 6190 time applications. Recent attempts at real-time reconstruc-tion [6] either sacrifice quality, require additional inputs (templates [8, 38], multi-view [3, 42], depth [5, 24, 25]), or lack true 3D capability [6, 17, 29], leaving fast, high-quality reconstruction from video an unsolved challenge. Our key insight is that while human poses change rapidly across video streams, the underlying body shape and cloth-ing geometry remain largely consistent over short time periods. Video-based methods exploit this temporal co-herence, but require multiple passes over the entire se-quence for global optimization. We observe that this tem-poral consistency can be leveraged even further for faster reconstruction through progressive canonical shape learn-ing for sequential frame-by-frame processing. However, the challenge of learning a canonical shape through se-quential frame-by-frame processing remains largely unex-plored in existing literature. We address this limitation by combining the reconstruction accuracy of pixel-aligned methods [1, 9, 30, 31, 36, 37, 43, 45] with bidirectional canonical-posed space mapping [7, 13–15, 27, 33–35], en-abling efficient shape learning while maintaining high re-construction quality from video streams. To that end, we propose TemPoFast3D , a novel fast frame-by-frame 3D reconstruction approach that tempo-rally propagates canonical shape information across video frames. Our method combines pixel-aligned reconstruc-tion with SMPL-based coordinate mapping to maintain a consistent canonical representation while accurately cap-turing pose variations. This combination naturally extends to multi-view settings when additional views are avail-able. Furthermore, we develop optimization strategies in-cluding adaptive coordinate sampling and visibility-guided filtering that significantly reduce per-frame computation. Our framework is designed as a “plug-and-play” solution that accelerates existing SMPL-guided pixel-aligned recon-struction methods, reaching maximum speed of 12 frames per second while maintaining reconstruction quality. In summary, our contributions are: • We introduce TemPoFast3D, a novel framework combin-ing canonical space inference with efficient pose defor-mation, enabling faster 3D clothed human reconstruction from monocular video without additional inputs or tem-plates • A suite of optimization strategies including adaptive co-ordinate sampling and visibility-guided filtering mech-anisms that significantly reduce per-frame computation while preserving reconstruction quality • A plug-and-play design that accelerates existing SMPL-aligned reconstruction methods while enabling additional capabilities such as multi-view reconstruction for en-hanced quality 
+
+# 2. Related Works 
+
+Pixel-Aligned Features for Monocular Human Recon-struction. Pixel-aligned reconstruction methods have revo-lutionized 3D clothed human reconstruction, with PIFu [30] introducing implicit functions that map 2D pixel features to 3D space for enhanced detail representation. Subsequent approaches like PIFuHD [31] and Geo-PIFu [9] further improved reconstruction quality through multi-resolution designs and geometric priors. While effective for visi-ble details, these methods [9, 17, 30, 31] struggle with complex clothing and poses due to their reliance on visi-ble data only. Recent advances integrate parametric mod-els through SMPL [20] framework [2, 10, 12, 18, 45] and improve fidelity using normal maps and SDF predic-tion [1, 4, 36, 37, 39, 43, 44]. However, these methods pri-oritize quality over speed, resulting in high computational costs that limit their applicability for video streams where reconstruction speed is crucial. 
+
+Pose Deformation for Monocular Video Reconstruction. 
+
+Leveraging the temporal coherence of human shape from video requires an articulated human model to simulate the natural movement of the human body. The SMPL parametric 3D body model [20] is an articulated human model that contains mesh deformation to adjust the sur-face mesh (skin and clothing) according to the skeleton’s motions, maintaining realistic human contours. Recent works leveraged the deformation capabilities from SMPL model [20] with implicit neural fields (NeRF) [22] to enable high-quality dynamic reconstruction [13–15, 26, 27, 33– 35], with Vid2Avatar [7] using pose-conditioned implicit signed-distance fields for geometry and texture represen-tation. Despite producing realistic results across various poses, these approaches require minutes or hours of training with relatively slow rendering speeds. Recent approaches have leveraged Gaussian splatting techniques [11, 16, 19, 23, 28] for improved rendering efficiency while still rely-ing on offline optimization. While these video-based meth-ods produce higher quality results than pixel-aligned ap-proaches, their extensive per-video optimization require-ments limit their applicability to pre-recorded videos rather than real-time applications. 
+
+Real-time 3D clothed human reconstruction. Existing approaches to real-time 3D clothed human reconstruction face significant limitations. Methods like Monoport [17] achieve near real-time performance by bypassing explicit 3D reconstruction, while [29] offers real-time rendering but requires hours for the actual reconstruction. Multi-view ap-proaches [3, 42] require calibrated camera setups unsuit-able for in-the-wild scenarios, and template-based meth-ods [8, 38] depend on pre-scanned templates that limit gen-eralization. Depth-based techniques [5, 24, 25] rely on spe-cialized sensors, while FOF [6] achieves 30 FPS but lacks 6191 Figure 2. Overview of our TemPoFast3D pipeline. Given an input RGB frame It, our method combines efficient canonical space processing with coordinate mapping for fast 3D human reconstruction. The pipeline consists of: (Section 3.1) Feature extraction and SMPL params regression, (Section 3.2) Mapping canonical coordinates to posed space, (Section 3.2.2) Shape and color query, and (Section 3.3) Canonical space processing. The canonical space representation Xc is continuously updated across frames. 
+
+texture inference capability. These limitations underscore the need for methods that balance speed and quality without requiring additional hardware or subject-specific templates. 
+
+# 3. Proposed Methods 
+
+We present TemPoFast3D , a novel plug-and play pipeline for fast 3D clothed human reconstruction from monocular video that combines pixel-aligned features with coordinate mapping in canonical space (See Figure 2). Our method introduces temporal propagation strategies through volu-metric boundary filtering and visibility-guided sampling to achieve faster performance while maintaining reconstruc-tion quality. The pipeline’s “plug-and-play” design allows the feature extraction network F and query networks Gs, Gc
+
+to be replaced with any SMPL-guided pixel-aligned back-bone, enabling easy integration of future improvements. We first discuss preliminaries in Section 3.1, then detail our canonical space inference framework in Section 3.2, and finally present our temporal propagation strategy in Sec-tion 3.3. As a side benefit from connecting pixel-aligned reconstruction to canonical space, our method can naturally extend to reconstruct multi-view data without any modifi-cation will be explained in Section 3.4. 
+
+## 3.1. Preliminary 
+
+Pixel-aligned Implicit Function Pixel-aligned Implicit Function (PIFu) [30] enable volumetric reconstruction from a single image by learning a mapping between 2D pixel features and 3D occupancy. Given an input image I, the method first processes it through a filter network F to ob-tain a feature map h = F(I) that captures spatial and visual information. For reconstruction, the method samples 3D query points x ∈ R3 in the camera frustum and projects them onto the image plane to obtain relative pixel coordi-nates px = ( x, y ) normalized to [−1, 1] . A shape query network Gs then predicts occupancy values by combining the projected coordinates with pixel-aligned features: 
+
+o = Gs(h, xp),
+
+(
+
+1 if xp lies inside the surface 
+
+0 otherwise  (1) Similarly, a color query network Gc predicts RGB values 
+
+c ∈ R3 at query points using the same pixel-aligned fea-6192 Figure 3. Warped sampling coordinate visualization. Sampling points (gray) transition from uniform distribution in canonical space (left) to non-uniform distribution after deformation (right), demonstrating how our coordinate mapping affects sampling den-sity around the SMPL mesh (blue). 
+
+tures: 
+
+c = Gc(h, xp) (2) 
+
+Canonical-Posed Space Transformation. To establish a mapping between canonical and posed spaces, we leverage the transformation mechanism derived from SMPL [20]. The SMPL model defines a parametric function S(β, θ),where β ∈ R10 represents shape parameters and θ ∈
+
+R3×24 defines pose parameters. The transformation be-tween spaces is computed through Linear Blend Skinning: 
+
+Ts =
+
+> K
+
+X
+
+> k=1
+
+wk,i Gk(β, θ) (3) where wk,i are blend weights and Gk(β, θ) are the joint transformation matrices computed from SMPL parame-ters. The resulting vertices transformation matrices Ts ∈
+
+RN ×4×4 enable bidirectional mapping of SMPL vertices: 
+
+Forward mapping: sp = Tssc (4) 
+
+Inverse mapping: sc = T−1 
+
+> s
+
+sp (5) These per-vertex transformation matrices are computed once per frame through the SMPL layer and can be trans-ferred to arbitrary coordinates through association with the average of nearest SMPL vertices. 
+
+## 3.2. Canonical Space Inference and Coordinate Mapping 
+
+Leveraging pixel-aligned reconstruction methods while fa-cilitating temporal information sharing necessitates per-forming shape inference in canonical space rather than posed space. This requires establishing a bidirectional mapping between canonical coordinates and posed space where pixel-aligned features are computed. Given a set of canonical coordinates xc, we establish correspondence with SMPL canonical vertices sc through K 1 nearest neighbor search. Using this correspondence, we transfer the SMPL vertex transformations Ts to create coordinate transforma-tions Tx ∈ RN ×4×4, effectively extending the SMPL de-formation field to arbitrary points in space. Following Eq. 4, the transformation to is then computed as: 
+
+xp = Txxc (6) Note that the deformation process indiscriminately maps all canonical space coordinates - both inside and outside the body shape - into regions around the deformed body, where the geometric consistency of the reconstruction can be af-fected by external canonical points being mapped into the interior of the deformed body as illustrated in Figure 3. 
+
+3.2.1. Volumetric Boundary Filtering 
+
+We observe that valid canonical human geometry predomi-nantly resides within a proximal volume around the canoni-cal SMPL mesh sc. A simple discrete volumetric boundary as a mask to this proximal region in canonical space is suffi-cient to eliminate irrelevant query points. We formulate this mask as a binary spatial classifier where 
+
+mi =
+
+(
+
+1 if xic lies within boundary 
+
+0 otherwise  (7) As shown in Figure 4, this filtering mechanism prevents the inclusion of irrelevant canonical coordinates in the shape in-ference process while additionally reducing the total num-ber of query points required for reconstruction. 
+
+3.2.2. Posed Mesh Generation and Color Inference 
+
+From the canonical occupancy field, we initially extract an isosurface mesh in canonical pose using the Marching Cubes algorithm. To obtain the posed configuration, we ap-ply a similar deformation procedure as defined in Eq. 6 to transform the mesh into posed space. Specifically, given canonical vertices vc, we establish vertex-specific transfor-mation matrices Tm through nearest neighbor correspon-dence with canonical SMPL vertices sc using K nearest neighbor search, following our earlier coordinate mapping formulation. The final posed vertices Vp are then computed by applying these transformations: 
+
+vp = s(Tmvc + t) (8) where s and t are the scale and translation parameters from SMPL estimation. This transformation enables us to lever-age pixel-aligned features for color prediction, as the posed vertices vp now align with the input image’s space. Us-ing these pixel-aligned vertices, we employ the color query function Gc from Section 3.1 to predict color values directly from the input image features. The bidirectional mapping 
+
+> 1Details on the number of K neighbor is provided in supplementary. 6193
+
+between canonical and posed space enables seamless inte-gration with existing pixel-aligned reconstruction methods for both shape and color inference, while extending the ap-plicability of these methods to temporal sequences. 
+
+## 3.3. Temporal Propagation and Efficient Inference 
+
+While single-frame reconstruction follows the coordinate mapping described in Section 3.2, video sequences of-fer opportunities for additional computational optimization by leveraging temporal coherency. We introduce a frame threshold n that determines when to transition from full re-construction to efficient inference, as illustrated at the top left of Figure 2. Let t denote the current frame index: 
+
+Sampling Strategy =
+
+(
+
+Coarse-to-fine sampling if t ≤ n, 
+
+Efficient inference if t > n 
+
+(9) For the initial n frames, we perform complete shape infer-ence to establish a reliable canonical shape representation. After frame n, we transition to our efficient inference strat-egy that enables four key optimizations: 
+
+3.3.1. Bypass Coarse-to-Fine Inference 
+
+Temporal propagation strategy establishes a robust geomet-ric prior through propagated canonical shape from previous frames vprev c , rendering hierarchical coarse-to-fine infer-ence redundant. This bypass is particularly advantageous in our framework, as each query point incurs additional com-putational overhead from coordinate mapping operations. Instead of predicting the entire volume, we focus computa-tion exclusively on regions requiring refinement, reducing the per-frame query complexity. To identify these regions efficiently, we employ two complementary sampling strate-gies based on visibility (Section 3.3.2) and surface proxim-ity (Section 3.3.3). 
+
+3.3.2. Visibility-Guided Sampling 
+
+Given a prior canonical shape vprev c , point queries need only be performed on coordinates that are observable from the current viewpoint, as these regions yield the most re-liable predictions from pixel-aligned features. To identify these regions, we first compute a visibility mask mv for the canonical SMPL vertices sc through mesh rasteriza-tion. Following our established attribute transfer mecha-nism (Section 3.2), the visibility status is then propagated to canonical coordinates xc through K nearest neighbor search and thus filters out coordinates from unseen region. 
+
+3.3.3. Surface-Adjacent Sampling 
+
+To achieve better computational efficiency, we constrain point queries to regions near the surface boundary. Specifi-cally, we sample points where the occupancy value oc falls within a narrow band defined by thresholds α and β:
+
+α ≤ oc ≤ β (10)    
+
+> Figure 4. Effect of volumetric boundary filtering. (a) Recon-structed meshes without filtering in canonical (top) and deformed pose (bottom) show artifacts. (b) Volumetric boundary mask. (c) Filtered reconstruction results show cleaner geometry in both poses, eliminating artifacts beyond the valid body region.
+
+This targeted sampling strategy enables us to maintain de-tailed surface geometry while significantly reducing query points required for inference. 
+
+3.3.4. Color Propagation and Visibility Handling 
+
+For texture inference, we introduce a visibility-aware color propagation strategy that leverages the canonical space rep-resentation to handle occluded regions effectively. Given a deformed mesh with vertices vd, we first predict col-ors for visible vertices cvis vp using the color query network 
+
+Gc. For vertices that are occluded or poorly visible in the current frame, we employ a neighbor-based color propaga-tion scheme that operates in canonical space. Specifically, we establish correspondence between current canonical ver-tices vc and previous canonical vertices vprev c through K nearest neighbor search, thus obtaining color cinvis vp from correspondence. We obtain the final color cvp at time by combining both cvis vp and cinvis vp .
+
+## 3.4. Extension to Multi-View Inference 
+
+The coordinate mapping strategy and canonical inference mechanism (Section 3.2) naturally extend to multi-view re-construction scenarios, allowing us to aggregate informa-tion from synchronized viewpoints without architectural modifications. By independently processing each view through our pipeline and merging their canonical represen-tations, we leverage the unified canonical space as a consis-tent global reference for both temporal and spatial fusion. While not specifically optimized for multi-view scenarios, this capability provides additional validation of our frame-work’s ability to accumulate and refine geometric details through multiple observations. 6194 Method CAPE-NFP CAPE-FP THuman2.0 Chamfer ↓ P2S ↓ Normal ↓ Chamfer ↓ P2S ↓ Normal ↓ Chamfer ↓ P2S ↓ Normal ↓ PSNR ↑                                                                                                                                    
+
+> PIFu ∗[30] 2.5609 1.9971 0.1023 1.8139 1.5108 0.0798 1.5991 1.4333 0.0843 18.09 PIFuHD ∗[31] 3.7670 3.5910 0.1230 2.3020 2.3350 0.0900 ----ECON ∗[37] 0.9462 0.9334 0.0382 0.9039 0.8938 0.0373 1.2585 1.4184 0.0612 -GTA ∗[43] 0.8508 0.7920 0.0424 0.6525 0.6084 0.0349 0.7329 0.7297 0.0492 18.05 SIFU ∗[44] 0.7725 0.7354 0.0378 0.6297 0.5980 0.0327 0.5961 0.6058 0.0407 22.10 PIFu †[30] 4.2310 4.7087 0.1029 2.5917 2.8163 0.0827 3.1788 3.3589 0.1082 -GTA †[43] 0.9160 0.8482 0.0429 0.6531 0.6084 0.0347 0.4625 0.4677 0.0348 23.27
+> SIFU †[44] 0.8263 0.7889 0.0384 0.6254 0.5901 0.0323 0.4409 0.4580 0.0342 22.82 TPF3D-GTA 0.9939 0.7724 0.0507 0.7057 0.5841 0.0383 0.5247 0.4530 0.0383 23.25 TPF3D-SIFU 0.9230 0.7147 0.0464 0.6833 0.5663 0.0359 0.5047 0.4432 0.0374 22.69 TPF3D-GTA-3v 0.8293 0.6587 0.0391 0.5855 0.4967 0.0285 0.4195 0.3632 0.0307 23.21 TPF3D-SIFU-3v 0.8024 0.6351 0.0370 0.5794 0.4883 0.0278 0.4144 0.3590 0.0313 22.66
+> Table 1. Quantitative comparison against state-of-the-art methods. ∗: Results of the compared methods obtained from [44], †: We re-evaluated the compared methods for a fair comparison in the same environment ( cf. Section 4 and Figure 5).
+
+# 4. Experiment 
+
+Implementation Details. Our pipeline is implemented in PyTorch and executed on a single NVIDIA RTX 4090 GPU. We utilize PyMAF [41] for SMPL [20] parameter regres-sion on in-the-wild data. We evaluate our pipeline with GTA [43] and SIFU [44] as our pixel-aligned networks (de-noted as TPF3D-GTA and TPF3D-SIFU respectively), uti-lizing their original pre-trained weights to demonstrate our method’s plug-and-play capability. Following the multi-view extension described in Section 3.4, we also evaluate three-view configurations (TPF3D-GTA-3v, TPF3D-SIFU-3v) where orthogonal views (0 ◦, 120 ◦, 240 ◦) are used to enhance reconstruction quality. The canonical space recon-struction operates at 256 3 resolution. For temporal propaga-tion, we set the frame threshold n2= 5 before transitioning to efficient inference (see supplementary for detailed anal-ysis). Surface-adjacent sampling uses thresholds α = 0 .4
+
+and β = 0 .7 to define the sampling region, with random shuffling applied after thresholding for better coverage. 
+
+Datasets. Our pre-trained weight for the pixel-aligned re-construction networks are trained exclusively on the THu-man2.0 dataset [40], which consists of 526 human scans along with their corresponding SMPL-X fits. Of these, 490 are allocated for training, 15 for validation, and 21 for testing. For zero-shot evaluation, we use the CAPE dataset [21]. Following previous works, we divide the CAPE dataset into “CAPE-FP” and “CAPE-NFP” instead of “fashion” and “non-fashion” poses, respectively. Video performance is evaluated on the NeuMan dataset [15], using the bike, citron, jogging, and seattle sequences as per their official testing splits, following previous works [11, 23]. 
+
+Evaluation Metrics. We employ chamfer distance and P2S (point-to-surface) to evaluate geometric error between   
+
+> 2Details on hyperparameter nis provided in supplementary.
+
+ground-truth and predicted mesh. For reconstruction on sin-gle images, shape surface detail and consistency is eval-uated using L2 normal error, while texture is evaluated with PSNR. We utilize a combination of PSNR, SSIM, and LPIPS to evaluate reconstruction accuracy on video data following [23]. Quality and speed trade-offs are empha-sized by comparing the average FPS for inference/rendering and training time for each video-based method. 
+
+## 4.1. Evaluation 
+
+Evaluation on THuman2.0 [40] and CAPE [21]. We first evaluate its performance on single-image datasets to estab-lish baseline capabilities. Table 1 shows quantitative com-parisons with SOTA single-image reconstruction methods on THuman2.0 [40] and CAPE [21] datasets. It should be noted that fair comparison is not possible as TPF3D requires multiple view/frame for optimal result while other methods only need single image to achieve max quality. That be-ing said, Table 1 shows that TPF3D slightly degrades the quality of single-view result but achieves higher reconstruc-tion quality after merging multiple frames ( i.e. , TPF3D-SIFU-3v and TPF3D-GTA-3v ). These scores demonstrate that our approach effectively leverages temporal coherency without sacrificing reconstruction quality. Figure 5 presents qualitative comparisons across various poses and clothing styles. Our method successfully captures fine geometric details such as clothing wrinkles and body contours, par-ticularly in challenging cases like raised arms (row 3) and twisted poses (row 4). While single-frame methods like GTA [43] and SIFU [44] achieve impressive results con-sidering their limited input, our method’s ability to com-bine multiple-view produces a smoother result at the cost of some artifacts due to pose deformation. For texture recon-struction, our approach achieves comparable PSNR (23.25 dB) to the re-evaluated GTA (23.27 dB). Additional com-parisons are provided in the supplementary material. 6195 Figure 5. Qualitative comparison of geometry reconstruction quality. The top two rows show results on the CAPE dataset [21], while the bottom two rows are from the THuman2.0 dataset [40]. For best viewing, please zoom in on a digital screen. 
+
+Evaluation on NeuMan [15]. We simulate zero-shot infer-ence using in-the-wild videos from NeuMan dataset with-out their ground truth SMPL parameters. Similar to evalu-ation on single-frame reconstruction, fair comparison is not possible as our method does not require per-subject opti-mization contrary to other methods. Table 2 shows that our method (TPF3D-GTA) are comparable against early optimization-based approaches in terms of rendering qual-ity (i.e., HumanNerf [35]). ExAvatar [23] achieves much higher accuracy at the cost of 4 hours of training and slow rendering speed. GaussianAvatar [11] and InstantA-vatar [14] achieves faster rendering speed compared to our method, though it should be noted that they require per-subject optimization while our lower FPS includes shape and color reconstruction. Overall, Table 2 highlights the reconstruction quality and fast speed trade-off for video re-construction methods, demonstrating that our approach pro-vides a balanced solution with competitive performance and efficient inference. For qualitative comparison, we compare our reconstruction result with the ground truth in Figure 6 for frame 2, 12, and 22 from the bike sequences. TPF3D-GTA method achieves high-quality geometry and texture re-construction from as early as frame 2, with facial details be-coming increasingly clear in later frames. Minor texture in-consistencies are attributable to our vertex-based color rep-resentation. Method PSNR ↑ SSIM ↑ LPIPS ↓ Training ↓ Avg. FPS ↑                                         
+
+> HumanNerf [35] 27.06 0.967 0.019 26h 33m 0.540 InstantAvatar [14] 28.47 0.972 0.028 00h 26m 21.000
+> NeuMan [15] 29.32 0.958 0.014 128h 00m ∗0.004 Vid2Avatar [7] 30.70 0.980 0.014 97h 01m 0.008 GaussianAvatar [11] 29.94 0.980 0.012 00h 43m 15.720 3DGS-Avatar [28] 28.99 0.974 0.016 --ExAvatar [23] 34.80 0.984 0.009 04h 0m 4.022
+> TPF3D-GTA (Ours) 27.60 0.965 0.022 pretrained 8.900
+
+Table 2. Quantitative evaluation on NeuMan [15]. PSNR, SSIM, and LPIPS results of other methods are taken from [23]. We run each methods in the same environment 3for a fair speed comparison, except “ ∗” is obtained from [15] ( cf. Section 4.1). 
+
+## 4.2. Ablation Studies 
+
+We evaluate our optimization strategies on the citron se-quence from the NeuMan dataset, as detailed in Table 3. Our baseline implementation achieves 3.27 FPS with PSNR of 32.80 using GTA [43]. Coordinate mapping initially reduces speed, but enables optimizations such as surface-adjacent sampling for a significant speed up, and improved further with limiting the sampling points. TorchScript optimization provides the final breakthrough, achieving a maximum of 12.3 FPS - a 3.06× speedup over baseline. Throughout these optimizations, reconstruction quality re-
+
+> 3Additional details are provided in supplementary
+
+6196 Figure 6. Texture quality results on NeuMan [15] dataset. Comparison between ground truth (top) and our real-time reconstruction (bottom) showing consistent quality across early (frame 2) to later frames (frame 22).                                     
+
+> Method Max. FPS ↑PSNR ↑SSIM ↑LPIPS ↓
+> Base (GTA [43]) 3.266 32.800 0.985 0.0090 + Coordinate mapping 2.142 31.024 0.983 0.0102 + Linear layer 2.669 30.964 0.983 0.0102 + Visibility-guided sampling 1.908 30.965 0.983 0.0103 + Surface-adjacent sampling 4.499 30.961 0.983 0.0102 + Limit sampling points 5.841 30.998 0.983 0.0102 + Torchscript 12.301 31.132 0.982 0.0106
+
+Table 3. Ablation study on optimization strategies. Quantitative comparison of speed (FPS) and quality metrics on NeuMan [15]. 
+
+mains remarkably stable with PSNR above 30.96, SSIM above 0.98, and LPIPS below 0.011, demonstrating that our speed improvements preserve visual fidelity. 
+
+# 5. Conclusion 
+
+We proposed the TemPoFast3D, a novel approach for fast sequential 3D clothed human reconstruction from monocu-lar RGB video stream. We designed the pipeline based on the key idea that human appearance remains largely consis-tent across video frames, thus complete shape reconstruc-tion every frame was deemed redundant. TemPoFast3D em-ployed canonical space inference using coordinate mapping to establish a canonical space that can be effectively prop-agated through time. This propagated canonical space al-lowed our pipeline to maintain and refine shape predictions selectively, reducing the computation cost compared to tra-ditional approaches. Experimental results showed that Tem-PoFast3D achieves competitive accuracy with state-of-the-art methods while achieving a maximum speed of 12 FPS, pioneering a new direction in efficient 3D human recon-struction through effective temporal information utilization. Despite so, TemPoFast3D exhibit limitations such as occa-sional artifacts due to pose deformation as sharp protrusions in select few areas. Moreover, our method requires accu-rate alignment between the predicted mesh and the SMPL model, limiting reconstruction accuracy for loose cloth-ing and accessories. As a result the reconstruction qual-ity depends on the accuracy of SMPL parameter estimation, which are particularly challenging for extreme poses and occlusions. 
+
+# Acknowledgment 
+
+This work was supported by Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government (MSIT) (No.RS-2022-00155915, Artificial Intelligence Convergence Inno-vation Human Resources Development (Inha University) and No.2021-0-02068, Artificial Intelligence Innovation Hub and IITP-2024-RS-2024-00360227, Leading Genera-tive AI Human Resources Development). This work was supported by Inha University Research Grant. 6197 References 
+
+[1] Thiemo Alldieck, Mihai Zanfir, and Cristian Sminchisescu. Photorealistic monocular 3D reconstruction of humans wear-ing clothing. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 1496–1505, 2022. 1, 2[2] Yukang Cao, Kai Han, and Kwan-Yee K. Wong. SeSDF: Self-evolved signed distance field for implicit 3D clothed human reconstruction. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2023. 2 [3] Alvaro Collet, Ming Chuang, Pat Sweeney, Don Gillett, Den-nis Evseev, David Calabrese, Hugues Hoppe, Adam G. Kirk, and Steve Sullivan. High-quality streamable free-viewpoint video. ACM Trans. on Graphics , 34(4):69:1–69:13, 2015. 2 [4] Enric Corona, Mihai Zanfir, Thiemo Alldieck, Ed-uard Gabriel Bazavan, Andrei Zanfir, and Cristian Sminchis-escu. Structured 3D features for reconstructing controllable avatars. pages 16954–16964. IEEE, 2023. 2 [5] Zijian Dong, Chen Guo, Jie Song, Xu Chen, Andreas Geiger, and Otmar Hilliges. PINA: learning a personalized implicit neural avatar from a single RGB-D video sequence. In 
+
+Proc. IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , 2022. 2 [6] Qiao Feng, Yebin Liu, Yu-Kun Lai, Jingyu Yang, and Kun Li. FOF: learning fourier occupancy field for monocular real-time human reconstruction. In Proc. Advances in Neural Information Processing Systems , 2022. 2 [7] Chen Guo, Tianjian Jiang, Xu Chen, Jie Song, and Otmar Hilliges. Vid2Avatar: 3D avatar reconstruction from videos in the wild via self-supervised scene decomposition. In 
+
+Proc. IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 12858–12868, 2023. 1, 2, 7 [8] Marc Habermann, Weipeng Xu, Michael Zollh¨ ofer, Gerard Pons-Moll, and Christian Theobalt. LiveCap: Real-time human performance capture from monocular video. ACM Trans. on Graphics , 38(2):14:1–14:17, 2019. 2 [9] Tong He, John P. Collomosse, Hailin Jin, and Stefano Soatto. Geo-PIFu: Geometry and pixel aligned implicit functions for single-view human reconstruction. In Proc. Advances in Neural Information Processing Systems , 2020. 1, 2 [10] Tong He, Yuanlu Xu, Shunsuke Saito, Stefano Soatto, and Tony Tung. ARCH++: animation-ready clothed human re-construction revisited. In Proc. IEEE/CVF International Conference on Computer Vision , pages 11026–11036, 2021. 2[11] Liangxiao Hu, Hongwen Zhang, Yuxiang Zhang, Boyao Zhou, Boning Liu, Shengping Zhang, and Liqiang Nie. GaussianAvatar: Towards realistic human avatar model-ing from a single video via animatable 3D gaussians. In 
+
+Proc. IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , pages 634–644, 2024. 1, 2, 6, 7 [12] Zeng Huang, Yuanlu Xu, Christoph Lassner, Hao Li, and Tony Tung. ARCH: animatable reconstruction of clothed hu-mans. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 3090–3099, 2020. 2 [13] Boyi Jiang, Yang Hong, Hujun Bao, and Juyong Zhang. Sel-fRecon: Self reconstruction your digital avatar from monoc-ular video. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 5595–5605, 2022. 1, 2[14] Tianjian Jiang, Xu Chen, Jie Song, and Otmar Hilliges. In-stantAvatar: Learning avatars from monocular video in 60 seconds. In Proc. IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition , pages 16922–16932, 2023. 7 [15] Wei Jiang, Kwang Moo Yi, Golnoosh Samei, Oncel Tuzel, and Anurag Ranjan. NeuMan: Neural human radiance field from a single video. In Proc. European Conference on Com-puter Vision , pages 402–418, 2022. 1, 2, 6, 7, 8 [16] Muhammed Kocabas, Jen-Hao Rick Chang, James Gabriel, Oncel Tuzel, and Anurag Ranjan. HUGS: human gaussian splats. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 505–515, 2024. 2 [17] Ruilong Li, Yuliang Xiu, Shunsuke Saito, Zeng Huang, Kyle Olszewski, and Hao Li. Monocular real-time volumetric per-formance capture. pages 49–67, 2020. 2 [18] Tingting Liao, Xiaomei Zhang, Yuliang Xiu, Hongwei Yi, Xudong Liu, Guo-Jun Qi, Yong Zhang, Xuan Wang, Xi-angyu Zhu, and Zhen Lei. High-fidelity clothed avatar re-construction from a single image. In Proc. IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 8662–8672, 2023. 2 [19] Xinqi Liu, Chenming Wu, Jialun Liu, Xing Liu, Chen Zhao, Haocheng Feng, Errui Ding, and Jingdong Wang. GVA: Reconstructing vivid 3D gaussian avatars from monocular videos. Arxiv , 2024. 2 [20] Matthew Loper, Naureen Mahmood, Javier Romero, Gerard Pons-Moll, and Michael J. Black. SMPL: A skinned multi-person linear model. ACM Trans. on Graphics , 34(6):248:1– 248:16, 2015. 2, 4, 6 [21] Qianli Ma, Jinlong Yang, Anurag Ranjan, Sergi Pujades, Gerard Pons-Moll, Siyu Tang, and Michael J. Black. Learn-ing to Dress 3D People in Generative Clothing. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2020. 6, 7 [22] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. NeRF: Representing scenes as neural radiance fields for view syn-thesis. In Proc. European Conference on Computer Vision ,pages 405–421, 2020. 2 [23] Gyeongsik Moon, Takaaki Shiratori, and Shunsuke Saito. Expressive whole-body 3D gaussian avatar. In Proc. Euro-pean Conference on Computer Vision , 2024. 1, 2, 6, 7 [24] Richard A. Newcombe, Shahram Izadi, Otmar Hilliges, David Molyneaux, David Kim, Andrew J. Davison, Push-meet Kohli, Jamie Shotton, Steve Hodges, and Andrew W. Fitzgibbon. KinectFusion: Real-time dense surface mapping and tracking. In Proc. IEEE International Symposium on Mixed and Augmented Reality , pages 127–136, 2011. 2 [25] Richard A. Newcombe, Dieter Fox, and Steven M. Seitz. DynamicFusion: Reconstruction and tracking of non-rigid scenes in real-time. In Proc. IEEE Conference on Computer Vision and Pattern Recognition , pages 343–352, 2015. 2 [26] Xiao Pan, Zongxin Yang, Jianxin Ma, Chang Zhou, and Yi Yang. TransHuman: A transformer-based human represen-tation for generalizable neural human rendering. In Proc. 6198 IEEE/CVF International Conference on Computer Vision ,pages 3521–3532, 2023. 2 [27] Sida Peng, Yuanqing Zhang, Yinghao Xu, Qianqian Wang, Qing Shuai, Hujun Bao, and Xiaowei Zhou. Neural Body: Implicit neural representations with structured latent codes for novel view synthesis of dynamic humans. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 9054–9063, 2021. 1, 2 [28] Zhiyin Qian, Shaofei Wang, Marko Mihajlovic, Andreas Geiger, and Siyu Tang. 3DGS-Avatar: Animatable avatars via deformable 3D gaussian splatting. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 5020–5030, 2024. 1, 2, 7 [29] Ignacio Rocco, Iurii Makarov, Filippos Kokkinos, David Novotn´ y, Benjamin Graham, Natalia Neverova, and Andrea Vedaldi. Real-time volumetric rendering of dynamic hu-mans. arXiv:2303.11898 , 2023. 2 [30] Shunsuke Saito, Zeng Huang, Ryota Natsume, Shigeo Mor-ishima, Hao Li, and Angjoo Kanazawa. PIFu: Pixel-aligned implicit function for high-resolution clothed human digitiza-tion. In Proc. IEEE/CVF International Conference on Com-puter Vision , pages 2304–2314, 2019. 1, 2, 3, 6 [31] Shunsuke Saito, Tomas Simon, Jason M. Saragih, and Han-byul Joo. PIFuHD: Multi-level pixel-aligned implicit func-tion for high-resolution 3D human digitization. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 81–90, 2020. 1, 2, 6 [32] Kaiyue Shen, Chen Guo, Manuel Kaufmann, Juan Jose Zarate, Julien Valentin, Jie Song, and Otmar Hilliges. X-Avatar: Expressive human avatars. In Proc. IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 16911–16921, 2023. 1 [33] Shih-Yang Su, Timur M. Bagautdinov, and Helge Rhodin. DANBO: disentangled articulated neural body representa-tions via graph neural networks. In Proc. European Con-ference on Computer Vision , pages 107–124, 2022. 1, 2 [34] Shih-Yang Su, Frank Yu, Michael Zollh¨ ofer, and Helge Rhodin. A-NeRF: Articulated neural radiance fields for learning human shape, appearance, and pose. In Proc. Ad-vances in Neural Information Processing Systems , 2021. [35] Chung-Yi Weng, Brian Curless, Pratul P. Srinivasan, Jonathan T. Barron, and Ira Kemelmacher-Shlizerman. Hu-manNeRF: Free-viewpoint rendering of moving people from monocular video. In Proc. IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 16189–16199, 2022. 1, 2, 7 [36] Yuliang Xiu, Jinlong Yang, Dimitrios Tzionas, and Michael J. Black. ICON: implicit clothed humans obtained from normals. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 13286–13296, 2022. 1, 2 [37] Yuliang Xiu, Jinlong Yang, Xu Cao, Dimitrios Tzionas, and Michael J. Black. ECON: explicit clothed humans optimized via normal integration. In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 512–523, 2023. 1, 2, 6 [38] Weipeng Xu, Avishek Chatterjee, Michael Zollh¨ ofer, Helge Rhodin, Dushyant Mehta, Hans-Peter Seidel, and Christian Theobalt. MonoPerfCap: Human performance capture from monocular video. ACM Trans. on Graphics , 37(2), 2018. 2 [39] Xueting Yang, Yihao Luo, Yuliang Xiu, Wei Wang, Hao Xu, and Zhaoxin Fan. D-IF: uncertainty-aware human digitiza-tion via implicit distribution field. In Proc. IEEE/CVF Inter-national Conference on Computer Vision , pages 9088–9098, 2023. 2 [40] Tao Yu, Zerong Zheng, Kaiwen Guo, Pengpeng Liu, Qiong-hai Dai, and Yebin Liu. Function4D: Real-time human vol-umetric capture from very sparse consumer rgbd sensors. In 
+
+Proc. IEEE/CVF Conference on Computer Vision and Pat-tern Recognition , 2021. 6, 7, 2, 3, 5 [41] Hongwen Zhang, Yating Tian, Xinchi Zhou, Wanli Ouyang, Yebin Liu, Limin Wang, and Zhenan Sun. PyMAF: 3D hu-man pose and shape regression with pyramidal mesh align-ment feedback loop. In Proc. IEEE/CVF International Con-ference on Computer Vision , pages 11426–11436, 2021. 6 [42] Jiakai Zhang, Xinhang Liu, Xinyi Ye, Fuqiang Zhao, Yan-shun Zhang, Minye Wu, Yingliang Zhang, Lan Xu, and Jingyi Yu. Editable free-viewpoint video using a layered neu-ral representation. ACM Trans. on Graphics , 40(4):149:1– 149:18, 2021. 2 [43] Zechuan Zhang, Li Sun, Zongxin Yang, Ling Chen, and Yi Yang. Global-correlated 3D-decoupling transformer for clothed avatar reconstruction. In Proc. Advances in Neural Information Processing Systems , 2023. 1, 2, 6, 7, 8 [44] Zechuan Zhang, Zongxin Yang, and Yi Yang. SIFU: side-view conditioned implicit function for real-world usable clothed human reconstruction. In Proc. IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 9936–9947, 2024. 2, 6 [45] Zerong Zheng, Tao Yu, Yebin Liu, and Qionghai Dai. PaMIR: Parametric model-conditioned implicit representa-tion for image-based human reconstruction. IEEE Trans. on Pattern Analysis and Machine Intelligence , 44(6):3170– 3184, 2022. 1, 2 6199

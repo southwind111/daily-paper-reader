@@ -1,0 +1,440 @@
+Title: 4DTAM: Non-Rigid Tracking and Mapping via Dynamic Surface Gaussians
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Matsuki_4DTAM_Non-Rigid_Tracking_and_Mapping_via_Dynamic_Surface_Gaussians_CVPR_2025_paper.pdf
+
+Published Time: Mon, 02 Jun 2025 13:31:13 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# 4DTAM: Non-Rigid Tracking and Mapping via Dynamic Surface Gaussians 
+
+# Hidenobu Matsuki Gwangbin Bae Andrew J. Davison Dyson Robotics Laboratory, Imperial College London 𝑡 = 𝑇 𝑡 = 0 ⋮ ⋮ ⋮ ⋮ ⋮ ⋮  
+
+> 𝑡 = 𝑇 𝑡 = 0
+> 𝑡 = 𝑇 𝑡 = 0
+> Figure 1. 4DTAM jointly estimates camera-egomotion, appearance, geometry and scene dynamics without any template.
+
+# Abstract 
+
+We propose the first 4D tracking and mapping method that jointly performs camera localization and non-rigid surface reconstruction via differentiable rendering. Our approach captures 4D scenes from an online stream of color im-ages with depth measurements or predictions by simulta-neously optimizing scene geometry, appearance, dynamics, and camera ego-motion. Although natural environments ex-hibit complex non-rigid motions, 4D-SLAM remains rela-tively underexplored due to its inherent challenges; even with 2.5D signals, the problem is ill-posed because of the high dimensionality of the optimization space. To over-come these challenges, we first introduce a SLAM method based on Gaussian surface primitives that leverages depth signals more effectively than 3D Gaussians, thereby achiev-ing accurate surface reconstruction. To further model non-rigid deformations, we employ a warp-field represented by a multi-layer perceptron (MLP) and introduce a novel cam-era pose estimation technique along with surface regular-ization terms that facilitate spatio-temporal reconstruction. In addition to these algorithmic challenges, a significant hurdle in 4D-SLAM research is the lack of publicly avail-able datasets with reliable ground truth and evaluation pro-tocols. To address this, we present a novel synthetic dataset of everyday objects with diverse motions, leveraging large-scale object models and animation modeling. In summary, we open up the modern 4D-SLAM research by introducing a novel method and evaluation protocols grounded in modern vision and rendering techniques. 
+
+# 1. Introduction 
+
+The world we live in has many moving elements. Rivers flow, trees sway, cookies crumble, and humans walk. Al-though Simultaneous Localization and Mapping (SLAM) methods which assume that most of the world is static are highly useful, embodied agents which aim to navigate and interact with their environments in the most general way should be able to operate in dynamic scenes. There are several ways to segment and ignore moving scene ele-ments, and a SLAM system can be assembled by integrating these individual modules so that it can reconstruct the static parts of a scene and estimate camera ego-motion. How-ever, in this work, we aim for a more comprehensive spatio-temporal (4D) reconstruction of scenes exhibiting signifi-cant dynamic motion. Our primary focus is on a unified framework that leverages intrinsic capabilities of the under-lying scene representation without heavily relying on prior assumptions about moving elements. 4D-SLAM with gen-eral scene motion is difficult primarily because of the com-plex and high-dimensional nature of modeling non-rigid motions (and potential topological changes) while simul-taneously optimizing the pose of a moving camera. There is much more redundancy than in rigid SLAM, and some prior assumptions are needed to combat this. Another chal-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 26921 lenge lies in the lack of datasets to train and/or evaluate techniques. Recent advances in computer vision and graph-ics make it a good time to revisit this problem. New 3D representations (e.g. neural fields and Gaussian splats) al-low differentiable rendering of complex 3D scenes and op-timization via 2D observations, and to model deformation fields smoothly without more specific assumptions. Also, the availability of high-quality 3D meshes on Internet and rendering software (e.g. Blender) gives the ability to render non-rigidly moving objects with ground truth. We present 4DTAM , a novel approach for 4D T racking 
+
+And Mapping in dynamic scenes. We use Gaussian sur-face primitives to represent the scene and introduce a neural warp-field represented by a multi-layer perception (MLP) to model continuous temporal changes. We then utilize dif-ferentiable rendering to jointly optimize the scene geome-try, appearance, dynamics, and camera ego-motion from an online stream of a single RGB-D camera. This enables ac-curate 3D reconstruction and real-time rendering, even in the presence of complex non-rigid deformations. To fa-cilitate future research, we also introduce a new synthetic dataset of dynamic objects. Our focus in this dataset is realistic, complex motion of scenes that are not well rep-resented by existing deformable object models. Animated 3D meshes are rendered and the ground truth depth, surface normals, and foreground masks are extracted together with the camera poses/intrinsics. This dataset provides challeng-ing scenarios for 4D reconstruction methods. We also re-lease the full rendering script to allow the generation of cus-tom 4D datasets. Our experimental results demonstrate that 
+
+4DTAM achieves good performance in both camera track-ing and scene reconstruction in the presence of dynamic objects. It can handle the complex motion of articulated objects (e.g., drawers) and non-rigid objects (e.g., curtains, flags, and animals), showcasing its potential for applica-tions in robotics, augmented reality, and other fields requir-ing real-time dynamic scene understanding. We primarily use RGB-D sensor input, but also demonstrate an extension to monocular RGB streams by incorporating a monocular depth prediction network in the supplementary material. In summary, the contributions of this paper are: • 4DTAM , the first 4D tracking and mapping method that uses differentiable rendering and Gaussian surface primi-tives for dynamic environments. • The first 2DGS [17]-based SLAM method with analytic camera pose gradients, normal initialization, and regular-ization to fully exploit depth signals. • An MLP-based warp-field for modeling non-rigid scene, complemented by a novel camera localization technique and rigidity regularization of surface Gaussians. • A novel 4D-SLAM dataset with complex object mo-tions, ground-truth camera trajectories, and dynamic ob-ject meshes, along with an evaluation protocol. • Extensive evaluations demonstrating that the method achieves state-of-the-art performance. 
+
+# 2. Related Work 
+
+2.1. Visual SLAM 
+
+Visual SLAM has been an extensively researched field, with Dense SLAM specifically focusing on capturing detailed scene geometry [34] and semantics [30]. A central as-pect of these methods lies in the choice of scene repre-sentation and the corresponding optimization framework. Dense SLAM methods based on traditional scene repre-sentations, such as volumetric Truncated Signed Distance Functions (TSDF) [22, 33, 58] or Surfels [43, 59], project 2D observations into 3D space and employ specific data fu-sion algorithms. While effective, these methods often fail to keep consistency between the model and sensor obser-vations across multiple viewpoints, posing challenges for long-term operation. However, recent advancements in graphics hardware have facilitated the adoption of differentiable rendering frameworks, which have revolutionized inverse rendering and scene reconstruction [23, 31, 32, 36]. Differentiable rendering ensures multi-view consistency through stream-lined backpropagation, enhancing scene reconstruction ac-curacy. Notably, 3D Gaussian Splatting (3DGS) [25] has gained attention due to its flexible resource alloca-tion and rapid forward rendering capabilities. Initially de-veloped for photorealistic view synthesis, recent research has extended its application to surface reconstruction [15, 64]. Enhanced methods, such as 2D Gaussian Splatting (2DGS) [17], achieve superior geometry reconstruction by reducing the Gaussian dimension and explicitly defining surface normals. These differentiable rendering representa-tions have been applied to visual SLAM, from coordinate-based MLPs [51] to explicit voxel grids [21, 54, 61, 65], points [42], and 3D Gaussians [24, 29, 60]. 
+
+2.2. SLAM for 4D Scene Reconstruction 
+
+3D reconstruction of dynamic scenes has been exten-sively studied, with notable achievements using optimiza-tion methods, even for unknown non-rigid objects observed by a single moving RGB camera [14, 52]. However, these approaches typically require batch optimization and are limited to smaller scenes. In contrast, dynamic SLAM tar-gets incremental, reconstruction and tracking of large, con-tinuously moving scenes ideally in real-time. Most methods to date have relied on RGB-D data from moving depth cam-eras. While many methods detect and exclude dynamic ob-jects to focus on static scene reconstruction [44], full spa-tiotemporal reconstruction (which we refer to as 4D-SLAM )requires more advanced solutions. For instance, tracking 26922 and reconstructing rigid moving objects separately [41] or employing parametric shape models for known semantic classes like humans or animals [26] are effective strategies. Specialized domains, such as endoscopic imaging, have uti-lized scene-specific priors or deformation models to handle non-rigid dynamics [28, 40]. An incremental 4D-SLAM for general dynamic scenes has remained more challenging, but has been addressed based on various regularizing assumptions and representa-tions. DynamicFusion [35] pioneered a line of work [13, 19, 46, 47] which captures temporal evolution in the scene ge-ometry by jointly optimizing a canonical volumetric repre-sentation (e.g., TSDF volume [35]) and a deformation field. As the solution space is extremely high-dimensional, ad-ditional constraints are often introduced to regularize the motion field [46, 47] or to align visual features [4, 19]. Re-cent advances in 3D representations, such as neural fields and Gaussian primitives, have opened new possibilities for dynamic scene reconstruction. Canonical radiance and motion fields can be jointly optimized via differentiable rendering, as demonstrated with NeRF [37, 39, 53] and SDF [7, 55]. For 3D Gaussians, which can explicitly rep-resent points, motion can be estimated either through per-primitive trajectories [27] or learnable motion bases [56]. However, warp-field-based motion representation offers in-herent smoothness regularization, leveraging the properties of neural fields [10, 18, 62, 63]. Most existing methods, however, rely on known camera poses or multi-camera se-tups to capture dense spatiotemporal observations. While DyNoMo [45] supports camera pose optimization, its 3D Gaussian representation is not suited for geometrically ac-curate reconstruction. In contrast, our 4DTAM framework enables 4D reconstruction using a single RGB-D camera, jointly optimizing camera poses, appearance, geometry, and dynamics, making it practical for most embodied agents. 
+
+2.3. Datasets for 4D Reconstruction 
+
+4D reconstruction has been studied extensively for the case of the human body. Datasets like Human3.6M [20], Deep-Cap [16], and ZJU-MoCap [38] capture diverse human motions under a multi-camera setup. The cameras are fixed, synchronized, and calibrated to reduce the difficulty in establishing dense multi-view correspondences. Only a small number of datasets provide single-stream RGB-D sequences captured from a moving camera [5, 12, 46]. Recovering the camera poses is not trivial for such real-world captures, and additional post-processing (e.g. ro-bust depth map alignment [55]) is required. Another chal-lenge lies in ground truth acquisition. Besides the depth measurements, other ground truths (e.g., scene flow, object mask) often require manual labeling. On the contrary, syn-thetic datasets [6, 57] provide perfect ground truths. Recent advances in open-source datasets [9] and rendering soft-ware [8] also close the synthetic-to-real domain gap sig-nificantly. To this end, we introduce a new high-quality synthetic dataset tailored for 4D reconstruction and camera pose estimation. 
+
+# 3. Method 
+
+3.1. 2D Gaussian Splatting 
+
+Our geometric scene representation is based on 2D Gaus-sian Splatting (2DGS) [17]. Unlike 3D Gaussian Splatting (3DGS), which uses blob-like splats, 2DGS functions as a stretchable surfel with explicitly defined surface normal directions. This property makes 2DGS particularly well-suited for non-rigid scene reconstruction with a single cam-era, where effectively handling 2.5D input signals is critical. Each 2D Gaussian G is represented by its 3D mean po-sition Pμ, rotation R ∈ SO (3) , color c, opacity o, and a scaling vector S ∈ R2. The rotation matrix R is decom-posed as R = [ tu, tv , tw], where tu and tv represent two principal tangential vectors, and tw is the normal vector, de-fined as tw = tu × tv . For simplicity, spherical harmonics are omitted in this work. The 2D Gaussian function is parameterized on the local tangent plane in world space as: 
+
+P (u, v ) = Pμ + sutuu + sv tv v = H(u, v, 1, 1) T (1) where H =
+
+sutu sv tv 0 pk
+
+0 0 0 1
+
+
+
+=
+
+RS pk
+
+0 1
+
+
+
+(2) For a point u = ( u, v ) in the tangential plane of 2D Gaussian ( uv space), its projection onto the image plane is given by 
+
+x = ( xz, yz, z, 1) T = WP (u, v ) = WH (u, v, 1, 1) T
+
+(3) where W ∈ R4×4 is the transformation matrix from world space to screen space. To avoid numerically unstable matrix inversion of M =(WH )−1, 2DGS applies ray-splat intersection by find-ing the intersection of non-parallel planes (x-plane and y-plane). The ray x = ( x, y ) is determined by the intersec-tion of the x-plane hx and the y-plane hy , represented as 
+
+hx = ( −1, 0, 0, x )T and hy = (0 , −1, 0, y )T, respectively. In the uv coordinates of the 2D Gaussian, this is expressed as: 
+
+hu = ( WH )Thx and hv = ( WH )Thy (4) The intersection point meets the following condition, 
+
+hu · (u, v, 1, 1) T = hv · (u, v, 1, 1) T = 0 (5) This leads to an solution for the intersection point u(x):
+
+u(x) = h2
+
+> u
+
+h4 
+
+> v
+
+− h4
+
+> u
+
+h2
+
+> v
+
+h1
+
+> u
+
+h2 
+
+> v
+
+− h2
+
+> u
+
+h1
+
+> v
+
+v(x) = h4
+
+> u
+
+h1 
+
+> v
+
+− h1
+
+> u
+
+h4
+
+> v
+
+h1
+
+> u
+
+h2 
+
+> v
+
+− h2
+
+> u
+
+h1
+
+> v
+
+(6) 26923 Tracking 
+
+> Input RGB-D Video Camera Pose Estimation
+
+Canonical Gaussian Map & Motion Field 
+
+> Keyframing
+
+# ⋯
+
+→𝛿𝒙 𝛿𝒓 𝛿𝒔 
+
+Mapping   
+
+> Gaussian Initialization 4D Map Optimization
+> Appearance Geometry
+> min 𝐿( )
+
+𝐟 !
+
+𝛾 𝑡 →𝛾 𝒙 → 
+
+> Motion
+> 𝐑 ,𝐓
+> Camera Pose
+
+⋯Figure 2. Method overview of 4DTAM. 
+
+where hiu, hiv are the i-th parameter of the 4D homogeneous plane parameters. The 2D Gaussian at (u, v ) is evaluated as: 
+
+G(u) = exp 
+
+
+
+− u2 + v2
+
+2
+
+
+
+(7) The 2D Gaussians are sorted along the camera ray by their center depth and organized into image tiles. Per-pixel color is rendered via volumetric alpha blending: 
+
+c(x) = X
+
+> i=1
+
+ciαiGi(u(x)) 
+
+> i−1
+
+Y
+
+> j=1
+
+(1 − αj Gj (u(x))) (8) where depth and normal can be rendered similarly. 
+
+3.2. Analytic Camera Pose Jacobian 
+
+One major advantage of Gaussian Splatting is its analyti-cal formulation of gradient flow for model parameters, en-abling real-time full-resolution rendering. However, it as-sumes posed images as input and does not provide gradi-ents for camera poses. To accelerate optimization, we de-rive the analytic Jacobian of the camera pose for 2D Gaus-sian Splatting and implement it using a CUDA kernel. This formulation has potential applications for a wide range of tasks involving pose estimation in surface-based Gaussian Splatting. We use Lie algebra to derive the minimal Jacobians for the camera pose matrix from the world coordinate system to the camera’s local coordinate system, defining T CW ∈
+
+SE (3) and τ ∈ se (3) . Since 2DGS backpropagates gra-dients to MT = WH during the optimization of the 3D mean, we require the partial derivative ∂MT 
+
+> ∂τ
+
+. Let K ∈
+
+R4×4 represent the camera projection matrix. Then, equa-tion 3 is rewritten as: 
+
+x = MT (u, v, 1, 1) T = KT CW H(u, v, 1, 1) T (9) Using the chain rule, the partial derivatives are computed as: 
+
+∂MT
+
+∂τ = ∂MT
+
+∂W
+
+∂W
+
+∂T CW 
+
+∂T CW 
+
+∂τ , (10) 
+
+∂T CW 
+
+∂τ =
+
+
+
+0 −RCW ×
+
+> :,1
+
+0 −RCW ×
+
+> :,2
+
+0 −RCW ×
+
+> :,3
+
+I −tCW ×
+
+ (11) where RCW ∈ SO (3) and tCW ∈ R3 denote the rota-tion and translation parts of T CW , respectively. The nota-tion × represents the skew-symmetric matrix of a 3D vector, and RCW :,i denotes the ith column of RCW .2DGS also renders a normal map, which can be super-vised using the loss computed from the rendered normals. Let nc denote the camera-space normal. The normal of a 2D Gaussian in the camera’s local coordinate system is de-fined as: 
+
+nc = T CW tw (12) where tw is the surface normal in the world coordinate sys-tem. Borrowing the notation of the left Jacobian for Lie groups from [48], the partial derivative is given by: 
+
+∂nc
+
+∂τ = Dnc
+
+DT CW 
+
+= I −n×
+
+> c
+
+ (13) 26924 Further details of the derivation are provided in the sup-plementary material. 
+
+3.3. Warp Field 
+
+To model time-varying deformations, we use a warp-field represented by a coordinate-based network [62, 63]. In our hand-held single-camera setup, the limited view coverage of dynamic objects necessitates structural priors in the mo-tion representation. For this, we employ a compact MLP as the warp-field to estimate transitions from the canonical Gaussians following [62]. Given time t and center position x of 2D Gaussians in canonical space as inputs, the deformation MLP fθ pro-duces offsets, which subsequently transform the canonical 2D Gaussians to the deformed space: 
+
+(δx, δ r, δ s) = fθ (γ1(x), γ 2(t)) (14) where δx ∈ R3, δr ∈ SO (3) , δs ∈ R2 denotes the offsets of 2D Gaussian’s mean position, rotation and scale respec-tively, γ denotes the frequency-based positional encoding [31]. For deformable SLAM applications, we leverage a CUDA-optimized MLP implementation [32] to enable fast, interactive reconstruction. 
+
+3.4. Tracking and Mapping Framework 
+
+Our SLAM method follows the standard tracking and map-ping architecture, where the tracking module is in charge of fast online camera pose estimation while the mapping per-forms a relatively more involved joint opimtization of the camera poses, geometry and motion of selected keyframes. Further details of the hyperparameters are available in the supplementary material. 
+
+3.4.1. Tracking 
+
+The tracking module estimates the coarse camera pose for the latest incoming frame. This is achieved by minimiz-ing the photometric and depth rendering errors between the sensor observation and the rendering from the deformable Gaussian model. Unlike static 3DGS SLAM methods, we estimate the camera pose relative to the warped Gaussians at the latest keyframes timestamp tkf , assuming the deformed scene structure at tkf is closest to the current state. We de-fine photometric rendering loss as: 
+
+Lp = I(Gcano , T CW , t kf ) − ¯I 1 (15) Here I(G, T CW ) denotes a rendered color image from the cannonical Gaussians Gcano , timestamp of the latest keyframe tkf and camera pose T CW , and ¯I is an observed image. Similarly, we also minimize geometric depth error: 
+
+Lg = D(Gcano , T CW , t kf ) − ¯D 1 (16) Following MonoGS [29], we further optimize affine brightness parameters. Keyframes are selected every N-th   
+
+> Figure 3. 2D Gaussian’s Surface Normal Rendering based on Different Initialization. Left: Random initialization. Right: Our initialization aligned with sensor measurement.
+
+frame and sent to the mapping process for further refine-ment. 
+
+3.4.2. Mapping 
+
+The mapping module performs joint optimization of the camera pose, canonical Gaussians, and the warp field within a sliding window. 
+
+Gaussian Management When a new keyframe is regis-tered, we add new Gaussians to the canonical Gaussians 
+
+Gcano , based on the back-projected point cloud from the RGB-D observations. Unlike 3DGS, 2DGS explicitly en-codes surface normal information in its rotation vector, making it beneficial to initialize using surface normals es-timated from sensor depth measurements. To achieve this, we compute the surface normals of the current depth obser-vation by taking the finite difference of neighboring back-projected depth points and assign them as the normal vec-tors of the 2D Gaussianss tw. This is formulated as: 
+
+tw = ∇xpd × ∇ y pd
+
+|∇ xpd × ∇ y pd| (17) where pd denotes points back-projected by the current sensor depth observation. We store the computed nor-mal information as a 2D image Nsensor for normal su-pervision. Pruning and densification parameters follow MonoGS, which effectively prunes the wrongly inserted Gaussians in the canonical space due to the object move-ment. 
+
+4D Map optimization We perform joint optimization of the camera ego-motion, appearance, geometry and scene dynamics. In a single-camera setup, the lack of spatiotem-porally dense observations makes fully capturing dynamic scenes challenging, as complete spatial (xyz) coverage over time (t) is only feasible with multi-camera systems. To ad-dress this, we introduce regularization terms for both shape and motion. In addition to photometric and depth losses, we apply a normal regularization based on sensor measurements to bet-ter align 2D Gaussians. Unlike the original 2DGS methods, which compute normals by finite differences of rendered 26925 depth during every optimization step—leading to high com-putational costs—we instead propose to use normals pre-computed from depth input as supervision. This reduces computational overhead, as normals are calculated only when a new keyframe is inserted: 
+
+Ln = X
+
+> i∈h×w
+
+(1 − nT 
+
+> i
+
+Nsensor,i ) (18) To constrain motion in unobserved regions, we apply an as-rigid-as possible regularization loss LARAP from [27] to the Gaussian means. Additionally, we introduce a novel surface normal rigidity loss, constraining the 2D Gaussians’ surface normals to stay similar between timesteps t1 and t2,preserving local surface rigidity: 
+
+LARAP n = wi,j (tw)Ti,t 1 (tw)j,t 1 − (tw)Ti,t 2 (tw)j,t 2 1
+
+(19) where wi,j is a distance-based weighting factor like 
+
+LARAP . We apply ARAP regularizers between the oldest and latest keyframe in the current window. Together with the isotropic loss Liso proposed in [29], we minimize the following total cost function: 
+
+Ltotal = λpLp + λg Lg + λnLn
+
++ λiso Liso + LARAP + LARAP n (20) The optimization is based on the sliding window heuris-tics in [11], with two additional keyframes randomly se-lected from the history. 
+
+Global Optimization Sliding window-based optimiza-tion prioritizes the latest frame, causing past keyframe in-formation to degrade over time. After tracking, if required we can perform global optimization to finalize the map, which takes less than 1 minute on an RTX 4090. During this step, the poses and number of Gaussians are fixed, and one keyframe is randomly selected per iteration. The pro-cess uses the normal consistency loss of 2DGS, ensuring global consistency despite being relatively slow. 
+
+3.5. Dataset Generation 
+
+We introduce Sim4D , a new synthetic dataset for 4D recon-struction. Recently, a large number of photo-realistic, ani-mated 3D meshes have become available [2, 9]. Combined with open-source graphics software [3, 8], such meshes pro-vide a scalable way of generating datasets for non-rigid 4D reconstruction. The data generation pipeline is illustrated in Fig. 4. 
+
+Meshes and background. We collected 50 high-quality, animated 3D meshes from Objaverse [9] and Sketchfab [2], all of which are under CC-BY license. The collected meshes exhibit a wide variety of motions, including non-rigid deformation and topological changes. We then place the object inside a cube and randomize the background tex-ture. Texture maps are collected from Poly Haven [1] and are all under CC0 license. 
+
+Rendering. We render 240 to 540 frames for each object. The camera trajectories are defined along arcs of 20 de-grees, and test viewpoints are defined outside of these arcs to evaluate the performance of novel-view synthesis and to quantify the accuracy of the reconstructed geometry. At each timestamp, the RGB image, ground truth depth, sur-face normals, and foreground mask are rendered and the camera intrinsics/extrinsics saved. Please refer to the sup-plementary material for additional details. 
+
+# 4. Evaluation 
+
+4.1. Experimental Setup 
+
+We extensively evaluate our non-rigid SLAM method on both synthetic and real-world datasets. Previous non-rigid RGB-D SLAM work has primarily focused on qualita-tive demonstrations using limited datasets, showcasing the early-stage potential of the field. To advance research, we introduce a quantitative evaluation protocol with the new Sim4D dataset. Our evaluation covers camera pose accu-racy, as well as the appearance and geometric quality of the reconstructed models. Additionally, we demonstrate real-world performance using a self-captured dataset. While designed primarily for dynamic scenes, our method is the first to leverage surface Gaussian splatting for both static SLAM and non-rigid RGB-D reconstruction. To further validate our approach, we perform a detailed quan-titative component-wise ablation analysis. 
+
+Metrics and Datasets For our main Non-Rigid SLAM evaluation , we evaluate our method on 8 sequences from the Sim4D dataset. We first report ATE RMSE for trajectory evaluation. To assess SLAM map quality, we report depth rendering error (L1 error) for geometry and PSNR, SSIM, and LPIPS for appearance evaluation. For Sim4D, met-rics are calculated from test views (extrapolated positions across different timestamps). The estimated and ground truth trajectories are aligned on the first frame, and test view positions are queried in the ground truth trajectory’s coordinate system. Details about the test viewpoints are in the supplementary material. Since SurfelWarp [13] re-quires explicit foreground segmentation, we collect its re-sults only on pixels with valid reconstruction. For Static SLAM ablation , we report ATE RMSE, rendering perfor-mance, and TSDF-fused mesh metrics, following the proto-col in [42]. We evaluate our method on the Replica [49] dataset and the TUM RGB-D dataset [50]. To isolate the impact of scene representation from system differences, we replaced MonoGS’s representation with 2DGS while keep-ing all other system configurations identical. For Offline 26926 ×
+
+> Background Textures Animated Meshes
+
+=
+
+> Dataset for 4D Reconstruction
+
+⋯Figure 4. Sim4D dataset. We create a new dataset for 4D reconstruction by rendering animated 3D meshes. 
+
+Non-Rigid Reconstruction ablation , we report the aver-age geometry and appearance rendering metrics on sub-sets of the DeepDeform [5], KillingFusion [46], and iPhone datasets [12], which are used in [55]. Numerical quantities for each sequence is available in supplementary material. Since [55] primarily focuses on object shape completion, metrics are calculated only within the given segmentation mask. The camera pose is provided by the dataset, and pose optimization is disabled to focus solely on reconstruc-tion performance. We perform 30000 iteration for training, which takes approximately 30 mins. 
+
+Baseline Methods For quantitative non-rigid SLAM evaluation, we compare our method with SurfelWarp [13], the only non-rigid RGB-D SLAM method with publicly available code. For component-wise ablation analysis, we compare against MonoGS [29] for static SLAM evaluation and Morpheus [55] for offline reconstruction. 
+
+Implementation Details Our SLAM system runs on a desktop equipped with an Intel Core i9-12900K (3.50GHz) processor and a single NVIDIA GeForce RTX 4090 GPU. The camera pose jacobian for 2DGS, described in Sec-tion 3.2, is implemented using a CUDA rasterizer, similar to other gradients in Gaussian Splatting. For real-world data capture, we used the Realsense D455. 
+
+4.2. Quantitative Evaluation 
+
+Table 1 compares our method with SurfelWarp [13]. Our method outperforms SurfelWarp across all metrics. To analyze this further, Fig. 5 provides qualitative visualiza-tions and trajectory plots for the modular vehicle sequence. Since SurfelWarp relies on a foreground mask, its recon-struction lacks scene completeness. In contrast, our method reconstructs the entire scene within a joint optimization framework, providing more comprehensive coverage. Ad-ditionally, compared to SurfelWarp’s back-projection and Surfel fusion scheme, our differentiable rendering-based Ours SurfelWarp              
+
+> Figure 5. Qualitative comparison to SurfelWarp. Left: Ren-dered image, Middle: Rendered normal map, Right: Estimated camera trajectory MonoGS
+> MonoGS
+> Ours (𝑡 = 0 )
+> Ours (𝑡 = 0 )Ours (𝑡 = 𝑇 )
+> Ours (𝑡 = 𝑇 )
+> ⋯
+> ⋯
+> Figure 6. Qualitative Results on Real-World Datset.
+> Our method effectively handles dynamic objects compared to MonoGS.
+
+optimization enforces multi-view consistency over time, re-sulting in superior camera tracking and consistent 3D re-construction. Our method achieves camera pose estimation at approximately 1.5 fps and completes the final global op-timization in 1 minute. 
+
+4.3. Qualitative Evaluation 
+
+Fig. 6 presents qualitative reconstruction results on real-world dynamic scenes. Our method successfully re-constructs dynamic scenes with non-rigid deformations, whereas MonoGS fails to handle such complexities. 26927 Method Category Metric curtain flag mercedes modular vehicle rhino shoe rack water effect wave toy SurfelWarp [13] Trajectory ATE RMSE[cm] ↓ 6.10 31.9 5.21 4.21 2.81 2.16 2.60 1.45 Geometry L1 Depth[cm] ↓ 49.1 50.8 5.2 10.3 44.9 4.25 46.7 47.5 Appearance PSNR [dB] ↑ 15.78 11.04 25.7 19.45 16.76 26.3 17.3 16.4 SSIM ↑ 0.468 0.343 0.779 0.362 0.188 0.795 0.325 0.364 LPIPS ↓ 0.56 0.659 0.483 0.638 0.665 0.397 0.587 0.555 Ours Trajectory ATE RMSE[cm] ↓ 0.25 1.00 0.18 0.31 0.25 0.18 0.29 0.32 
+
+Geometry L1 Depth[cm] ↓ 0.96 3.58 0.62 1.44 1.85 0.99 3.20 3.43 
+
+Appearance PSNR [dB] ↑ 28.01 21.01 32.13 30.59 24.13 31.7 27.12 27.10 
+
+SSIM ↑ 0.787 0.601 0.894 0.801 0.742 0.901 0.795 0.794 
+
+LPIPS ↓ 0.096 0.150 0.138 0.210 0.260 0.12 0.908 0.097 
+
+Table 1. Non-rigid SLAM Evaluation on Sim4D Dataset. 
+
+Figure 7. 3D Reconstruction Result on Replica Office4. Left: MonoGS. Right: Ours. 
+
+.
+
+4.4. Ablation Study                                                                                                     
+
+> Metric r0 r1 r2 o0 o1 o2 o3 o4 avg MonoGS ATE RMSE[cm] ↓0.44 0.32 0.31 0.44 0.52 0.23 0.17 2.25 0.59 Depth L1[cm] ↓3.00 3.47 4.66 3.10 6.08 6.15 4.77 4.94 4.52 Precision[%] ↑39.0 28.8 28.9 39.7 15.8 28.0 32.5 25.5 29.7 Recall[%] ↑44.2 34.5 32.8 47.6 24.3 30.0 35.4 28.5 34.6 F1[%] ↑41.5 31.4 30.7 43.3 19.1 29.0 33.9 26.9 31.9
+> MonoGS-2D
+> ATE RMSE[cm] ↓0.42 0.43 0.35 0.19 0.19 0.22 0.27 0.80 0.36
+> Depth L1[cm] ↓0.45 0.28 0.57 0.37 0.59 0.85 0.62 0.63 0.54
+> Precision[%] ↑97.0 97.0 97.0 97.1 97.9 95.8 94.8 83.9 95.0
+> Recall[%] ↑85.5 86.0 84.8 89.4 85.1 81.8 81.5 72.4 83.3
+> F1[%] ↑90.9 91.3 90.5 93.1 91.1 88.2 87.6 77.7 88.8
+
+Table 2. Static SLAM Ablation on Replica. 
+
+Method Metric fr1/desk fr2/xyz fr3/office avg. MonoGS ATE RMSE[cm] ↓ 1.50 1.44 1.49 1.47 
+
+Depth L1[cm] ↓ 6.2 13.0 13.0 10.7 MonoGS-2D ATE RMSE[cm] ↓ 1.58 1.20 1.83 1.57 Depth L1[cm] ↓ 3.00 2.30 4.30 3.2 
+
+Table 3. Static SLAM Ablation on TUM 
+
+Method Metric KillingFusion DeepDeform iPhone Morpheus [55] Depth L1[cm] ↓ 3.2 1.9 2.4 PSNR [dB] ↑ 27.02 26.81 25.28 
+
+SSIM ↑ 0.77 0.81 0.46 LPIPS ↓ 0.40 0.38 0.63 Ours Depth L1[cm] ↓ 4.9 1.1 0.57 
+
+PSNR [dB] ↑ 31.13 24.15 27.54 SSIM ↑ 0.93 0.90 0.79 
+
+LPIPS ↓ 0.13 0.27 0.26 
+
+Table 4. Offline Non-Rigid Reconstruction Ablation: Render-ing Error Metrics on Real-world Dataset. 
+
+Static SLAM Table 2 provides the camera ATE and 3D reconstruction evaluation results. Our 2DGS-based imple-mentation shows competitive performance and achieves the best result in 6 out of 8 sequences for camera ATE, and con-sistently better result on rendering and 3D reconstruction metrics. The reconstruction is visualized in Fig 7 which shows the comparison of the mesh generated by TSDF Fu-sion between MonoGS and MonoGS-2D. Table 3 provides the camera ATE and rendering metrics evaluation on TUM dataset. Our method shows on par camera ATE but shows 
+
+Figure 8. Non-rigid Reconstruction Results. Our method flex-ibly models non-rigid deformations without requiring any shape templates or foreground/background separation. 
+
+the increased geometric reconstruction quality. 
+
+Offline Non-rigid RGB-D Surface Reconstruction Ta-ble 4 reports offline reconstruction results, where cam-era poses are given. Our 2DGS+MLP deformation model shows competitive rendering performance compared to NeRF based methods. Note that Gaussian Splatting has the additional advantage of its rendering speed. We further pro-vide qualitative visualizations in Fig. 8. 
+
+# 5. Conclusion 
+
+We presented the first tracking and mapping method for non-rigid surface reconstruction using Surface Gaussian Splatting. Our approach integrates a 2DGS + MLP warp-field SLAM framework with camera pose estimation and regularization, leveraging RGB-D input. To support further research, we also introduced a novel dataset for dynamic scene reconstruction with reliable ground truth. Experimen-tal results demonstrate that our method outperforms tradi-tional non-rigid SLAM approaches. 
+
+Limitations: Our method has primarily been tested on small-scale scenes; extending it to complex real-world sce-narios may require 2D priors like point tracking or optical flow. The current implementation runs at 1.5 fps, limiting real-time use. Developing interactive dynamic scene scan-ning remains important future work. 26928 6. Acknowledgement 
+
+Research presented in this paper has been supported by Dyson Technology Ltd. We are very grateful to members of the Dyson Robotics Lab for their advice and insightful discussions. 26929 References 
+
+[1] Poly haven. https://polyhaven.com/textures/ fabric . Accessed: 2024-11-01. 6 [2] Sketchfab. https://sketchfab.com/ . Accessed: 2024-11-01. 6 [3] Oliver Boyne. Blendersynth. https://ollieboyne. github.io/BlenderSynth , 2023. 6 [4] Aljaˇ z Boˇ ziˇ c, Pablo Palafox, Michael Zollh¨ ofer, Justus Thies, Angela Dai, and Matthias Nießner. Neural deforma-tion graphs for globally-consistent non-rigid reconstruction. 
+
+arXiv preprint arXiv:2012.01451 , 2020. 3 [5] Aljaˇ z Boˇ ziˇ c, Michael Zollh¨ ofer, Christian Theobalt, and Matthias Nießner. Deepdeform: Learning non-rigid rgb-d reconstruction with semi-supervised data. 2020. 3, 7 [6] D. J. Butler, J. Wulff, G. B. Stanley, and M. J. Black. A nat-uralistic open source movie for optical flow evaluation. In 
+
+Proceedings of the European Conference on Computer Vi-sion (ECCV) , 2012. 3 [7] Hongrui Cai, Wanquan Feng, Xuetao Feng, Yan Wang, and Juyong Zhang. Neural surface reconstruction of dynamic scenes with monocular rgb-d camera. In Thirty-sixth Confer-ence on Neural Information Processing Systems (NeurIPS) ,2022. 3 [8] Blender Online Community. Blender - a 3d modelling and rendering package, 2018. 3, 6 [9] Matt Deitke, Dustin Schwenk, Jordi Salvador, Luca Weihs, Oscar Michel, Eli VanderBilt, Ludwig Schmidt, Kiana Ehsani, Aniruddha Kembhavi, and Ali Farhadi. Objaverse: A universe of annotated 3d objects. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 13142–13153, 2023. 3, 6 [10] Bardienus P Duisterhof, Zhao Mandi, Yunchao Yao, Jia-Wei Liu, Jenny Seidenschwarz, Mike Zheng Shou, Ramanan Deva, Shuran Song, Stan Birchfield, Bowen Wen, and Jef-frey Ichnowski. DeformGS: Scene flow in highly deformable scenes for deformable object manipulation. WAFR , 2024. 3 [11] J. Engel, V. Koltun, and D. Cremers. Direct sparse odom-etry. IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI) , 2017. 6 [12] Hang Gao, Ruilong Li, Shubham Tulsiani, Bryan Russell, and Angjoo Kanazawa. Monocular dynamic view synthesis: A reality check. In NeurIPS , 2022. 3, 7 [13] Wei Gao and Russ Tedrake. Surfelwarp: Efficient non-volumetric single view dynamic reconstruction. In Proceed-ings of Robotics: Science and Systems (RSS) , 2018. 3, 6, 7, 8[14] R. Garg, A. Roussos, and L. Agapito. Dense variational reconstruction of non-rigid surfaces from monocular video. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2013. 2 [15] Antoine Gu´ edon and Vincent Lepetit. Sugar: Surface-aligned gaussian splatting for efficient 3d mesh reconstruc-tion and high-quality mesh rendering. 2024. 2 [16] Marc Habermann, Weipeng Xu, Michael Zollhofer, Gerard Pons-Moll, and Christian Theobalt. Deepcap: Monocular human performance capture using weak supervision. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 5052–5063, 2020. 3 [17] Binbin Huang, Zehao Yu, Anpei Chen, Andreas Geiger, and Shenghua Gao. 2d gaussian splatting for geometrically ac-curate radiance fields. In Proceedings of SIGGRAPH , 2024. 2, 3 [18] Yi-Hua Huang, Yang-Tian Sun, Ziyi Yang, Xiaoyang Lyu, Yan-Pei Cao, and Xiaojuan Qi. Sc-gs: Sparse-controlled gaussian splatting for editable dynamic scenes. Proceed-ings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 3 [19] Matthias Innmann, Michael Zollh¨ ofer, Matthias Nießner, Christian Theobalt, and Marc Stamminger. VolumeDeform: Real-time Volumetric Non-rigid Reconstruction. In Pro-ceedings of the European Conference on Computer Vision (ECCV) , 2016. 3 [20] Catalin Ionescu, Dragos Papava, Vlad Olaru, and Cristian Sminchisescu. Human3. 6m: Large scale datasets and pre-dictive methods for 3d human sensing in natural environ-ments. IEEE transactions on pattern analysis and machine intelligence , 36(7):1325–1339, 2013. 3 [21] M. M. Johari, C. Carta, and F. Fleuret. ESLAM: Efficient dense slam system based on hybrid representation of signed distance fields. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2 [22] Olaf K¨ ahler, Victor Adrian Prisacariu, and David W. Murray. Real-time large-scale dense 3d reconstruction with loop clo-sure. In Proceedings of the European Conference on Com-puter Vision (ECCV) , 2016. 2 [23] Hiroharu Kato, Yoshitaka Ushiku, and Tatsuya Harada. Neu-ral 3D mesh renderer. In Proceedings of the IEEE Confer-ence on Computer Vision and Pattern Recognition (CVPR) ,pages 3907–3916, 2018. 2 [24] Nikhil Keetha, Jay Karhade, Krishna Murthy Jatavallabhula, Gengshan Yang, Sebastian Scherer, Deva Ramanan, and Jonathon Luiten. Splatam: Splat, track map 3d gaussians for dense rgb-d slam. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , 2024. 2[25] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3D gaussian splatting for real-time radiance field rendering. ACM Transactions on Graphics (TOG) , 2023. 2 [26] Matthew Loper, Naureen Mahmood, Javier Romero, Ger-ard Pons-Moll, and Michael J. Black. SMPL: A skinned multi-person linear model. ACM Trans. Graphics (Proc. SIGGRAPH Asia) , 34(6):248:1–248:16, 2015. 3 [27] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. 3DV , 2024. 3, 6 [28] Ruibin Ma, Rui Wang, Yubo Zhang, Stephen Pizer, Sarah K McGill, Julian Rosenman, and Jan-Michael Frahm. Rnnslam: Reconstructing the 3d colon to visualize missing regions during a colonoscopy. Medical image analysis , 72: 102100, 2021. 3 [29] Hidenobu Matsuki, Riku Murai, Paul H. J. Kelly, and An-drew J. Davison. Gaussian Splatting SLAM. 2024. 2, 5, 6, 726930 [30] J. McCormac, A. Handa, A. J. Davison, and S. Leutenegger. SemanticFusion: Dense 3D semantic mapping with convo-lutional neural networks. In Proceedings of the IEEE In-ternational Conference on Robotics and Automation (ICRA) ,2017. 2 [31] Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik, Jonathan T Barron, Ravi Ramamoorthi, and Ren Ng. Nerf: Representing scenes as neural radiance fields for view syn-thesis. In Proceedings of the European Conference on Com-puter Vision (ECCV) , 2020. 2, 5 [32] Thomas M¨ uller, Alex Evans, Christoph Schied, and Alexan-der Keller. Instant neural graphics primitives with a mul-tiresolution hash encoding. ACM Transactions on Graphics (TOG) , 2022. 2, 5 [33] R. A. Newcombe, S. Izadi, O. Hilliges, D. Molyneaux, D. Kim, A. J. Davison, P. Kohli, J. Shotton, S. Hodges, and A. Fitzgibbon. KinectFusion: Real-Time Dense Surface Map-ping and Tracking. In Proceedings of the International Sym-posium on Mixed and Augmented Reality (ISMAR) , 2011. 2 [34] R. A. Newcombe, S. Lovegrove, and A. J. Davison. DTAM: Dense Tracking and Mapping in Real-Time. In Proceedings of the International Conference on Computer Vision (ICCV) ,2011. 2 [35] Richard A Newcombe, Dieter Fox, and Steven M Seitz. Dynamicfusion: Reconstruction and tracking of non-rigid scenes in real-time. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2015. 3[36] Michael Niemeyer, Lars Mescheder, Michael Oechsle, and Andreas Geiger. Differentiable volumetric rendering: Learn-ing implicit 3d representations without 3d supervision. In 
+
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. 2 [37] Keunhong Park, Utkarsh Sinha, Jonathan T. Barron, Sofien Bouaziz, Dan B Goldman, Steven M. Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable neural radiance fields. 
+
+ICCV , 2021. 3 [38] Sida Peng, Yuanqing Zhang, Yinghao Xu, Qianqian Wang, Qing Shuai, Hujun Bao, and Xiaowei Zhou. Neural body: Implicit neural representations with structured latent codes for novel view synthesis of dynamic humans. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 9054–9063, 2021. 3 [39] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-NeRF: Neural Radiance Fields for Dynamic Scenes. 3 [40] Juan J. Gomez Rodriguez, J. M. M Montiel, and Juan D. Tardos. Nr-slam: Non-rigid monocular slam. IEEE Transac-tions on Robotics (T-RO) , 2023. 3 [41] Martin R¨ unz and Lourdes Agapito. Co-fusion: Real-time segmentation, tracking and fusion of multiple objects. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2017. 3 [42] Erik Sandstr¨ om, Yue Li, Luc Van Gool, and Martin R. Os-wald. Point-slam: Dense neural point cloud-based slam. In 
+
+Proceedings of the International Conference on Computer Vision (ICCV) , 2023. 2, 6 [43] Thomas Sch¨ ops, Torsten Sattler, and Marc Pollefeys. Bad slam: Bundle adjusted direct rgb-d slam. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2019. 2 [44] Raluca Scona, Mariano Jaimez, Yvan R Petillot, Maurice Fallon, and Daniel Cremers. StaticFusion: Background re-construction for dense rgb-d slam in dynamic environments. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2018. 2 [45] Jenny Seidenschwarz, Qunjie Zhou, Bardienus Duisterhof, Deva Ramanan, and Laura Leal-Taix´ e. Dynomo: Online point tracking by dynamic online monocular gaussian recon-struction, 2024. 3 [46] Miroslava Slavcheva, Maximilian Baust, Daniel Cremers, and Slobodan Ilic. Killingfusion: Non-rigid 3d reconstruc-tion without correspondences. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2017. 3, 7 [47] Miroslava Slavcheva, Maximilian Baust, and Slobodan Ilic. Sobolevfusion: 3d reconstruction of scenes undergoing free non-rigid motion. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2018. 3 [48] J. Sol` a, J. Deray, and D. Atchuthan. A micro Lie theory for state estimation in robotics. arXiv:1812.01537 , 2018. 4 [49] Julian Straub, Thomas Whelan, Lingni Ma, Yufan Chen, Erik Wijmans, Simon Green, Jakob J. Engel, Raul Mur-Artal, Carl Ren, Shobhit Verma, Anton Clarkson, Mingfei Yan, Brian Budge, Yajie Yan, Xiaqing Pan, June Yon, Yuyang Zou, Kimberly Leon, Nigel Carter, Jesus Briales, Tyler Gillingham, Elias Mueggler, Luis Pesqueira, Manolis Savva, Dhruv Batra, Hauke M. Strasdat, Renzo De Nardi, Michael Goesele, Steven Lovegrove, and Richard Newcombe. The Replica dataset: A digital replica of indoor spaces. arXiv preprint arXiv:1906.05797 , 2019. 6 [50] J. Sturm, N. Engelhard, F. Endres, W. Burgard, and D. Cre-mers. A Benchmark for the Evaluation of RGB-D SLAM Systems. In Proceedings of the IEEE/RSJ Conference on In-telligent Robots and Systems (IROS) , 2012. 6 [51] E. Sucar, S. Liu, J. Ortiz, and A. J. Davison. iMAP: Implicit mapping and positioning in real-time. In Proceedings of the International Conference on Computer Vision (ICCV) , 2021. 2[52] L. Torresani, A. Hertzmann, and C. Chris Bregler. Nonrigid structure-from-motion: Estimating shape and motion with hierarchical priors. IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI) , 30(5), 2008. 2 [53] Edgar Tretschk, Ayush Tewari, Vladislav Golyanik, Michael Zollh¨ ofer, Christoph Lassner, and Christian Theobalt. Non-rigid neural radiance fields: Reconstruction and novel view synthesis of a dynamic scene from monocular video. 2021. 3[54] Hengyi Wang, Jingwen Wang, and Lourdes Agapito. Co-slam: Joint coordinate and sparse parametric encodings for neural real-time slam. Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2[55] Hengyi Wang, Jingwen Wang, and Lourdes Agapito. Mor-pheus: Neural dynamic 360deg surface reconstruction from 26931 monocular rgb-d video. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 20965–20976, 2024. 3, 7, 8 [56] Qianqian Wang, Vickie Ye, Hang Gao, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of motion: 4d reconstruc-tion from a single video. 2024. 3 [57] Wenshan Wang, Delong Zhu, Xiangwei Wang, Yaoyu Hu, Yuheng Qiu, Chen Wang, Yafei Hu, Ashish Kapoor, and Se-bastian Scherer. Tartanair: A dataset to push the limits of visual slam. In 2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 4909–4916. IEEE, 2020. 3 [58] T. Whelan, M. Kaess, H. Johannsson, M. F. Fallon, J. J. Leonard, and J. B. McDonald. Real-time large scale dense RGB-D SLAM with volumetric fusion. International Jour-nal of Robotics Research (IJRR) , 34(4-5):598–626, 2015. 2 [59] T. Whelan, S. Leutenegger, R. F. Salas-Moreno, B. Glocker, and A. J. Davison. ElasticFusion: Dense SLAM without a pose graph. In Proceedings of Robotics: Science and Sys-tems (RSS) , 2015. 2 [60] Chi Yan, Delin Qu, Dan Xu, Bin Zhao, Zhigang Wang, Dong Wang, and Xuelong Li. Gs-slam: Dense visual slam with 3d gaussian splatting. In CVPR , 2024. 2 [61] Xingrui Yang, Hai Li, Hongjia Zhai, Yuhang Ming, Yuqian Liu, and Guofeng Zhang. Vox-fusion: Dense tracking and mapping with voxel-based neural implicit representation. In 
+
+Proceedings of the International Symposium on Mixed and Augmented Reality (ISMAR) , 2022. 2 [62] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruction. 2024. 3, 5[63] Zeyu Yang, Hongye Yang, Zijie Pan, Xiatian Zhu, and Li Zhang. Real-time photorealistic dynamic scene representa-tion and rendering with 4d gaussian splatting. Proceedings of the International Conference on Learning Representations (ICLR) , 2024. 3, 5 [64] Zehao Yu, Torsten Sattler, and Andreas Geiger. Gaussian opacity fields: Efficient adaptive surface reconstruction in unbounded scenes. ACM Transactions on Graphics (TOG) ,2024. 2 [65] Zihan Zhu, Songyou Peng, Viktor Larsson, Weiwei Xu, Hu-jun Bao, Zhaopeng Cui, Martin R. Oswald, and Marc Polle-feys. Nice-slam: Neural implicit scalable encoding for slam. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2022. 2 26932

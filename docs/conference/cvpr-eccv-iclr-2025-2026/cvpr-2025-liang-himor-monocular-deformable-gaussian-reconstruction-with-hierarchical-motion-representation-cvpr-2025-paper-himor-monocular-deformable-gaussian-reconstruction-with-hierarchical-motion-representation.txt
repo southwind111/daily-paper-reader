@@ -1,0 +1,254 @@
+Title: HiMoR: Monocular Deformable Gaussian Reconstruction with Hierarchical Motion Representation
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Liang_HiMoR_Monocular_Deformable_Gaussian_Reconstruction_with_Hierarchical_Motion_Representation_CVPR_2025_paper.pdf
+
+Published Time: Sun, 18 May 2025 21:04:41 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# HiMoR: Monocular Deformable Gaussian Reconstruction with Hierarchical Motion Representation 
+
+# Yiming Liang 1* Tianhan Xu 2 Yuta Kikuchi 2 
+
+> 1
+
+# Waseda University 2 Preferred Networks, Inc.   
+
+> yiming liang@toki.waseda.jp, {xutianhan, kikuchi }@preferred.jp
+
+# Abstract 
+
+We present Hierarchical Motion Representation (HiMoR), a novel deformation representation for 3D Gaussian primi-tives capable of achieving high-quality monocular dynamic 3D reconstruction. The insight behind HiMoR is that mo-tions in everyday scenes can be decomposed into coarser motions that serve as the foundation for finer details. Us-ing a tree structure, HiMoR’s nodes represent different lev-els of motion detail, with shallower nodes modeling coarse motion for temporal smoothness and deeper nodes captur-ing finer motion. Additionally, our model uses a few shared motion bases to represent motions of different sets of nodes, aligning with the assumption that motion tends to be smooth and simple. This motion representation design provides Gaussians with a more structured deformation, maximiz-ing the use of temporal relationships to tackle the challeng-ing task of monocular dynamic 3D reconstruction. We also propose using a more reliable perceptual metric as an alter-native, given that pixel-level metrics for evaluating monoc-ular dynamic 3D reconstruction can sometimes fail to ac-curately reflect the true quality of reconstruction. Extensive experiments demonstrate our method’s efficacy in achieving superior novel view synthesis from challenging monocular videos with complex motions. 
+
+# 1. Introduction 
+
+Dynamic 3D scene reconstruction aims to recover the ge-ometry, appearance, and motion of dynamic scenes from video data. The reconstructed dynamic 3D model allows free-viewpoint rendering at any timestep, enabling practical applications in virtual reality, video production, and even provides an innovative way for individuals to capture and relive their memorable moments. With the recent rise of research on 3D Gaussian Splat-ting (3DGS) [17], some methods attempt to reconstruct dy-namic 3D scenes from multi-view videos by jointly learning *Work was done during an internship at Preferred Networks, Inc.. Gaussians and their deformations [28, 50]. However, re-construction from a monocular video remains particularly challenging due to the limited available information, es-pecially the lack of a multi-view consistency constraint. Recent works focus on designing deformation models for Gaussians that can better integrate temporal information across frames, overcoming the limited available informa-tion in monocular videos. For instance, Shape of Motion (SoM) [47] introduces a set of global motion bases, assign-ing each Gaussian coefficients that determine its motion, based on the insight that motion is generally smooth and simple, or in other words, low-rank. As the entire scene shares a limited number of global motion bases, capturing fine motion details becomes difficult. Another represen-tative work MoSca [15] models motion using hundreds of 3D nodes, with each Gaussian interpolating its deformation from surrounding nodes. Such a large number of motion nodes brings a high degree of freedom, making optimiza-tion prone to overfit to the training view. Similar challenges are faced by other works [25, 43, 48, 54], where methods either struggle to capture fine details or suffer from over-fitting, hindering high-quality reconstruction with smooth motion in both spatial and temporal dimensions. To tackle the aforementioned issue, we propose a novel hierarchical motion representation that captures motion at both coarse and fine levels. This approach enables high-quality monocular reconstruction of dynamic 3D scenes, maintaining both spatio-temporal consistency and fine de-tails. Specifically, our hierarchical motion representation is implemented through a tree structure, where each node represents relative motion w.r.t. its parent node. The global motion w.r.t. the world coordinate can be iteratively derived from the hierarchy of the tree structure, assuming the root node is stationary at the origin of the world coordinate. This design allows nodes at different levels ( i.e ., tree depth) to express motions at different levels of detail, enabling the decomposition of coarse and fine motion. The insight behind our approach is that, in everyday life scenarios, finer motions tend to be associated with coarser motions. For instance, the movement of fingers can be bro-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 886 ken down into the fine motion of fingers relative to the wrist, combined with the coarse motion of the arm. The benefit of this decomposition is that it not only makes learning com-plex motions easier but also leads to a more reasonable mo-tion representation: coarser motion effectively captures spa-tial and temporal smoothness, while finer motion enriches the expression of details. In addition, from an evaluation perspective, we find that due to the highly ill-posed nature of monocular dynamic scene reconstruction, commonly used pixel-level metrics (e.g., PSNR) are susceptible to factors such as depth am-biguity or inaccurate camera parameter estimation. As a result, they sometimes fail to intuitively reflect the recon-struction quality due to pixel misalignment. Therefore, we propose using a perceptual metric for evaluating rendering quality. Quantitative results also demonstrate that the per-ceptual metric aligns more closely with human perception. We evaluated our proposed method on multiple stan-dard benchmarks, demonstrating its superiority over exist-ing methods both qualitatively and quantitatively. Notably, our method made significant improvements in the spatio-temporal smoothness of the motion and the restoration of details. To summarize, our contributions are as follows: • We propose a novel hierarchical motion representation that decomposes complex motion into smooth coarse mo-tion and detailed fine motion. This provides Gaussians with more structured deformations, leading to an en-hanced representation of dynamic 3D scenes. • We identify the limitations of existing pixel-level met-rics for evaluating the rendering quality of monocular dy-namic scene reconstruction and propose the use of more appropriate perceptual metrics for evaluation. • We achieve state-of-the-art results both qualitatively and quantitatively. 
+
+# 2. Related work 2.1. Novel view synthesis 
+
+Neural Radiance Field (NeRF) [29] has revolutionized the field of novel view synthesis. NeRF leverages coordinate-based multi-layer perceptrons (MLPs) to implicitly repre-sent a scene as a field of color and density. While subse-quent works have flourished in various areas [1, 6, 11, 16, 19, 24, 31, 34, 45, 51, 57], its rendering efficiency remains a challenge due to the fundamentally computationally inten-sive rendering formulation. Recently, 3D Gaussian Splatting (3DGS) [17] has re-ceived considerable attention. Its novel scene representation with 3D Gaussian primitives, combined with an efficient rasterization-based renderer, achieves real-time rendering while maintaining or even surpassing NeRF’s quality. Sub-sequent works have further extended the capability of 3DGS in quality [13, 18, 26, 30, 58], efficiency [7, 10, 26, 32], gen-eralizability [2, 4, 44], and editability [3, 55]. While the original NeRF and 3DGS aim to reconstruct static scenes, as we detail below, combining 3D representa-tion with motion allows for a natural extension to dynamic 3D scene reconstruction. 
+
+2.2. Dynamic 3D scene reconstruction 
+
+Dynamic 3D scene reconstruction aims to recover the time-varying geometry, appearance, and motion of scenes from video observations. Some recent works utilizing videos captured by multiple synchronized cameras aim to achieve high-quality reconstruction results [8, 21, 23, 28, 37, 46, 50]. Meanwhile, other methods focus on reconstruction from monocular video, which is more closely aligned with real-world application settings [9, 15, 22, 25, 35, 36, 43, 47, 48, 54]. The essence of most methods lies in using a reasonable motion representation to deform a 3D repre-sentation, thus obtaining a dynamic scene. This strategy effectively leverages temporal sequence information, sim-plifying the challenging task of monocular reconstruction. For specific scene categories, predefined templates are of-ten used as priors for motion representation [12, 41, 49]. For general dynamic scenes, NeRF-based approaches usu-ally learn a deformation field alongside a color and density field. This field is used to warp the scene from the canoni-cal frame to each observation frame, an idea that naturally stems from NeRF’s neural field representation [9, 35, 36]. Due to the smoothness property of MLPs, deformation fields implemented by MLPs can effectively represent con-tinuous motion but often struggle to model detailed motion. Some methods based on 3DGS also rely on the deforma-tion field [25, 38, 54]. Despite 3DGS’s inherent efficiency and high-quality rendering, such combinations can still be hindered by the slow computation and oversmoothing prob-lems associated with the deformation field. Other 3DGS-based methods explicitly model a motion sequence to rep-resent deformation instead of relying on an MLP-based im-plicit field. For example, [20, 47] leverage a set of glob-ally shared motion bases to constrain the deformation field, while [15] deforms Gaussians via a sparse motion scaffold graph, ensuring spatial smoothness. As mentioned above, motion representation plays a cru-cial role in monocular dynamic 3D scene reconstruction, and there remains room for improvement in modeling de-tailed motion while maintaining temporal consistency. 
+
+# 3. Method 
+
+Given a monocular video with calibrated camera parameters that represents a dynamic scene, our goal is to reconstruct a dynamic 3DGS representation, which includes canonical Gaussians and motion sequences used for their deformation. 887 Figure 1. Overview. Left: The proposed hierarchical motion representation (HiMoR) is defined in the canonical frame with 3D Gaussian primitives. HiMoR uses a tree structure where each node represents the relative motion to its parent node, with the root node representing stationary motion that is fixed to the world coordinate origin. Top right: Child nodes that belong to the same parent node share a set of    
+
+> SE (3) motion bases, and the motion of each child node is obtained by weighting the motion bases with its own coefficients. The motion of leaf nodes relative to the world coordinate is iteratively computed based on the hierarchy of HiMoR. Bottom right: The deformation of each Gaussian is derived by weighting the motion of its K-nearest neighbor (KNN) leaf nodes within the canonical frame.
+
+3.1. Preliminary: 3D Gaussian Splatting 
+
+3DGS [17] represents a static scene with a set of anisotropic 3D Gaussian primitives, which enables real-time photo-realistic rendering. Each 3D Gaussian primitive 
+
+G(μ, !, ω, c) is parameterized by a mean μ → R3, a covari-ance matrix ! → R3→3, an opacity ω → R+, and a view-dependent color determined by spherical harmonics (SH) coefficients c → R3( l+1) 2
+
+, where l denotes the degree of SH coefficients. To render 3D Gaussians {Gk} from a camera parameterized by ε, each 3D Gaussian is first splatted to 2D Gaussian with mean μ↑ = !(μ; ε) → R2 and covariance 
+
+!↑ = !(!; ε) → R2→2 at the image plane, where ! de-notes camera projection. Then, the 2D Gaussians are sorted by depth from the camera and rendered via alpha blending with an efficient differentiable rasterizer as follows: 
+
+C(p) = 
+
+> N
+
+∑
+
+> i=1
+
+ciϑi(p)
+
+
+
+> i↓1
+
+∏
+
+> j=1
+
+(1 ↑ ϑj(p)) 
+
+ ,
+
+ϑi(p) = ωi exp 
+
+(
+
+↑ 12 (p ↑ μ↑
+
+> i
+
+)T (!↑
+
+> i
+
+)↓1 (p ↑ μ↑
+
+> i
+
+)
+
+)
+
+, (1) where p → R2 is the 2D coordinate of the queried pixel, and 
+
+N is the number of Gaussians that intersect the ray corre-sponding to the pixel. To extend 3DGS to dynamic scenes, deformations are applied to the Gaussians to transform them from a static canonical frame to target frames, leading to a dynamic Gaussian representation. Assuming Tt = [ Rt|tt] → SE (3) 
+
+as the deformation of a Gaussian G(μ0, !0, ω, c) from the canonical frame to the target frame t. The deformed Gaus-sian at t is then derived as G(Ttμ0, Rt!0, ω, c). We treat 
+
+ω and c remaining unchanged over time. 
+
+3.2. Hierarchical motion representation 
+
+The core of our approach is a hierarchical motion represen-tation (HiMoR) that deforms 3D Gaussians for dynamic 3D scene reconstruction. Specifically, HiMoR is a tree graph, where each node represents the relative SE (3) motion se-quence w.r.t. its parent node. The deformation of a 3D Gaussian is derived as the weighted sum of motions from its nearby leaf nodes. 
+
+3.2.1 Formulation 
+
+We first introduce the formulation of HiMoR. The nodes in HiMoR represent a sequence of SE (3) over a time series T :
+
+D = {Dt}Tt=1 , (2) where Dt → SE (3) denotes the transformation of a node from the canonical frame to frame t. While it could be straightforward to assign an individual motion sequence to each node, as done in MoSca [15], we consider the low-rank assumption of motion [20, 47] and propose using shared motion bases to model the motion of the nodes. Here, a motion base represents a sequence of SE (3) 
+
+transformations as B = {Bt}Tt=1 , where Bt → SE (3) . Our 888 aim is to represent the target SE (3) motion sequence by a weighted sum of a set of motion bases. Specifically, con-sider a parent node with N child nodes. We employ a set of M motion bases {B m}Mm=1 , where each child node owns coefficients {vm}Mm=1 , where vm → R, to weight these mo-tion bases. With a slight abuse of notation, the motion of a node is expressed as the linear combination of motion bases: 
+
+D =
+
+> M
+
+∑
+
+> m=1
+
+vmBm. (3) This formulation is defined recursively, with the motion of the root node set to the origin of the world coordinate ( i.e ., a time-invariant identity matrix). To provide a more detailed explanation, when a node serves as a parent, it is equipped with a set of motion bases to model the motion of its child nodes; when a node acts as a child, it is assigned coefficients to interpolate the motion bases of its parent node. Within HiMoR, the root node only serves as a parent node, and leaf nodes only act as child nodes, while all other intermediate nodes serve as both parent and child nodes. Note that due to the hierarchical nature of HiMoR, each node’s motion represents its relative motion to its parent node, rather than its absolute motion relative to the world coordinate. This modeling allows the motion to be decom-posed into coarse parts (represented by shallow nodes) and fine ones (represented by deep nodes). The coarse-to-fine design retains the ability to represent details while simpli-fying the process of learning complex motions. The global motion of each node relative to the world coordinate can be obtained by composing SE (3) transformations according to the kinematic chain of HiMoR. The motivation behind the proposed HiMoR is two-fold: 1) Motion can often be decomposed into coarse, detailed, and even more detailed components. Therefore, we employ the hierarchical tree structure for its coarse-to-fine model-ing capabilities, allowing us to capture more refined motion details at deeper levels; 2) Motion is typically low-rank, and the motion of neighboring regions tends to be similar, which leads us to model with a limited number of motion bases and nodes. 
+
+3.2.2 Deforming Gaussians with HiMoR 
+
+Given the formulation of HiMoR discussed above, we can compute the motion sequence of all nodes. For non-leaf nodes (those with child nodes), their motion sequences pro-vide a relatively rough motion foundation for the finer nodes at the next level; whereas for leaf nodes possessing the finest motion, we use them to guide the deformation of the 3D Gaussians. Specifically, the deformation T = {Tt}Tt=1 of a Gaussian G is interpolated from the leaf nodes V as: 
+
+T = ∑ 
+
+> k↔N(G, V)
+
+wkDk. (4) Each node in HiMoR is associated with a position x → R3
+
+in the canonical frame, and a radius r → R+ that controls its influence range. N (G, V) denotes the indices of the K-nearest neighbor (KNN) leaf nodes to G in terms of Eu-clidean distance. wk → R+ is the skinning weight, which is a function of the Gaussian center μ and is calculated from Gaussian function as: 
+
+wk(μ) = 1
+
+Z exp 
+
+(
+
+↑ ↓μ ↑ xk↓2
+
+2rk
+
+)
+
+, (5) where Z → R+ is a normalization term. Additionally, we use dual quaternion as [33] for better interpolation quality. Differ from methods [27, 47, 54] modeling the deforma-tion for each Gaussian, interpolating from motion nodes can make the deformation field become more spatially smooth. Meanwhile, motion nodes can receive gradients from sur-rounding Gaussians over a larger area, making the defor-mation optimization more stable. 
+
+3.2.3 Initialization 
+
+Given that monocular dynamic 3D scene reconstruction is highly ill-posed, we follow previous works [15, 47], lever-aging pretrained models ( e.g ., 2D tracking [5], depth esti-mation [53]) for the initialization of HiMoR. At the begin-ning of the optimization, HiMoR initially has only one level (i.e ., the orange nodes in Fig. 1, with the root node as their parent). As optimization progresses, the levels of HiMoR gradually increase. Here, the initialization determines the motion bases shared by the first-level nodes ( i.e ., attached to the root nodes) and the coefficients of each first-level node. We start by unprojecting 2D tracks of the foreground using metric-aligned relative depth maps to obtain 3D tracks. Next, we apply K-Means clustering to the 3D tracks, obtaining M
+
+clusters, and use their centers to define M 3D trajecto-ries. Since these trajectories include only translation ( i.e ., 
+
+R3 sequence) and lack orientation, we solve the Procrustes problem over time for each cluster to obtain M SE (3) se-quences that serve as motion bases. Then, we select the frame with the highest number of visible 3D tracks as the canonical frame. Finally, we sample node positions from the 3D tracks in the canonical frame and initialize the coef-ficients for motion bases according to the distance from the position of the motion bases ( i.e ., the cluster centers) in the canonical frame using inverse distance weighting. Nodes at the finer level are added gradually during the optimization in an iterative manner. The specific operation is similar to the initialization of the first-level nodes men-tioned above: for each leaf node, we first select Gaussians within a certain radius and calculate their relative motion w.r.t. this leaf node. Then, we cluster these relative motions into M clusters through K-Means, with the center motion of 889 each cluster serving as the motion basis. The child nodes are subsampled from the surrounding Gaussians, and the initial coefficients are derived based on their distance to the center of the motion bases. The main difference from the initial-ization of the first-level nodes is that K-Means is applied to oriented Gaussians, meaning that the resulting cluster cen-ter sequences already contain orientation information, thus eliminating the need to solve the Procrustes problem. 
+
+3.2.4 Node densification 
+
+As the nodes of HiMoR are solely initialized by the vis-ible 3D tracks in the canonical frame, they cannot effec-tively model the motion of invisible regions within that frame. Therefore, a progressive node densification strategy is needed to capture the entire motion within the scene. In the context of Gaussian densification in 3DGS [17], addi-tional Gaussians are incorporated based on the gradient of photometric loss. Previous work that employs motion nodes similar to ours [14] also used a gradient-based method for node densification. However, we found that relying solely on this approach may not always yield meaningful nodes. For instance, areas with relatively uniform color but sparse nodes may not get additional nodes, hindering a detailed representation of motion in that area. To overcome this, we propose a more intuitive node densification strategy: for each Gaussian, if its surrounding nodes are too sparse to provide it with meaningful motion interpolation, we add new nodes around it. Specifically, we measure node density around the Gaussian by calculating curve distance between the trajectories of the Gaussian and its KNN motion nodes. Following [15], the curve distance between the trajectories of two points is defined as the maximum distance between the points over time: 
+
+dcurve (X , Y) = max  
+
+> t=1 ...T
+
+↓xt ↑ yt↓, (6) where the trajectories X = {xt}Tt=1 and Y = {yt}Tt=1 de-note R3 sequences, and ↓ · ↓ means Euclidean norm. Then, we sample new motion nodes among Gaussians with curve distance above a threshold. We periodically apply this densification strategy at the beginning of the optimization, and after a certain number of steps, we add or prune nodes based on the gradient of the surrounding Gaussians, as proposed in [14], for further refinement. 
+
+3.3. Loss design 3.3.1 Rigidity loss 
+
+Rigidity loss constrains deformation by limiting the changes in displacement, velocity, etc ., in neighboring ar-eas, thus ensuring locally rigid motion and better overall preservation of geometry. Previous works [14, 15, 27, 43] have adopted such a rigidity loss to constrain motion. How-ever, they often face a dilemma: too weak a constraint might not function effectively, potentially causing the motion to disperse, while too strong a constraint may suppress the rep-resentation of detailed motion. With HiMoR’s hierarchical structure, we address this by applying different levels of constraints based on node level. Specifically, stronger constraints are imposed on shallower nodes to enforce smoother, coarser motion, while deeper nodes receive weaker constraints, allowing for greater flex-ibility in capturing fine-grained motion. The hierarchical structure, combined with the varied intensity of rigidity con-straints, achieves a coarse-to-fine decomposition of motion. 
+
+3.3.2 Overall loss 
+
+We integrate the knowledge from pre-trained models into the optimization process through loss function to mitigate the ill-posed nature of reconstruction from a monocular video. The loss function consists of multiple terms: the traditional rendering loss Lrgb , the foreground masks loss 
+
+Lmask , the depth loss Ldepth , the tracking loss Ltrack ,and the rigidity loss Lrigid . For Lmask , we use fore-ground masks produced by a segmentation model [52] as ground truth. The ground truth for Ldepth is a rela-tive depth map predicted by a monocular depth estimation model [53] aligned with either Lidar depth or the depth from COLMAP [40]. To better recover the motion, we also adopt tracking loss Ltrack that penalizes the difference be-tween the rendered tracks and the tracks predicted by pre-trained 2D tracking model [5]. In combination with Lrigid 
+
+described above, the overall loss can be written as: 
+
+Ltotal = ϖrgb Lrgb + ϖmask Lmask + ϖdepth Ldepth 
+
++ ϖtrack Ltrack + ϖrigid Lrigid . (7) The Gaussians in the canonical frame and HiMoR are opti-mized jointly with Ltotal .
+
+# 4. Experiments Implementation detail. As illustrated in Fig. 1, we use a two-layer HiMoR (excluding the root node). The first layer initializes 50 nodes to share 10 motion bases. After certain optimization/densification steps, each node in the first layer spawns 10 child nodes sharing 5 motion bases. 
+
+Datasets. We evaluate our method on the iPhone dataset [9] and the Nvidia dataset [42]. The iPhone dataset includes 14 scenes, 7 of which feature multi-camera captures for the evaluation of novel view synthesis. We follow the settings in [47], using five scenes and excluding the other two with camera inaccuracies. The Nvidia dataset consists of seven scenes captured with a rig with 12 cameras. Following [43], we perform evaluation under a strict monocular setting, us-ing video from camera 4 for training and camera 3, 5, and 6 890 Method Apple Block Paper-windmill CLIP-I → CLIP-T → LPIPS ↑ PCK-T → CLIP-I → CLIP-T → LPIPS ↑ PCK-T → CLIP-I → CLIP-T → LPIPS ↑ PCK-T →                                                                                                                                                                
+
+> T-NeRF [9] 0.8275 0.9729 0.6695 -0.8873 0.9749 0.4729 -0.9304 0.9858 0.4837 -HyperNeRF [36] 0.8314 0.9771 0.6626 0.3183 0.8882 0.9756 0.4654 0.2146 0.9218 0.9818 0.4319 0.1074 Deformable 3DGS [54] 0.7822 0.9730 0.8558 0.2412 0.8105 0.9720 0.7281 0.1651 0.8652 0.9814 0.6411 0.1583 Marbles [43] 0.8055 0.9653 0.7025 0.6923 0.8492 0.9648 0.5303 0.9333 0.8610 0.9791 0.6280 0.9444 SoM [47] 0.8100 0.9721 0.6335 0.7852 0.8658 0.9745 0.5083 0.7671 0.9225 0.9833 0.3253 0.9250 Ours 0.8798 0.9747 0.5926 0.8540 0.8707 0.9750 0.5059 0.8421 0.9275 0.9853 0.3216 0.9883 Method Spin Teddy Mean
+> CLIP-I →CLIP-T →LPIPS ↑PCK-T →CLIP-I →CLIP-T →LPIPS ↑PCK-T →CLIP-I →CLIP-T →LPIPS ↑PCK-T →
+> T-NeRF [9] 0.8328 0.9565 0.5714 -0.8242 0.9541 0.6337 -0.8604 0.9688 0.5662 -HyperNeRF [36] 0.8498 0.9594 0.4905 0.1149 0.8836 0.9630 0.5801 0.7749 0.8750 0.9714 0.5261 0.3060 Deformable 3DGS [54] 0.7457 0.9712 0.5962 0.1881 0.7791 0.9629 0.7601 0.2478 0.7965 0.9721 0.7163 0.2001 Marbles [43] 0.8272 0.9527 0.5761 0.6230 0.8097 0.9606 0.6671 0.9039 0.8305 0.9645 0.6208 0.8194 SoM [47] 0.8510 0.9585 0.3832 0.9073 0.8521 0.9676 0.5630 0.8475 0.8603 0.9712 0.4827 0.8464 Ours 0.8853 0.9658 0.3696 0.9158 0.8902 0.9744 0.5296 0.8807 0.8907 0.9750 0.4639 0.8962
+
+Table 1. Quantitative results of novel view synthesis and tracking on the iPhone dataset [9]. Cells are highlighted as: best , second best , and third best .     
+
+> PSNR: 14.42
+> CLIP-I: 0.7626
+> PSNR: 12.97 CLIP-I: 0.8264
+> Training view Novel view (GT) SoM Ours
+
+Figure 2. Visualizations of reference images and rendered re-sults. Both SoM and ours resulted in some misalignment w.r.t. the ground truth: while SoM’s result is noticeably broken, it achieves a higher PSNR due to the hand transparency; ours maintains in-tegrity in both geometry and appearance, yet has a lower PSNR. We found that evaluating reconstruction quality using a perceptual metric ( i.e ., CLIP-I [60]) aligns more with human perception. for evaluation. We use the provided camera parameters for both datasets. 
+
+Evaluation metrics. For the iPhone dataset, given the highly ill-posed nature of monocular dynamic 3D scene re-construction and the significant perspective differences be-tween training and test views, predicting the precise abso-lute positions of a scene can be quite challenging, even for humans. As illustrated in Fig. 2, predicting the exact posi-tion of the hand can be difficult, leading to a certain degree of misalignment between the reconstructed results and the ground truth. Under such misalignment, pixel-level metrics like PSNR may not always accurately reflect the quality of the reconstruction. To mitigate such impact, we propose the use of two perceptual metrics: CLIP-I to measure the co-sine similarity between the CLIP embeddings [39] of the rendered image and the ground truth, and CLIP-T to com-pare the similarity between frames with certain interval to assess temporal consistency, following the work in 4D gen-Method PSNR → SSIM → LPIPS ↑ 
+
+> T-NeRF [9]
+
+23.241 0.7462 0.11450 HyperNeRF [36] 23.237 0.7516 0.10794 Deformable 3DGS [54] 16.483 0.3741 0.33956 Marbles [43] 23.238 0.7541 0.09603 SoM [47] 23.290 0.7565 0.09374 Ours 23.400 0.7621 0.09370 Table 2. Quantitative results of novel view synthesis on the Nvidia dataset [42]. eration [56]. LPIPS [59] is also a perceptual metric, but it can still be influenced by the misalignment, thus we show it as a reference. Additionally, the evaluation protocol in [9] applies co-visibility masks to exclude regions visible in only a few training images. However, we observed that a large portion of the foreground dynamic object is masked out by this co-visibility mask, which does not properly re-flect the quality of novel view synthesis, particularly in oc-cluded regions. Consequently, we apply the co-visibility mask only to the background. We also adopt percentage of correctly transferred keypoints (PCK-T) as the metric to evaluate long-range tracking from training views, as in [9]. For the Nvidia dataset, since the perspectives of training and testing are quite similar, the misalignment is minimal. Thus, we follow previous works and use PSNR, SSIM, and LPIPS as metrics. 
+
+4.1. Results 
+
+We first evaluate our method on the iPhone dataset [9], which contains substantial occlusions and complex mo-tions. Tab. 1 presents quantitative comparisons of our method with existing NeRF-based [9, 36] and 3DGS-based [43, 47, 54] approaches. We exclude MoSca [15] 891 Training view Novel view (GT) T-NeRF HyperNeRF Def. 3DGS Marbles SoM Ours Figure 3. Qualitative results of novel view synthesis on the iPhone dataset [9]. From the top are “Apple”, “Block”, “Paper-windmill”, and “Teddy”. from the comparisons because its code is not yet publicly available (as of Nov. 2024), and the descriptions in the pa-per are insufficient for reimplementation. However, we con-duct ablation studies against a MoSca-like variant in Sec. 4.2. It is important to note that temporal consistency can be achieved even with poor image quality ( i.e ., producing the same image for all timesteps). Therefore, CLIP-T must be considered alongside CLIP-I and LPIPS for a compre-hensive assessment. Our method outperforms existing ap-proaches overall by a large margin in both novel view syn-thesis and tracking. The qualitative comparisons of novel view synthesis are shown in Fig. 3. Our method demonstrates its superiority to previous 3DGS-based approaches, which either overfit to training views ( i.e ., Def. 3DGS) or suffer from geome-try collapse ( i.e ., Marbles and SoM). Compared to NeRF-based methods, our method performs better, except for the “Block” scene. Since the hand on the right side of the novel view image is completely occluded in the training view and can move independently from other visible parts, it is nearly impossible to accurately infer its exact motion. Given the high degree of freedom in unstructured Gaussian primitives, 3DGS-based methods struggle in such cases with little di-rect supervision. In contrast, NeRF-based methods are in-herently better at interpolation with MLPs as representa-tion, leading to more reasonable results. However, their drawback is that they tend to produce blurry results ( i.e ., “Teddy”) corresponding to high LPIPS. The qualitative comparisons of temporal consistency are presented in Fig. 4. Our method better maintains temporal consistency, even outperforming NeRF-based approaches. This highlights the effectiveness of our deformation repre-sentation in constraining unstructured 3D Gaussians. We show the quantitative results on the Nvidia dataset [42] in Tab. 2. Our method achieves competitive results compared to previous approaches, demonstrating its ability to handle a wide range of scenes. 
+
+4.2. Ablation studies 
+
+We conduct ablation studies on our method using the “Spin” scene from the iPhone dataset [9]. The quantitative results are shown in Tab. 3. For a fair comparison, all variants use the same number of nodes. Regarding evaluation met-rics, LPIPS involves pixel-level calculations and is there-fore sensitive to misalignment as mentioned earlier. PCK-T is calculated from the training view, which may not fully reflect reconstruction quality. Thus, to explore the impact on the quality of novel view synthesis, our ablation studies 892 GT HyperNeRF SoM Ours 
+
+> time
+> ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↔
+
+Figure 4. Qualitative comparison of temporal consistency at novel view on the iPhone dataset [9]. The time interval of adjacent im-ages is ten frames. Method CLIP-I ↗ CLIP-T ↗ LPIPS ↘ PCK-T ↗                    
+
+> Baseline 0.8677 0.9554 0.3746 0.9296 + Motion bases 0.8736 0.9634 0.3656 0.9179 + Hierarchical structure 0.8753 0.9649 0.3655 0.9184 + Rigidity loss 0.8851 0.9653 0.3680 0.9156 + Node densification (Full) 0.8853 0.9658 0.3696 0.9158
+
+Table 3. Ablation studies on the “Spin” scene of the iPhone dataset [9]. “+” denotes that the component is incrementally added to the baseline. primarily focus on CLIP-I and CLIP-T metrics. 
+
+Baseline. We first implement a MoSca-like [15] baseline with a single level of nodes, where the motion sequence of each node is modeled independently. The baseline is opti-mized using Eq. 7, but without Lrigid . Since each node can move independently, the model is more prone to overfitting to the training views, resulting in poor rendering quality. 
+
+Motion bases. We incorporate motion bases to model the motion sequence of each node in the baseline. The total number of motion nodes and motion bases is the same as in “+ Hierarchical structure”, but only with one level. Addi-tionally, to align with the configuration, we assign five mo-tion bases to ten nodes rather than sharing them across all nodes. This adjustment significantly improves novel view synthesis performance compared to the baseline. 
+
+Hierarchical structure. With the hierarchical structure, performance improves further compared to the previous variant. In particular, the higher CLIP-T indicates that the global constraint introduced by the hierarchical struc-ture enhances spatial and temporal smoothness. We also demonstrate that our hierarchical motion design can achieve a coarse-to-fine motion decomposition in Fig. 5. 
+
+Rigidity loss. We found that rigidity loss leads to an im- 
+
+> (a) Coarse motion (b) Fine motion
+
+Figure 5. Motion decomposition via hierarchical structure. The se-quences are rendered at a fixed camera. We extract (a) coarse mo-tion by freezing second-level nodes and (b) fine motion by freezing first-level nodes. It can be observed that (a) models general move-ments of the arm and the backpack, whereas (b) captures subtle rotations of the backpack and the swing of the straps.   
+
+> Initial nodes Gradient-based [14] Ours
+
+Figure 6. Node densification. The green points represent the ini-tial nodes, while the red points denote nodes added through the densification process. Our densification strategy can add nodes to the regions with few initial nodes ( i.e ., men’s back, inside yellow circle), and the resulting nodes are more uniform. provement in performance, especially in terms of CLIP-I. This indicates that rigidity loss is effective in preserving overall geometry and preventing unrealistic distortion. 
+
+Node densification. As shown in Fig. 6, our node densifi-cation can add nodes to the regions with few nodes. With well-distributed nodes, the interpolation of motion sequence becomes smoother, resulting in an improvement. 
+
+# 5. Conclusion and limitation 
+
+We have presented HiMoR, a novel hierarchical motion rep-resentation combined with 3D Gaussian representation that significantly improves monocular dynamic 3D reconstruc-tion quality. Utilizing a tree structure, HiMoR represents motions in a coarse-to-fine manner, providing more struc-tured deformation for Gaussians. We have also highlighted the limitations of pixel-level metrics for evaluating monoc-ular dynamic 3D reconstruction and proposed using a more reliable perceptual metric as an alternative. Similar to other deformation-based approaches, one shortcoming of our method is that it struggles to accurately represent parts that do not exist in the canonical frame, such as newly added objects or newly exposed parts of the scene. Possible solutions to this limitation could include providing a separate branch to handle newly appearing objects, or de-signing an adaptive canonical space, both of which would present interesting directions for future research. 
+
+Acknowledgment. We thank Hiroharu Kato and So-suke Kobayashi for helpful discussions and comments. 893 References 
+
+[1] Jonathan T. Barron, Ben Mildenhall, Dor Verbin, Pratul P. Srinivasan, and Peter Hedman. Zip-nerf: Anti-aliased grid-based neural radiance fields. In ICCV , 2023. 2 [2] David Charatan, Sizhe Li, Andrea Tagliasacchi, and Vincent Sitzmann. pixelsplat: 3d gaussian splats from image pairs for scalable generalizable 3d reconstruction. In CVPR , 2024. 2 [3] Yiwen Chen, Zilong Chen, Chi Zhang, Feng Wang, Xiaofeng Yang, Yikai Wang, Zhongang Cai, Lei Yang, Huaping Liu, and Guosheng Lin. Gaussianeditor: Swift and controllable 3d editing with gaussian splatting. In CVPR , 2024. 2 [4] Yuedong Chen, Haofei Xu, Chuanxia Zheng, Bohan Zhuang, Marc Pollefeys, Andreas Geiger, Tat-Jen Cham, and Jianfei Cai. Mvsplat: Efficient 3d gaussian splatting from sparse multi-view images. In ECCV , 2024. 2 [5] Carl Doersch, Yi Yang, Mel Vecerik, Dilara Gokay, Ankush Gupta, Yusuf Aytar, Joao Carreira, and Andrew Zisserman. TAPIR: Tracking any point with per-frame initialization and temporal refinement. In CVPR , pages 10061–10072, 2023. 4, 5 [6] Daniel Duckworth, Peter Hedman, Christian Reiser, Pe-ter Zhizhin, Jean-Franc ¸ois Thibert, Mario Luˇ ci´ c, Richard Szeliski, and Jonathan T. Barron. Smerf: Streamable mem-ory efficient radiance fields for real-time large-scene explo-ration. ACM Trans. Graph. , 43(4), 2024. 2 [7] Zhiwen Fan, Kevin Wang, Kairun Wen, Zehao Zhu, Dejia Xu, and Zhangyang Wang. Lightgaussian: Unbounded 3d gaussian compression with 15x reduction and 200+ fps. In 
+
+NeurIPS , 2024. 2 [8] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes: Explicit radiance fields in space, time, and appearance. In 
+
+CVPR , 2023. 2 [9] Hang Gao, Ruilong Li, Shubham Tulsiani, Bryan Russell, and Angjoo Kanazawa. Monocular dynamic view synthesis: A reality check. In NeurIPS , 2022. 2, 5, 6, 7, 8 [10] Abdullah Hamdi, Luke Melas-Kyriazi, Jinjie Mai, Guocheng Qian, Ruoshi Liu, Carl Vondrick, Bernard Ghanem, and An-drea Vedaldi. Ges: Generalized exponential splatting for efficient radiance field rendering. In CVPR , pages 19812– 19822, 2024. 2 [11] Ayaan Haque, Matthew Tancik, Alexei Efros, Aleksander Holynski, and Angjoo Kanazawa. Instruct-nerf2nerf: Edit-ing 3d scenes with instructions. In ICCV , 2023. 2 [12] Liangxiao Hu, Hongwen Zhang, Yuxiang Zhang, Boyao Zhou, Boning Liu, Shengping Zhang, and Liqiang Nie. Gaussianavatar: Towards realistic human avatar modeling from a single video via animatable 3d gaussians. In CVPR ,2024. 2 [13] Binbin Huang, Zehao Yu, Anpei Chen, Andreas Geiger, and Shenghua Gao. 2d gaussian splatting for geometrically accu-rate radiance fields. In SIGGRAPH 2024 Conference Papers .Association for Computing Machinery, 2024. 2 [14] Y. Huang, Y. Sun, Z. Yang, X. Lyu, Y. Cao, and X. Qi. Sc-gs: Sparse-controlled gaussian splatting for editable dynamic scenes. In CVPR , pages 4220–4230, 2024. 5, 8 [15] Lei Jiahui, Weng Yijia, Harley Adam, Guibas Leonidas, and Daniilidis Kostas. Mosca: Dynamic gaussian fusion from casual videos via 4d motion scaffolds. arXiv preprint arXiv: 2405.17421 , 2024. 1, 2, 3, 4, 5, 6, 8 [16] Zijie Jiang, Tianhan Xu, and Hiroharu Kato. Rethinking di-rectional parameterization in neural implicit surface recon-struction. In ECCV , 2024. 2 [17] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. ACM Transactions on Graphics , 42 (4), 2023. 1, 2, 3, 5 [18] Shakiba Kheradmand, Daniel Rebain, Gopal Sharma, Wei-wei Sun, Jeff Tseng, Hossam Isack, Abhishek Kar, An-drea Tagliasacchi, and Kwang Moo Yi. 3d gaussian splatting as markov chain monte carlo. arXiv preprint arXiv:2404.09591 , 2024. 2 [19] Sosuke Kobayashi, Eiichi Matsumoto, and Vincent Sitz-mann. Decomposing nerf for editing via feature field dis-tillation. In NeurIPS , 2022. 2 [20] Agelos Kratimenos, Jiahui Lei, and Kostas Daniilidis. Dynmf: Neural motion factorization for real-time dynamic view synthesis with 3d gaussian splatting. In ECCV , 2024. 2, 3 [21] Tianye Li, Miroslava Slavcheva, Michael Zollhoefer, Simon Green, Christoph Lassner, Changil Kim, Tanner Schmidt, S. Lovegrove, Michael Goesele, Richard A. Newcombe, and Zhaoyang Lv. Neural 3d video synthesis from multi-view video. In CVPR , 2022. 2 [22] Zhengqi Li, Simon Niklaus, Noah Snavely, and Oliver Wang. Neural scene flow fields for space-time view synthesis of dy-namic scenes. In CVPR , 2021. 2 [23] Zhan Li, Zhang Chen, Zhong Li, and Yi Xu. Spacetime gaus-sian feature splatting for real-time dynamic view synthesis. In CVPR , pages 8508–8520, 2024. 2 [24] Chen-Hsuan Lin, Wei-Chiu Ma, Antonio Torralba, and Si-mon Lucey. Barf: Bundle-adjusting neural radiance fields. In ICCV , 2021. 2 [25] Qingming Liu, Yuan Liu, Jiepeng Wang, Xianqiang Lyv, Peng Wang, Wenping Wang, and Junhui Hou. Modgs: Dy-namic gaussian splatting from casually-captured monocular videos. arXiv preprint arXiv:2406.00434 , 2024. 1, 2 [26] Tao Lu, Mulin Yu, Linning Xu, Yuanbo Xiangli, Limin Wang, Dahua Lin, and Bo Dai. Scaffold-gs: Structured 3d gaussians for view-adaptive rendering. In CVPR , pages 20654–20664, 2024. 2 [27] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. In 3DV , 2024. 4, 5 [28] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. In 3DV , 2024. 1, 2 [29] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. Nerf: Representing scenes as neural radiance fields for view syn-thesis. In ECCV , 2020. 2 [30] Nicolas Moenne-Loccoz, Ashkan Mirzaei, Or Perel, Ric-cardo de Lutio, Janick Martinez Esturo, Gavriel State, Sanja 894 Fidler, Nicholas Sharp, and Zan Gojcic. 3D Gaussian Ray Tracing: Fast tracing of particle scenes. ACM Transactions on Graphics and SIGGRAPH Asia , 2024. 2 [31] Thomas M¨ uller, Alex Evans, Christoph Schied, and Alexan-der Keller. Instant neural graphics primitives with a multires-olution hash encoding. ACM Trans. Graph. , 41(4):102:1– 102:15, 2022. 2 [32] KL Navaneet, Kossar Pourahmadi Meibodi, Soroush Abbasi Koohpayegani, and Hamed Pirsiavash. Compgs: Smaller and faster gaussian splatting with vector quantization. In ECCV ,2024. 2 [33] Richard A. Newcombe, Dieter Fox, and Steven M. Seitz. Dynamicfusion: Reconstruction and tracking of non-rigid scenes in real-time. In CVPR , pages 343–352, 2015. 4 [34] Atsuhiro Noguchi, Umar Iqbal, Jonathan Tremblay, Tatsuya Harada, and Orazio Gallo. Watch it move: Unsupervised discovery of 3d joints for re-posing of articulated objects. In 
+
+CVPR , pages 3677–3687, 2022. 2 [35] Keunhong Park, Utkarsh Sinha, Jonathan T. Barron, Sofien Bouaziz, Dan B Goldman, Steven M. Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable neural radiance fields. In CVPR , 2021. 2 [36] Keunhong Park, Utkarsh Sinha, Peter Hedman, Jonathan T. Barron, Sofien Bouaziz, Dan B Goldman, Ricardo Martin-Brualla, and Steven M. Seitz. Hypernerf: A higher-dimensional representation for topologically varying neural radiance fields. ACM Trans. Graph. , 40(6), 2021. 2, 6 [37] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-NeRF: Neural Radiance Fields for Dynamic Scenes. In CVPR , 2020. 2 [38] Zhiyin Qian, Shaofei Wang, Marko Mihajlovic, Andreas Geiger, and Siyu Tang. 3dgs-avatar: Animatable avatars via deformable 3d gaussian splatting. In CVPR , 2024. 2 [39] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable visual models from natural language supervision. In International Conference on Machine Learning , pages 8748–8763, 2022. 6[40] Johannes Lutz Sch¨ onberger and Jan-Michael Frahm. Structure-from-motion revisited. In CVPR , 2016. 5 [41] Zhijing Shao, Zhaolong Wang, Zhuang Li, Duotun Wang, Xiangru Lin, Yu Zhang, Mingming Fan, and Zeyu Wang. SplattingAvatar: Realistic Real-Time Human Avatars with Mesh-Embedded Gaussian Splatting. In CVPR , 2024. 2 [42] Jae Shin Yoon, Kihwan Kim, Orazio Gallo, Hyun Soo Park, and Jan Kautz. Novel View Synthesis of Dynamic Scenes With Globally Coherent Depths From a Monocular Camera . In CVPR , pages 5335–5344, 2020. 5, 6, 7 [43] Colton Stearns, Adam W Harley, Mikaela Uy, Florian Du-bost, Federico Tombari, Gordon Wetzstein, and Leonidas Guibas. Dynamic gaussian marbles for novel view synthe-sis of casual monocular videos. In SIGGRAPH Asia 2024 Conference Papers , pages 1–11, 2024. 1, 2, 5, 6 [44] Stanislaw Szymanowicz, Christian Rupprecht, and Andrea Vedaldi. Splatter image: Ultra-fast single-view 3d recon-struction. In CVPR , 2024. 2 [45] Dor Verbin, Peter Hedman, Ben Mildenhall, Todd Zickler, Jonathan T. Barron, and Pratul P. Srinivasan. Ref-NeRF: Structured view-dependent appearance for neural radiance fields. In CVPR , 2022. 2 [46] Liao Wang, Jiakai Zhang, Xinhang Liu, Fuqiang Zhao, Yan-shun Zhang, Yingliang Zhang, Minye Wu, Jingyi Yu, and Lan Xu. Fourier plenoctrees for dynamic radiance field ren-dering in real-time. In CVPR , pages 13524–13534, 2022. 2 [47] Qianqian Wang, Vickie Ye, Hang Gao, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of motion: 4d reconstruc-tion from a single video. arXiv preprint arXiv:2407.13764 ,2024. 1, 2, 3, 4, 5, 6 [48] Shizun Wang, Xingyi Yang, Qiuhong Shen, Zhenxiang Jiang, and Xinchao Wang. Gflow: Recovering 4d world from monocular video. arXiv preprint arXiv:2405.18426 , 2024. 1, 2[49] Chung-Yi Weng, Brian Curless, Pratul P. Srinivasan, Jonathan T. Barron, and Ira Kemelmacher-Shlizerman. Hu-manNeRF: Free-viewpoint rendering of moving people from monocular video. In CVPR , pages 16210–16220, 2022. 2 [50] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering. In CVPR , pages 20310–20320, 2024. 1, 2 [51] Tianhan Xu and Tatsuya Harada. Deforming radiance fields with cages. In ECCV , 2022. 2 [52] Jinyu Yang, Mingqi Gao, Zhe Li, Shang Gao, Fangjing Wang, and Feng Zheng. Track anything: Segment anything meets videos. arXiv preprint arXiv:2304.11968 , 2023. 5 [53] Lihe Yang, Bingyi Kang, Zilong Huang, Xiaogang Xu, Jiashi Feng, and Hengshuang Zhao. Depth anything: Unleashing the power of large-scale unlabeled data. In CVPR , 2024. 4, 5[54] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruction. In CVPR ,2024. 1, 2, 4, 6 [55] Mingqiao Ye, Martin Danelljan, Fisher Yu, and Lei Ke. Gaussian grouping: Segment and edit anything in 3d scenes. In ECCV , 2024. 2 [56] Yuyang Yin, Dejia Xu, Zhangyang Wang, Yao Zhao, and Yunchao Wei. 4dgen: Grounded 4d content gen-eration with spatial-temporal consistency. arXiv preprint arXiv:2312.17225 , 2023. 6 [57] Alex Yu, Vickie Ye, Matthew Tancik, and Angjoo Kanazawa. pixelNeRF: Neural radiance fields from one or few images. In CVPR , 2021. 2 [58] Zehao Yu, Anpei Chen, Binbin Huang, Torsten Sattler, and Andreas Geiger. Mip-splatting: Alias-free 3d gaussian splat-ting. In CVPR , pages 19447–19456, 2024. 2 [59] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman, and Oliver Wang. The unreasonable effectiveness of deep features as a perceptual metric. In CVPR , 2018. 6 [60] Yuyang Zhao, Zhiwen Yan, Enze Xie, Lanqing Hong, Zhen-guo Li, and Gim Hee Lee. Animate124: Animating one im-age to 4d dynamic scene. arXiv preprint arXiv:2311.14603 ,2023. 6 895

@@ -1,0 +1,304 @@
+Title: MoVieS: Motion-Aware 4D Dynamic View Synthesis in One Second
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Lin_MoVieS_Motion-Aware_4D_Dynamic_View_Synthesis_in_One_Second_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:46:08 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# MoVieS: Motion-Aware 4D Dynamic View Synthesis in One Second 
+
+# Chenguo Lin 1∗, Yuchen Lin 1,3∗, Panwang Pan 2†,Yifan Yu 2, Tao Hu 2, Honglei Yan 2, Katerina Fragkiadaki 3, Yadong Mu 1‡
+
+> 1
+
+# Peking University, 2ByteDance, 3Carnegie Mellon University 
+
+# https://chenguolin.github.io/projects/MoVieS 
+
+# Abstract 
+
+We present MoVieS , a Mo tion-aware Vie w Synthesis model that reconstructs 4D dynamic scenes from monocular videos in one second. It represents dynamic 3D scenes with pixel-aligned Gaussian primitives and explicitly supervises their time-varying motions. This allows, for the first time, the unified modeling of appearance, geometry and motion from monocular videos, and enables reconstruction, view synthesis and 3D point tracking within a single learning-based framework. By bridging view synthesis with geome-try reconstruction, MoVieS enables large-scale training on diverse datasets with minimal dependence on task-specific supervision. As a result, it also naturally supports a wide range of zero-shot applications, such as scene flow esti-mation and moving object segmentation. Extensive exper-iments validate the effectiveness and efficiency of MoVieS across multiple tasks, achieving competitive performance while offering several orders of magnitude speedups. 
+
+# 1. Introduction 
+
+Humans and animals perceive a continuous stream of obser-vations from a dynamic 3D world, and effortlessly interpret its underlying geometry and motion. Replicating this capa-bility is essential for any embodied agent that must under-stand and act in the physical world. Recent advances have made great strides in individ-ual 3D tasks, such as monocular depth estimation [2, 6, 23, 52, 83], 3D scene reconstruction [55, 64, 68, 73, 90], novel view synthesis [12, 24, 42, 44, 75] and point track-ing [10, 15, 22, 70, 76]. However, besides treating each task in isolation, most existing view synthesis and recon-struction studies focus on static scenes and require costly per-scene optimization without learning prior knowledge. Real-world environments are inherently dynamic and di-verse, and all the aforementioned 3D scene understanding tasks could share common underlying principles.   
+
+> ∗: Equal contribution; †: Project lead; ‡: Corresponding author.
+
+Motivated by this, we introduce MoVieS , a Mo tion-aware dynamic Vie w Synthesis model for feed-forward 4D reconstruction of monocular videos, that jointly mod-els scenes’ appearance, geometry and motion. MoVieS represents 3D dynamic scenes using renderable and de-formable 3D particles, termed dynamic splatter pixels ,and utilizes a differentiable 3D Gaussian rendering frame-work [24]. Specifically, following recent practices on feed-forward view synthesis [5, 34, 62, 79, 91], each input pixel is mapped to a 3D Gaussian primitive, with its 3D loca-tion determined by predicted depth. To model dynamics, MoVieS regresses per-pixel motion displacements toward arbitrary query timestamps, enabling temporal tracking of each splatter pixel. This design facilitates coherent recon-struction of both 3D geometry and appearance across cam-era viewpoints and temporal frames. As shown in Figure 1, MoVieS is built upon a large-scale pretrained transformer backbone [46, 68], which en-codes each video frame independently and aggregates their information via attentions [65]. The aggregated features are then processed by specialized prediction heads: (1) a depth head estimates depth for each input frame, (2) a splatter head predicts per-pixel 3D Gaussian [24] appearance at-tributes, such as color and opacity, for novel view rendering, (3) a motion head estimates the time-conditioned move-ments of Gaussian primitives towards a target timestamp, allowing us to track its temporal evolution. Benefiting from the unified architecture, MoVieS can be trained on large-scale datasets featuring both static [29, 74, 96] and dynamic [3, 43] scenes, as well as point tracking datasets [20, 21, 95]. During inference, it takes a monocu-lar video, whether depicting a static or dynamic scene, and reconstructs per-pixel 3D Gaussian primitives along with their motion attributes at any target timestamp, enabling view synthesis, depth estimation, and 3D point tracking in a single model. Extensive experiments on diverse benchmarks [14, 25, 89, 96] reveal that MoVieS achieves competitive perfor-mance across a variety of 4D perception tasks, while being several orders of magnitude faster than the existing state of This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 295 Image Encoder Image Encoder 
+
+> Share Weights
+> Patchify & PE Patchify & PE
+> +
+> Camera Pos.
+> t1
+> Time Emb.
+> Feature Backbone
+> ... ... ...
+> Depth Head Motion Head
+> Query Time
+> Splat Head
+> 𝒂 = {𝒒, 𝒔, 𝛼, 𝒄 !"# }
+> +
+> tN
+> Camera Pos.
+> ... ...
+> ...
+> ...
+
+Figure 1. Overview . MoVieS consists of a shared image encoder, an attention-based feature backbone (Sec. 3.2.1), and three heads (Sec. 3.2.2) to jointly model appearance, geometry and motion. Motion head is time-conditioned to model dynamic content with respect to several query timestamps. Normalized XYZ values in the 3D space of motion maps are treated as RGB channels for visualization. Time-varying Gaussian attributes are omitted and point clouds with color and identity Gaussian attributes are visualized here for brevity. 
+
+the art. Furthermore, empowered by novel view synthesis as a proxy task, MoVieS enables dense motion understanding from sparse tracking supervision. This naturally gives rise to various applications, such as scene flow estimation and moving object segmentation, further broadening the poten-tial of our approach. In summary, our main contributions include: • We introduce MoVieS, a novel feed-forward framework that jointly models appearance, geometry and motion for 4D scene perception from monocular videos. • Dynamic splatter pixels are proposed to represent dy-namic 3D scenes as renderable deforming 3D particles, bridging novel view synthesis and dynamic geometry re-construction. • MoVieS delivers strong performance and orders of mag-nitude speedups for 4D reconstruction, and naturally en-ables a wide range of applications in a zero-shot manner. 
+
+# 2. Related Work 
+
+## 2.1. Feed-forward 3D Reconstruction 
+
+Traditional 3D reconstruction relies on dense multi-view su-pervision and per-scene optimization [16, 44, 45, 55]. Re-cent learning-based methods leverage large-scale priors to enable feed-forward prediction of depth, pose, and other 3D properties [17, 49, 52, 67]. With differentiable render-ing techniques such as 3D Gaussian Splatting (3DGS) [24], some works further regress pixel-wise Gaussian attributes for novel view synthesis [5, 9, 91]. DUSt3R [73] pioneered the direct regression of pixel-aligned pointmaps in a canon-ical space from image pairs. Its extensions [27, 38, 58, 66, 93] generalize this framework with multi-view, streaming, and 3DGS integration. VGGT [68] unifies these advances with a strong image encoder [46] and task-specific heads. However, all of these works are limited to static scenes. In contrast, in this work, we extend feed-forward 3DGS recon-struction to dynamic scenarios with moving objects. 
+
+## 2.2. Dynamic Reconstruction and View Synthesis 
+
+Compared to static reconstruction, dynamic reconstruction remains underexplored. Extensions of DUSt3R [8, 20, 60] handle dynamic reconstruction in a plug-and-play man-ner [8] or leveraging foundation models [41, 86, 90] with monocular depth [2, 50], optical flow [63], and point track-ing [22], but remain limited to two-frame inputs and out-put only sparse point clouds. CUT3R [72] extends to video inputs via recurrent updates, while diffusion-based meth-ods [19, 81] treat reconstruction as conditional generation, though at the cost of multiple passes per sequence. Instead of geometric structure, dynamic novel view syn-thesis focuses on rendering quality and view-dependent ef-fects. NeRF-based methods [4, 12, 44] reconstruct dy-namic scenes from multi-view [1, 28, 69] or monocular videos [30, 47, 51, 94], while 3DGS [24] extends this with 4D primitives [31, 85] or deformable fields [35, 37, 42, 75, 84]. Recent works further express Gaussian motion explic-itly [26, 36, 59, 61, 71], but require scratch training, iterative optimization, and external supervision from point tracking or optical flow estimation [10, 63]. For feed-forward 4D view synthesis, STORM [82] is de-signed for outdoor driving scenes from multi-view videos. BTimer [33] and NutWorld [56] estimate 3DGS attributes from monocular inputs. However, BTimer predicts inde-pendent pixel-wise 3D Gaussians per timestamp without modeling their frame-wise relations and needs an extra en-hancer module for smooth intermediate frames. NutWorld models Gaussian motion but lacks explicit supervision, re-lying heavily on pretrained depth [6] and flow [78] estima-296 Input Video   
+
+> ∈ ℝ 𝑵×𝟑×𝑯×𝑾
+> ... ...
+> Query Time
+> ∈ ℝ 𝑴
+> Motion Head AdaLN
+> Motion Map ∈ ℝ 𝑴×𝑵×𝟑×𝑯×𝑾
+> ...
+> ...
+> ...
+> ...
+> {𝒙, 𝒒, 𝒔, 𝜶, 𝒄 𝒓𝒈𝒃 }
+> Gaussian Deformation
+> ∆𝒙 ∆𝒂
+> Rasterization
+> ...
+> Rendered Video
+> ∈ ℝ 𝑴×𝟑×𝑯×𝑾
+
+Figure 2. Motion Head . Given M query timesteps, the proposed motion head is conditioned via adaptive layer normalization (AdaLN) and predicts 3D displacements for each input pixel. After rasterization using the M corresponding query-time cameras, output images in shape M × 3 × H × W are rendered for supervision. Gaussian attribute deformation ∆a is omitted for brevity. 
+
+tion models, and uses an orthographic camera, which fur-ther leads to projection distortions. 
+
+# 3. Method 
+
+Following previous studies on monocular 4D reconstruc-tion [26, 33, 37, 71, 82, 94], given a posed video V := 
+
+{Ii, Pi, Ki, t i}Ni=1 with frames Ii ∈ R3×H×W , camera poses Pi ∈ SE (3) , intrinsics Ki ∈ R3×3 and timestamps 
+
+ti ∈ [0 , 1] , we aim to train a generic model that jointly re-constructs its appearance, geometry, and motion. We leave the handling of unposed videos to future work. 
+
+## 3.1. Dynamic Splatter Pixel 
+
+To model 3D scenes with moving contents, we propose a novel representation, namely dynamic splatter pixel ,which decomposes dynamic scenes into a set of static Gaus-sian primitives and their corresponding deformation fields. Given an input video V, each pixel in the i-th frame Ii is associated with a splatter pixel gi [5, 62, 91] in a shared 
+
+canonical space of the first frame camera’s coordinate sys-tem. Each g := {x, a} is parameterized by its position 
+
+x ∈ R3 in the canonical space and other rendering attributes 
+
+a ∈ R11 , including rotation quaternion q ∈ R4, scale 
+
+s ∈ R3, opacity α ∈ R, and color crgb ∈ R3 [24]. Consider-ing splatter pixels were originally designed for static scenes, we decouple motion from geometric structure to adapt them for dynamic scenes. An additional time-dependent defor-mation field is introduced, in which each splatter pixel g
+
+is associated with m(t) := {∆x(t), ∆a(t)}. ∆x(t) ∈ R3
+
+is the motion vector of a splatter pixel at time t with re-spect to the canonical 3D space, and ∆a(t) is the change of the corresponding attributes of the splatter pixel at time 
+
+t. Therefore, the splatter pixel g is deformed to time t as: 
+
+x ← x + ∆ x(t), a ← a + ∆ a(t). (1) By combining static splatter pixels and their deformation fields, we establish the correspondence between each Gaus-sian primitive and its temporal dynamics, thereby enabling dynamic scene modeling and dense motion estimation. 
+
+## 3.2. Unify Appearance, Geometry and Motion 
+
+3.2.1. Feature Backbone 
+
+Given a posed video V = {Ii, Pi, Ki, t i}Ni=1 , we first patchify each input image Ii and use a pretrained image en-coder [46] to extract their features as shown in Figure 1. To effectively incorporate camera information, we adopt two complementary strategies to embed the camera param-eters into image features: (1) Pl ¨ ucker embedding : cam-era pose Pi and intrinsics Ki are transformed into pixel-aligned Pl¨ ucker embeddings [57], which are then downsam-pled and fused with image features via spatial-wise addi-tion; (2) Camera token : Pi and Ki are passed through a linear layer and encoded to a camera token, which is ap-pended to the sequence of image tokens. Ablation study on these two camera injection manners is validated in Sec. 4.4. To inform the model that input images originate from a temporally ordered video, we additionally encode the times-tamp ti ∈ [0 , 1] of input frames by sinusoidal positional en-coding [44] to produce a timestamp token , which is then concatenated with the aforementioned image and camera to-kens as shown in Figure 1. After tokenizing input images, camera parameters, and timestamps, we apply the geomet-rically pretrained attention blocks [65] from VGGT [68] to enable interactions among image tokens across video frames. This produces a set of shared feature tokens en-riched with inter-frame context as well as camera and tem-poral information, which are then used for predicting var-ious properties of dynamic scenes. The effect of VGGT initialization is discussed in Sec. 4.4. 
+
+3.2.2. Prediction Heads 
+
+Tokens from the feature backbone are fed into three paral-lel prediction heads that estimate the appearance, geometry and motion of a dynamic scene respectively, as shown in Figure 1. Each head adopts a DPT-style architecture [53] to convert aggregated tokens into dense predictions matching the input resolution and product dynamic splatter pixels. 297 Table 1. Training Datasets . Eight datasets from diverse sources are utilized to train MoVieS at scale.                                              
+
+> Dataset Dynamic? Depth? Tracking? Real? #Scenes
+> RealEstate10K [96] ✗✗✗✔70K TartanAir [74] ✗✔✗✗0.4K MatrixCity [29] ✗✔✗✗4.5K PointOdyssey [95] ✔✔✔✗0.1K DynamicReplica [21] ✔✔✔✗0.5K Spring [43] ✔✔✗✗0.03K VKITTI2 [3] ✔✔✗✗0.1K Stereo4D [20] ✔✔✔✔98K
+
+Depth and Splatter Head Different from previous feed-forward 3DGS reconstruction methods [5, 9, 91] that use a single head to predict all splatter pixel attributes, we adopt a decoupled design to better leverage geometric priors from the pretrained VGGT [68]. Specifically, a dedicated depth head , initialized from VGGT, is used for geometry predic-tion to provide spatial grounding for splatter pixel construc-tion, while another DPT as splatter head is trained from scratch for appearance rendering. We further incorporate a direct RGB shortcut [87] from the input image to the fi-nal convolution layer of the splatter head to preserve high-frequency details and enhance color fidelity. 
+
+Motion Head To capture scene dynamics, a novel motion head as shown in Figure 2 is introduced to predict dense de-formation m(t) for each dynamic splatter pixel at any target moment. Temporal variation is enabled by injecting the si-nusoidally encoded query time tq into the aggregated tokens via adaptive layer normalization [80] before applying DPT convolutions. For each input frame Ii at time ti, the motion head predicts its 3D movements ∆x and Gaussian attribute deformation ∆a toward tq in a shared world coordinate sys-tem. To visualize motion maps, the XYZ coordinates in 3D space are jointly normalized by their shared minimum and maximum values to the range [0 , 1] , and then mapped to RGB channels for visualization. 
+
+## 3.3. Training 
+
+3.3.1. Dataset Curation 
+
+An ideal dataset for dynamic reconstruction would include synchronized multi-view videos with dense depth and point tracking annotations. However, such data is infeasible to capture and annotate at scale in practice. Instead, we lever-age a diverse set of open-source datasets [3, 20, 21, 29, 43, 74, 95, 96], each providing complementary supervision, as shown in Table 1. With the flexible model design, MoVieS can be trained on these heterogeneous sources by aligning objectives to their respective annotations. For datasets with-out an official test split, we randomly sample 10% of the data as the test set for generalization evaluation. Details about data curation are in the supplementary material. 
+
+3.3.2. Objectives 
+
+MoVieS is trained by a multi-task objective that combines depth, rendering and motion losses: 
+
+L := λdLdepth + λrLrendering + λmLmotion . (2) 
+
+Depth and Rendering Losses Depth loss is computed as the mean squared error (MSE) between the predicted depth maps ˆDi and ground truth depth maps Di, along with their spatial gradients, after filtering out invalid values. 
+
+Ldepth := 
+
+> N
+
+X
+
+> i=1
+
+∥Di − ˆDi∥2 + ∥∇ Di − ∇ ˆDi∥1. (3) Rendering loss combines pixel-wise MSE and perceptual loss [92] between 3DGS-rendered images ˆI under M cam-era views and the video frames at corresponding target timestamps, which are randomly sampled during training. 
+
+Lrendering := 
+
+> M
+
+X
+
+> v=1
+
+∥Iv − ˆIv ∥2 + λLPIPS · LPIPS (Iv , ˆIv ). (4) Weighting terms λd, λr and λLPIPS are set to 1, 1 and 0.5 by default respectively. 
+
+Motion Loss Given 3D point tracking datasets, ground-truth motion ∆x is defined as the 3D displacement of each tracked point between any two frames. Since all 3D points are defined in the world coordinate and most tracked points remain static, implying that their corresponding motion vec-tors tend to zero. We apply a point-wise L1 loss between the predicted and ground-truth motions to promote spar-sity after filtering out points that are not visible in the input frames. Additionally, to complement direct point-to-point alignment, a distribution loss is introduced that encourages the predicted motion vectors to preserve the internal relative distance structure within each frame. The final motion loss is defined as a combination of point-wise and distribution-level supervision: 
+
+Lmotion := λpt Lpt + λdist Ldist (5) 
+
+= 1
+
+P
+
+X
+
+> i∈Ω
+
+λpt ∥∆ˆ xi − ∆xi∥1 (6) 
+
++ 1
+
+P 2
+
+X
+
+> (i,j )∈Ω×Ω
+
+λdist ∥∆ˆ xi · ∆ˆ x⊤ 
+
+> j
+
+− ∆xi · ∆x⊤ 
+
+> j
+
+∥1, (7) 
+
+where Ω denotes the set of valid P tracked points, and Ω×Ω
+
+is its Cartesian product. Weighting term λm, λpt , and λdist 
+
+are set to 10 , 1, and 10 respectively. Ablation study on the effectiveness of these two types of motion supervision is presented in Sec. 4.4. 
+
+Normalization Similar to VGGT [68], we normalize the 3D scene scale by the average Euclidean distance from each 3D point to the origin of the canonical world coordinate sys-tem. As a result, unlike some other reconstruction meth-ods [27, 72, 73], we do not apply additional normalization in the depth or motion loss. We also omit confidence-aware weighting [68, 73] for simplicity and more stable training. 298 GT Ours MoSca Shape-of-Motion Splatter-a-Video Input View Figure 3. Novel View Synthesis for Dynamic Scenes . Given a monocular video, we compare synthesized novel views of different methods. Invisible regions are rendered as black or white, depending on the implementation. More results are in the supplementary material. 
+
+# 4. Experiments 
+
+## 4.1. Experimental Settings 
+
+Implementation MoVieS is built on a geometrically pre-trained transformer, VGGT [68], via full fine-tuning. The splatter head and camera/time embeddings are trained from scratch. These new embeddings are zero-initialized to pro-vide a stable initialization without interfering with the pre-trained model. AdamW [40] with cosine learning rate scheduling and linear warm-up is used for optimization. We observed that training MoVieS is particularly unstable, likely due to sparse annotations and the heterogeneous na-ture of training datasets. A curriculum strategy is used that gradually increases the training complexity, involving (1) pretraining on static scenes, (2) dynamic scenes with vary-ing views, and (3) fine-tuning in high resolution. Several techniques, such as gsplat rendering backend [88], Deep-Speed [54], gradient checkpointing [7], gradient accumula-tion, and bf16 mixed precision, are adopted to improve memory and computation efficiency. Training completes in approximately 5 days using 32 H20 GPUs. More details are provided in the supplementary material. 
+
+Evaluation We evaluate MoVieS on two primary tasks: novel view synthesis (Sec. 4.2) and 3D point tracking (Sec. 4.3). Considering pose-aware scenarios, we provide the same camera parameters for all methods to ensure a fair comparison. Following prior works [5, 9, 26, 33, 61, 71, 79], RealEstate10K [96] is used to evaluate novel view synthesis performance on static scenes. DyCheck [14] and NVIDIA dynamic scene dataset [89] are adopted for dy-namic scenes, in terms of PSNR, SSIM and LPIPS [92]. Since the DyCheck dataset contains invisible regions in the target novel views, we compute reconstruction metrics us-ing the provided covisibility masks (denoted by a prefix “m”), ensuring a fair comparison across methods. For 3D point tracking, the TAPVid-3D [25] benchmark serves as the evaluation protocol, covering both indoor and outdoor scenes across three datasets. End-point Euclidean error in the 3D space (EPE 3D ) and the percentage of 3D points within 0.05 and 0.10 units of the ground-truth locations (δ0.05 3D and δ0.10 3D ) are utilized as metrics. A large pretrained video depth estimation model, Video Depth Anything [6], and the same camera information are combined to unpro-ject the predicted 2D tracking points of baselines into the 3D space for fair comparison. 
+
+## 4.2. Novel View Synthesis 
+
+4.2.1. Static Scene View Synthesis 
+
+As a special case of dynamic scenes, we first evaluate MoVieS on a static dataset, RealEstate10K [96], comparing against several state-of-the-art feed-forward static scene re-construction methods, including DepthSplat [79], our reim-plementation of GS-LRM [91], and our method pretrained solely on the first-stage static reconstruction. As shown in Table 2, although MoVieS is primarily designed for dynamic scenes, it maintains competitive performance on static scenes. Notably, when processing static inputs, our predicted motion naturally converges to zero (less than 1e-3), demonstrating the ability of MoVieS to implicitly differ-entiate between static and dynamic regions. 299 Table 2. Evaluation on Novel View Synthesis . The best , second best and third best results are highlighted for clarity. † indicates our reimplemented version of GS-LRM [91]. “Ours (static)” refers to our method pretrained solely on static datasets without the motion head. The same camera parameters are provided for all methods for fair comparison.                                                                                                     
+
+> Novel View Synthesis Time Per Scene RealEstate10K DyCheck NVIDIA
+> ↑PSNR ↑SSIM ↓LPIPS ↑mPSNR ↑mSSIM ↓mLPIPS ↑PSNR ↑SSIM ↓LPIPS
+> Static Feed-forward
+> DepthSplat [79] 0.60s 26.57 80.06 0.124 13.83 43.64 0.3850 17.16 50.02 0.3023 GS-LRM †[91] 0.57s 26.94 79.13 0.139 14.60 45.35 0.3775 17.83 49.88 0.3265 Ours (static) 0.84s 27.60 81.25 0.113 15.24 47.84 0.3783 18.73 50.42 0.2959
+> Optimization-based
+> Splatter-a-Video [61] 37min ---13.61 31.31 0.5706 14.39 25.38 0.5983 Shape-of-Motion [71] 10min ---17.96 56.62 0.3463 15.30 31.69 0.5087 MoSca [26] 45min ---18.24 55.14 0.3698 21.45 71.23 0.2653
+> Ours 0.93s 26.98 81.75 0.111 18.46 58.87 0.3094 19.16 51.41 0.3152
+> Table 3. Evaluation on 3D Point Tracking .The best ,second best and third best results are highlighted for clarity. †denotes combining a depth estimation model [6]. All methods are given the same camera information for unprojecting 3D tracked points.
+
+3D Point Tracking Aria Digital Twin DriveTrack Panoptic Studio 
+
+↓ EPE 3D ↑ δ0.05 3D ↑ δ0.10 3D ↓ EPE 3D ↑ δ0.05 3D ↑ δ0.10 3D ↓ EPE 3D ↑ δ0.05 3D ↑ δ0.10 3D
+
+BootsTAPIR [11] † 0.5539 17.73% 32.97% 0.0617 55.82% 75.66% 0.0650 69.28% 87.95% CoTracker3 [22] † 0.5614 19.88% 35.82% 0.0637 55.30% 77.55% 0.0617 69.27% 88.04% SpatialTracker [76] 0.5413 18.08% 38.23% 0.0648 56.58% 80.67% 0.0519 72.91% 89.86% Ours 0.2153 52.05% 71.63% 0.0472 60.63% 79.87% 0.0352 87.88% 94.61% 4.2.2. Dynamic Scene View Synthesis 
+
+We compare against three state-of-the-art open-sourced methods [26, 61, 71] for dynamic 3D Gaussian reconstruc-tion, and also report static feed-forward baselines for refer-ence. For DyCheck, we sample 13 frames of size 518 × 518 
+
+from a random clip of 65 frames from iPhone-record videos, and include the other two cameras for evaluation. For NVIDIA, 12 input views at 379 × 672 resolution are sam-pled in a round-robin style [13, 33, 39], where the i-th frame comes from the i-th camera at timestep i.As shown in Table 2, MoVieS achieves competitive or superior performance compared to baselines, while requir-ing only 0.93 s per scene, which is orders of magnitude faster than prior approaches that rely on heavy pretrained models and complex multi-stage pipelines. Qualitative vi-sualizations in Figure 3 further highlight the strength of our approach. While MoSca [26] demonstrates impressive per-formance, it struggles with sparse inputs and often over-fits to seen poses, producing spiky and over-saturated arti-facts under novel views and timesteps. In contrast, MoVieS leverages large-scale learned priors to generalize more ef-fectively, yielding smoother and more realistic results. To ensure fair comparison and better reflect real scenar-ios, no video masks for dynamic objects are used in our experiments. It poses a major challenge for optimization-based methods like Shape-of-Motion [71] and Splatter-a-Video [61], which rely heavily on explicit motion segmen-tation. The challenge is particularly evident on the NVIDIA dataset, where significant camera shake hinders disentan-gling scene dynamics, leading to notably degraded perfor-mance and even worse than static baselines. In contrast, MoVieS exhibits strong robustness by directly learning to model motion. To evaluate the robustness of our method, visualization results on the in-the-wild DAVIS dataset [48] are provided in the supplementary material, where camera poses are estimated by MegaSaM [32]. 
+
+## 4.3. 3D Point Tracking 
+
+Trained on large-scale point tracking datasets [20, 21, 95], the proposed method can also densely track any 3D point corresponding to a pixel across video frames. We com-pare MoVieS against three strong baselines, including two state-of-the-art 2D point tracking methods, BootsTAP [11] and CoTracker3 [22], as well as a native 3D point tracking approach, SpatialTracker [76]. For 2D trackers, a recent video depth estimation model [6] and ground-truth cam-era intrinsics are used to unproject tracked points into 3D space. Considering scale differences across methods, we normalize all predicted 3D points by their median norm be-fore evaluation. Quantitative results are reported in Table 3. While 3D-based SpatialTracker generally outperforms 2D-based ap-proaches, all of them rely heavily on pretrained monocular 300 N/A (w/o Motion)  w/o NVS  + L1 Loss  + Distribution Loss  Ours Video Frame Figure 4. Motion Visualization for Ablation Studies . We investigate key factors affecting motion learning in MoVieS, such as loss design and synergy with view synthesis. XYZ values in motion maps are normalized as RGB for visualization. Red arrows on video frames indicate motion directions. Table 4. Ablation study on camera conditioning. 
+
+Camera Conditioning RealEstate10K 
+
+↑ PSNR ↑ SSIM ↓ LPIPS N/A 25.56 74.13 0.150 + Pl¨ ucker embedding 25.81 74.44 0.143 + Camera token 26.81 78.65 0.121 Ours 27.60 81.25 0.113   
+
+> Table 5. Ablation study on motion supervision.
+
+Motion Supervision Aria Digital Twin 
+
+↓ EPE 3D ↑ δ0.05 3D ↑ δ0.10 3D
+
+N/A 0.7938 19.58% 32.86% + Point-wise L1 0.2262 48.74% 69.93% + Distribution loss 0.2496 45.98% 66.87% Ours 0.2153 52.05% 71.63% 
+
+depth estimators for geometry reasoning, introducing sig-nificant noise and inconsistency in the 3D space. In con-trast, MoVieS directly estimates 3D point positions in a 
+
+shared world coordinate, enabling more accurate and robust 3D tracking, and achieves consistently superior or compet-itive performance across all datasets. Visualization results are provided in the supplementary material. 
+
+## 4.4. Ablation and Analysis 
+
+Camera Conditioning We investigate different camera conditioning strategies in the static pretraining stage. As shown in Table 4, camera tokens are injected throughout the feature backbone, enabling effective camera-aware model-ing. In contrast, Pl¨ ucker embeddings provide limited condi-tioning on their own and are merely comparable to having no camera information at all. However, as a pixel-aligned representation, Pl¨ ucker embeddings are complementary to camera tokens, and their combination yields the most effec-tive camera conditioning. 
+
+Motion Supervision To learn 3D movements in dynamic scenes, we provide two kinds of motion supervision: (1) point-wise L1 loss and (2) distribution loss, as described in Equation 5. Their efficiency is evaluated via the 3D point tracking task in Table 5. Without any motion supervision, i.e., learning solely from novel view synthesis, training ex-hibits severe loss oscillations and frequent None gradients. The distribution loss captures only relative motion between pixels, while the point-wise L1 loss produces more reason-able motion maps. Combining both leads to sharper bound-aries. Qualitative results of estimated motions from differ-ent motion objectives are provided in Figure 4. 
+
+Synergy of Motion and View Synthesis Thanks to the unified design of MoVieS, it supports simultaneous novel view synthesis (NVS) and motion estimation. We study their mutual benefits in Table 6. “NVS w/o motion” dis-ables explicit motion supervision during training, relying solely on NVS as a proxy to learn dynamics. As shown in Table 6 and Figure 4, this setting fails to learn mean-ingful motion and tends to model static scenes. “Motion w/o NVS” detaches the motion head from 3DGS rendering and instead conditions the depth head on time. Although explicit supervision enables some motion learning, the pre-dictions are blurry and low-quality, as shown in Figure 4. Moreover, the depth head must now model both geometry and dynamics, increasing its burden and negatively affect-ing NVS. These results highlight the mutual reinforcement between NVS and motion estimation, where joint training leads to better performance on both. 
+
+VGGT Initialization Although MoVieS is initialized by a pretrained model, i.e., VGGT [68], it is not an essen-tial component of the proposed method. We verified it in our preliminary experiments that using a feature back-bone trained entirely from scratch still leads to compara-301 Table 6. Ablation Study on the synergy of motion estimation and novel view synthesis (NVS). 
+
+Motion & View Synthesis DyCheck NVIDIA Aria Digital Twin 
+
+↑ mPSNR ↑ mSSIM ↓ mLPIPS ↑ PSNR ↑ SSIM ↓ LPIPS ↓ EPE 3D ↑ δ0.05 3D ↑ δ0.10 3D
+
+NVS w/o motion 15.82 47.96 0.3741 18.38 48.56 0.3010 0.7938 19.58% 32.86% Motion w/o NVS 16.26 45.56 0.3461 18.98 49.39 0.3207 0.3801 24.72% 42.92% Ours 18.46 58.87 0.3094 19.16 50.41 0.3152 0.2153 52.05% 71.63% (b) Moving Object Segmentation    
+
+> (a) Scene Flow Estimation
+> Figure 5. Zero-shot Applications . Predicted motion maps from our model can be directly applied to downstream tasks, such as (a) scene flow estimation and (b) moving object segmentation, in a zero-shot manner, without any task-specific fine-tuning or supervision.
+
+ble performance with about 3 times slower convergence. The pretrained VGGT backbone simply serves to accelerate training, but does not fundamentally change the outcome. Specifically, we conduct quantitative experiments on Dy-Check at 224 × 224 resolution. MoVieS initialized from VGGT reaches 17.97 dB mPSNR within 2 days, whereas the counterpart trained from scratch achieves 16.64 dB af-ter 6 days and has not yet fully converged, suggesting that continuous training could further improve its performance. 
+
+## 4.5. Zero-shot Applications 
+
+Scene Flow Estimation Scene flow can be naturally de-rived by transforming the estimated per-pixel motion vec-tors from world coordinates to the target camera’s coor-dinates. Visualization results in Figure 5(a) present sharp edges and accurate motion directions. Different colors in the flow maps indicate different movement directions that are marked by block arrows. More visualization results are provided in the supplementary material. 
+
+Moving Object Segmentation By thresholding the norm of per-pixel motion vectors, the estimated motion maps can also be used to segment moving objects (Fig-ure 5(b)), which is an essential task in computer vision and robotics [18, 77]. Remarkably, this is achieved without any explicit supervision during training, demonstrating the strong potential of our method. More visualization results are provided in the supplementary material. 
+
+# 5. Conclusion 
+
+We introduce MoVieS, a feed-forward model for dynamic novel view synthesis from monocular videos. It’s trained on large-scale, diverse datasets and jointly models scene ap-pearance, geometry, and motion in a unified and efficient framework. Dynamic splatter pixels are proposed to rep-resent dynamic scenes, enabling accurate and temporally coherent 4D reconstruction. MoVieS also supports vari-ous applications, such as depth estimation, 3D point track-ing, scene flow estimation, and moving object segmenta-tion, showcasing its versatility for dynamic scene percep-tion. We hope this work could serve as a step toward gener-alizable dynamic scene understanding, and broader applica-tions requiring spatial intelligence. Limitations and future work are discussed in the supplementary material. 
+
+Acknowledgement : This work is supported by a collabora-tion project (No.8410103852) from Bytedance. 302 References 
+
+[1] Aayush Bansal, Minh Vo, Yaser Sheikh, Deva Ramanan, and Srinivasa Narasimhan. 4d visualization of dynamic events from unconstrained multi-view videos. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. 2 [2] Aleksei Bochkovskii, Ama ˜ AG ¸ l Delaunoy, Hugo Germain, Marcel Santos, Yichao Zhou, Stephan R Richter, and Vladlen Koltun. Depth pro: Sharp monocular metric depth in less than a second. In International Conference on Learning Representations (ICLR) , 2024. 1, 2 [3] Yohann Cabon, Naila Murray, and Martin Humenberger. Vir-tual kitti 2. arXiv preprint arXiv:2001.10773 , 2020. 1, 4 [4] Ang Cao and Justin Johnson. Hexplane: A fast representa-tion for dynamic scenes. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2 [5] David Charatan, Sizhe Lester Li, Andrea Tagliasacchi, and Vincent Sitzmann. pixelsplat: 3d gaussian splats from image pairs for scalable generalizable 3d reconstruction. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1, 2, 3, 4, 5 [6] Sili Chen, Hengkai Guo, Shengnan Zhu, Feihu Zhang, Zi-long Huang, Jiashi Feng, and Bingyi Kang. Video depth anything: Consistent depth estimation for super-long videos. In Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 1, 2, 5, 6 [7] Tianqi Chen, Bing Xu, Chiyuan Zhang, and Carlos Guestrin. Training deep nets with sublinear memory cost. arXiv preprint arXiv:1604.06174 , 2016. 5 [8] Xingyu Chen, Yue Chen, Yuliang Xiu, Andreas Geiger, and Anpei Chen. Easi3r: Estimating disentangled motion from dust3r without training. arXiv preprint arXiv:2503.24391 ,2025. 2 [9] Yuedong Chen, Haofei Xu, Chuanxia Zheng, Bohan Zhuang, Marc Pollefeys, Andreas Geiger, Tat-Jen Cham, and Jianfei Cai. Mvsplat: Efficient 3d gaussian splatting from sparse multi-view images. In European Conference on Computer Vision (ECCV) , 2024. 2, 4, 5 [10] Carl Doersch, Yi Yang, Mel Vecerik, Dilara Gokay, Ankush Gupta, Yusuf Aytar, Joao Carreira, and Andrew Zisserman. Tapir: Tracking any point with per-frame initialization and temporal refinement. In International Conference on Com-puter Vision (ICCV) , 2023. 1, 2 [11] Carl Doersch, Pauline Luc, Yi Yang, Dilara Gokay, Skanda Koppula, Ankush Gupta, Joseph Heyward, Ignacio Rocco, Ross Goroshin, Jo˜ ao Carreira, et al. Bootstap: Bootstrapped training for tracking-any-point. In Proceedings of the Asian Conference on Computer Vision (ACCV) , 2024. 6 [12] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes: Explicit radiance fields in space, time, and appearance. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition (CVPR) , 2023. 1, 2 [13] Chen Gao, Ayush Saraf, Johannes Kopf, and Jia-Bin Huang. Dynamic view synthesis from dynamic monocular video. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2021. 6 [14] Hang Gao, Ruilong Li, Shubham Tulsiani, Bryan Russell, and Angjoo Kanazawa. Monocular dynamic view synthesis: A reality check. In Advances in Neural Information Process-ing Systems (NeurIPS) , 2022. 1, 5 [15] Adam W Harley, Zhaoyuan Fang, and Katerina Fragkiadaki. Particle video revisited: Tracking through occlusions using point trajectories. In European Conference on Computer Vi-sion (ECCV) , 2022. 1 [16] Richard Hartley and Andrew Zisserman. Multiple view ge-ometry in computer vision . Cambridge University Press, 2003. 2 [17] Mu Hu, Wei Yin, Chi Zhang, Zhipeng Cai, Xiaoxiao Long, Hao Chen, Kaixuan Wang, Gang Yu, Chunhua Shen, and Shaojie Shen. Metric3d v2: A versatile monocular geomet-ric foundation model for zero-shot metric depth and surface normal estimation. Transactions on Pattern Analysis and Machine Intelligence (T-PAMI) , 2024. 2 [18] Nan Huang, Wenzhao Zheng, Chenfeng Xu, Kurt Keutzer, Shanghang Zhang, Angjoo Kanazawa, and Qianqian Wang. Segment any motion in videos. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 8 [19] Zeren Jiang, Chuanxia Zheng, Iro Laina, Diane Larlus, and Andrea Vedaldi. Geo4d: Leveraging video genera-tors for geometric 4d scene reconstruction. arXiv preprint arXiv:2504.07961 , 2025. 2 [20] Linyi Jin, Richard Tucker, Zhengqi Li, David Fouhey, Noah Snavely, and Aleksander Holynski. Stereo4d: Learning how things move in 3d from internet stereo videos. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 1, 2, 4, 6 [21] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia Neverova, Andrea Vedaldi, and Christian Rupprecht. Dy-namicstereo: Consistent dynamic depth from stereo videos. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 1, 4, 6 [22] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia Neverova, Andrea Vedaldi, and Christian Rupprecht. Co-tracker: It is better to track together. In European Conference on Computer Vision (ECCV) , 2024. 1, 2, 6 [23] Bingxin Ke, Anton Obukhov, Shengyu Huang, Nando Met-zger, Rodrigo Caye Daudt, and Konrad Schindler. Repurpos-ing diffusion-based image generators for monocular depth estimation. In Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1 [24] Bernhard Kerbl, Georgios Kopanas, Thomas Leimkuehler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. Transactions on Graphics (TOG) ,2023. 1, 2, 3 [25] Skanda Koppula, Ignacio Rocco, Yi Yang, Joe Heyward, Jo˜ ao Carreira, Andrew Zisserman, Gabriel Brostow, and Carl Doersch. Tapvid-3d: A benchmark for tracking any point in 3d. In Advances in Neural Information Processing Systems (NeurIPS) , 2024. 1, 5 [26] Jiahui Lei, Yijia Weng, Adam Harley, Leonidas Guibas, and Kostas Daniilidis. Mosca: Dynamic gaussian fusion from 303 casual videos via 4d motion scaffolds. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2, 3, 5, 6 [27] Vincent Leroy, Yohann Cabon, and J´ erˆ ome Revaud. Ground-ing image matching in 3d with mast3r. In European Confer-ence on Computer Vision (ECCV) , 2024. 2, 4 [28] Tianye Li, Mira Slavcheva, Michael Zollhoefer, Simon Green, Christoph Lassner, Changil Kim, Tanner Schmidt, Steven Lovegrove, Michael Goesele, Richard Newcombe, et al. Neural 3d video synthesis from multi-view video. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition (CVPR) , 2022. 2 [29] Yixuan Li, Lihan Jiang, Linning Xu, Yuanbo Xiangli, Zhen-zhi Wang, Dahua Lin, and Bo Dai. Matrixcity: A large-scale city dataset for city-scale neural rendering and beyond. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2023. 1, 4 [30] Zhengqi Li, Qianqian Wang, Forrester Cole, Richard Tucker, and Noah Snavely. Dynibar: Neural dynamic image-based rendering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2 [31] Zhan Li, Zhang Chen, Zhong Li, and Yi Xu. Spacetime gaus-sian feature splatting for real-time dynamic view synthesis. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [32] Zhengqi Li, Richard Tucker, Forrester Cole, Qianqian Wang, Linyi Jin, Vickie Ye, Angjoo Kanazawa, Aleksander Holyn-ski, and Noah Snavely. Megasam: Accurate, fast, and robust structure and motion from casual dynamic videos. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 6 [33] Hanxue Liang, Jiawei Ren, Ashkan Mirzaei, Antonio Tor-ralba, Ziwei Liu, Igor Gilitschenski, Sanja Fidler, Cengiz Oztireli, Huan Ling, Zan Gojcic, and Jiahui Huang. Feed-forward bullet-time reconstruction of dynamic scenes from monocular videos. arXiv preprint arXiv:2412.03526 , 2024. 2, 3, 5, 6 [34] Chenguo Lin, Panwang Pan, Bangbang Yang, Zeming Li, and Yadong Mu. Diffsplat: Repurposing image diffusion models for scalable gaussian splat generation. arXiv preprint arXiv:2501.16764 , 2025. 1 [35] Youtian Lin, Zuozhuo Dai, Siyu Zhu, and Yao Yao. Gaussian-flow: 4d reconstruction with dynamic 3d gaussian particle. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [36] Yuchen Lin, Chenguo Lin, Jianjin Xu, and Yadong Mu. Omniphysgs: 3d constitutive gaussians for gen-eral physics-based dynamics generation. arXiv preprint arXiv:2501.18982 , 2025. 2 [37] Qingming Liu, Yuan Liu, Jiepeng Wang, Xianqiang Lyu, Peng Wang, Wenping Wang, and Junhui Hou. Modgs: Dy-namic gaussian splatting from casually-captured monocular videos with depth priors. In International Conference on Learning Representations (ICLR) , 2025. 2, 3 [38] Yuzheng Liu, Siyan Dong, Shuzhe Wang, Yanchao Yang, Qingnan Fan, and Baoquan Chen. Slam3r: Real-time dense scene reconstruction from monocular rgb videos. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [39] Yu-Lun Liu, Chen Gao, Andreas Meuleman, Hung-Yu Tseng, Ayush Saraf, Changil Kim, Yung-Yu Chuang, Jo-hannes Kopf, and Jia-Bin Huang. Robust dynamic radiance fields. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2023. 6 [40] Ilya Loshchilov and Frank Hutter. Decoupled weight de-cay regularization. In International Conference on Learning Representations (ICLR) , 2018. 5 [41] Jiahao Lu, Tianyu Huang, Peng Li, Zhiyang Dou, Cheng Lin, Zhiming Cui, Zhen Dong, Sai-Kit Yeung, Wenping Wang, and Yuan Liu. Align3r: Aligned monocular depth estima-tion for dynamic videos. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [42] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. In International Conference on 3D Vision (3DV) , 2024. 1, 2 [43] Lukas Mehl, Jenny Schmalfuss, Azin Jahedi, Yaroslava Nali-vayko, and Andr´ es Bruhn. Spring: A high-resolution high-detail dataset and benchmark for scene flow, optical flow and stereo. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 4981– 4991, 2023. 1, 4 [44] B Mildenhall, PP Srinivasan, M Tancik, JT Barron, R Ra-mamoorthi, and R Ng. Nerf: Representing scenes as neural radiance fields for view synthesis. In European Conference on Computer Vision (ECCV) , 2020. 1, 2, 3 [45] Raul Mur-Artal, Jose Maria Martinez Montiel, and Juan D Tardos. Orb-slam: A versatile and accurate monocular slam system. IEEE Transactions on Robotics (T-RO) , 2015. 2 [46] Maxime Oquab, Timoth´ ee Darcet, Th´ eo Moutakanni, Huy Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa, Alaaeldin El-Nouby, et al. Dinov2: Learning robust visual features without supervision. 
+
+Transactions on Machine Learning Research (TMLR) , 2024. 1, 2, 3 [47] Keunhong Park, Utkarsh Sinha, Jonathan T Barron, Sofien Bouaziz, Dan B Goldman, Steven M Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable neural radiance fields. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2021. 2 [48] F. Perazzi, J. Pont-Tuset, B. McWilliams, L. Van Gool, M. Gross, and A. Sorkine-Hornung. A benchmark dataset and evaluation methodology for video object segmentation. In 
+
+Computer Vision and Pattern Recognition (CVPR) , 2016. 6 [49] Luigi Piccinelli, Yung-Hsu Yang, Christos Sakaridis, Mattia Segu, Siyuan Li, Luc Van Gool, and Fisher Yu. Unidepth: Universal monocular metric depth estimation. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [50] Luigi Piccinelli, Christos Sakaridis, Yung-Hsu Yang, Mat-tia Segu, Siyuan Li, Wim Abbeloos, and Luc Van Gool. Unidepthv2: Universal monocular metric depth estimation made simpler. arXiv preprint arXiv:2502.20110 , 2025. 2 304 [51] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-nerf: Neural radiance fields for dynamic scenes. In Proceedings of the IEEE/CVF Confer-ence on Computer Vision and Pattern Recognition (CVPR) ,2021. 2 [52] Ren´ e Ranftl, Katrin Lasinger, David Hafner, Konrad Schindler, and Vladlen Koltun. Towards robust monocular depth estimation: Mixing datasets for zero-shot cross-dataset transfer. Transactions on Pattern Analysis and Machine In-telligence (T-PAMI) , 2020. 1, 2 [53] Ren´ e Ranftl, Alexey Bochkovskiy, and Vladlen Koltun. Vi-sion transformers for dense prediction. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) , 2021. 3 [54] Jeff Rasley, Samyam Rajbhandari, Olatunji Ruwase, and Yuxiong He. Deepspeed: System optimizations enable train-ing deep learning models with over 100 billion parameters. In Proceedings of the 26th ACM SIGKDD international con-ference on knowledge discovery & data mining , 2020. 5 [55] Johannes L Schonberger and Jan-Michael Frahm. Structure-from-motion revisited. In Computer Vision and Pattern Recognition (CVPR) , 2016. 1, 2 [56] Qiuhong Shen, Xuanyu Yi, Mingbao Lin, Hanwang Zhang, Shuicheng Yan, and Xinchao Wang. Seeing world dynamics in a nutshell. arXiv preprint arXiv:2502.03465 , 2025. 2 [57] Vincent Sitzmann, Semon Rezchikov, Bill Freeman, Josh Tenenbaum, and Fredo Durand. Light field networks: Neural scene representations with single-evaluation render-ing. In Advances in Neural Information Processing Systems (NeurIPS) , 2021. 3 [58] Brandon Smart, Chuanxia Zheng, Iro Laina, and Vic-tor Adrian Prisacariu. Splatt3r: Zero-shot gaussian splatting from uncalibrated image pairs. arXiv preprint arXiv:2408.13912 , 2024. 2 [59] Colton Stearns, Adam Harley, Mikaela Uy, Florian Dubost, Federico Tombari, Gordon Wetzstein, and Leonidas Guibas. Dynamic gaussian marbles for novel view synthesis of casual monocular videos. In SIGGRAPH Asia Conference Papers ,2024. 2 [60] Edgar Sucar, Zihang Lai, Eldar Insafutdinov, and An-drea Vedaldi. Dynamic point maps: A versatile repre-sentation for dynamic 3d reconstruction. arXiv preprint arXiv:2503.16318 , 2025. 2 [61] Yang-Tian Sun, Yihua Huang, Lin Ma, Xiaoyang Lyu, Yan-Pei Cao, and Xiaojuan Qi. Splatter a video: Video gaussian representation for versatile processing. In Advances in Neu-ral Information Processing Systems (NeurIPS) , 2024. 2, 5, 6[62] Stanislaw Szymanowicz, Chrisitian Rupprecht, and Andrea Vedaldi. Splatter image: Ultra-fast single-view 3d recon-struction. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1, 3[63] Zachary Teed and Jia Deng. Raft: Recurrent all-pairs field transforms for optical flow. In European Conference on Computer Vision (ECCV) , 2020. 2 [64] Zachary Teed and Jia Deng. Droid-slam: Deep visual slam for monocular, stereo, and rgb-d cameras. In Advances in Neural Information Processing Systems (NeurIPS) , 2021. 1 [65] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-reit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems (NeurIPS) , 2017. 1, 3 [66] Hengyi Wang and Lourdes Agapito. 3d reconstruction with spatial memory. In International Conference on 3D Vision (3DV) , 2025. 2 [67] Jianyuan Wang, Nikita Karaev, Christian Rupprecht, and David Novotny. Vggsfm: Visual geometry grounded deep structure from motion. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [68] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea Vedaldi, Christian Rupprecht, and David Novotny. Vggt: Visual geometry grounded transformer. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 1, 2, 3, 4, 5, 7 [69] Liao Wang, Jiakai Zhang, Xinhang Liu, Fuqiang Zhao, Yan-shun Zhang, Yingliang Zhang, Minye Wu, Jingyi Yu, and Lan Xu. Fourier plenoctrees for dynamic radiance field ren-dering in real-time. In Proceedings of the IEEE/CVF Confer-ence on Computer Vision and Pattern Recognition (CVPR) ,2022. 2 [70] Qianqian Wang, Yen-Yu Chang, Ruojin Cai, Zhengqi Li, Bharath Hariharan, Aleksander Holynski, and Noah Snavely. Tracking everything everywhere all at once. In Proceedings of the IEEE/CVF International Conference on Computer Vi-sion (ICCV) , 2023. 1 [71] Qianqian Wang, Vickie Ye, Hang Gao, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of motion: 4d reconstruc-tion from a single video. In International Conference on Computer Vision (ICCV) , 2025. 2, 3, 5, 6 [72] Qianqian Wang, Yifei Zhang, Aleksander Holynski, Alexei A Efros, and Angjoo Kanazawa. Continuous 3d perception model with persistent state. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2, 4 [73] Shuzhe Wang, Vincent Leroy, Yohann Cabon, Boris Chidlovskii, and Jerome Revaud. Dust3r: Geometric 3d vi-sion made easy. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1, 2, 4 [74] Wenshan Wang, Delong Zhu, Xiangwei Wang, Yaoyu Hu, Yuheng Qiu, Chen Wang, Yafei Hu, Ashish Kapoor, and Se-bastian Scherer. Tartanair: A dataset to push the limits of vi-sual slam. In International Conference on Intelligent Robots and Systems (IROS) , 2020. 1, 4 [75] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 1, 2 [76] Yuxi Xiao, Qianqian Wang, Shangzhan Zhang, Nan Xue, Sida Peng, Yujun Shen, and Xiaowei Zhou. Spatialtracker: 305 Tracking any 2d pixels in 3d space. In Conference on Com-puter Vision and Pattern Recognition (CVPR) , 2024. 1, 6 [77] Junyu Xie, Charig Yang, Weidi Xie, and Andrew Zisserman. Moving object segmentation: All you need is sam (and flow). In Proceedings of the Asian Conference on Computer Vision (ACCV) , 2024. 8 [78] Haofei Xu, Jing Zhang, Jianfei Cai, Hamid Rezatofighi, Fisher Yu, Dacheng Tao, and Andreas Geiger. Unifying flow, stereo and depth estimation. Transactions on Pattern Analy-sis and Machine Intelligence (T-PAMI) , 2023. 2 [79] Haofei Xu, Songyou Peng, Fangjinhua Wang, Hermann Blum, Daniel Barath, Andreas Geiger, and Marc Pollefeys. Depthsplat: Connecting gaussian splatting and depth. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 1, 5, 6 [80] Jingjing Xu, Xu Sun, Zhiyuan Zhang, Guangxiang Zhao, and Junyang Lin. Understanding and improving layer normaliza-tion. In Advances in Neural Information Processing Systems (NeurIPS) , 2019. 4 [81] Tian-Xing Xu, Xiangjun Gao, Wenbo Hu, Xiaoyu Li, Song-Hai Zhang, and Ying Shan. Geometrycrafter: Consistent ge-ometry estimation for open-world videos with diffusion pri-ors. arXiv preprint arXiv:2504.01016 , 2025. 2 [82] Jiawei Yang, Jiahui Huang, Yuxiao Chen, Yan Wang, Boyi Li, Yurong You, Maximilian Igl, Apoorva Sharma, Peter Karkus, Danfei Xu, Boris Ivanovic, Yue Wang, and Marco Pavone. Storm: Spatio-temporal reconstruction model for large-scale outdoor scenes. In International Conference on Learning Representations (ICLR) , 2025. 2, 3 [83] Lihe Yang, Bingyi Kang, Zilong Huang, Zhen Zhao, Xiao-gang Xu, Jiashi Feng, and Hengshuang Zhao. Depth any-thing v2. Advances in Neural Information Processing Sys-tems (NeurIPS) , 2024. 1 [84] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruction. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2 [85] Zeyu Yang, Hongye Yang, Zijie Pan, and Li Zhang. Real-time photorealistic dynamic scene representation and render-ing with 4d gaussian splatting. In International Conference on Learning Representations (ICLR) , 2024. 2 [86] David Yifan Yao, Albert J Zhai, and Shenlong Wang. Uni4d: Unifying visual foundation models for 4d modeling from a single video. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2[87] Botao Ye, Sifei Liu, Haofei Xu, Xueting Li, Marc Pollefeys, Ming-Hsuan Yang, and Songyou Peng. No pose, no problem: Surprisingly simple 3d gaussian splats from sparse unposed images. In International Conference on Learning Represen-tations (ICLR) , 2025. 4 [88] Vickie Ye, Ruilong Li, Justin Kerr, Matias Turkulainen, Brent Yi, Zhuoyang Pan, Otto Seiskari, Jianbo Ye, Jeffrey Hu, Matthew Tancik, et al. gsplat: An open-source library for gaussian splatting. Journal of Machine Learning Research (JMLR) , 2025. 5 [89] Jae Shin Yoon, Kihwan Kim, Orazio Gallo, Hyun Soo Park, and Jan Kautz. Novel view synthesis of dynamic scenes with globally coherent depths from a monocular camera. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2020. 1, 5 [90] Junyi Zhang, Charles Herrmann, Junhwa Hur, Varun Jam-pani, Trevor Darrell, Forrester Cole, Deqing Sun, and Ming-Hsuan Yang. Monst3r: A simple approach for estimating geometry in the presence of motion. In International Con-ference on Learning Representations (ICLR) , 2025. 1, 2 [91] Kai Zhang, Sai Bi, Hao Tan, Yuanbo Xiangli, Nanxuan Zhao, Kalyan Sunkavalli, and Zexiang Xu. Gs-lrm: Large recon-struction model for 3d gaussian splatting. In European Con-ference on Computer Vision (ECCV) , 2024. 1, 2, 3, 4, 5, 6[92] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shecht-man, and Oliver Wang. The unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2018. 4, 5 [93] Shangzhan Zhang, Jianyuan Wang, Yinghao Xu, Nan Xue, Christian Rupprecht, Xiaowei Zhou, Yujun Shen, and Gor-don Wetzstein. Flare: Feed-forward geometry, appearance and camera estimation from uncalibrated sparse views, 2025. 2[94] Xiaoming Zhao, Alex Colburn, Fangchang Ma, Miguel An-gel Bautista, Joshua M. Susskind, and Alexander G. Schwing. Pseudo-generalized dynamic view synthesis from a video. In International Conference on Learning Represen-tations (ICLR) , 2024. 2, 3 [95] Yang Zheng, Adam W Harley, Bokui Shen, Gordon Wet-zstein, and Leonidas J Guibas. Pointodyssey: A large-scale synthetic dataset for long-term point tracking. In Proceed-ings of the IEEE/CVF International Conference on Com-puter Vision (ICCV) , 2023. 1, 4, 6 [96] Tinghui Zhou, Richard Tucker, John Flynn, Graham Fyffe, and Noah Snavely. Stereo magnification: learning view syn-thesis using multiplane images. Transactions on Graphics (TOG) , 2018. 1, 4, 5 306

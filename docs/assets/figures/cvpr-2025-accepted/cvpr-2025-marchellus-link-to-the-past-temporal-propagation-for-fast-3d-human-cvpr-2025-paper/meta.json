@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 1,
+      "index": 1,
+      "width": 5044,
+      "height": 1324
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-002.webp",
+      "caption": "",
+      "page": 3,
+      "index": 2,
+      "width": 5510,
+      "height": 3430
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-003.webp",
+      "caption": "",
+      "page": 4,
+      "index": 3,
+      "width": 2736,
+      "height": 1298
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-004.webp",
+      "caption": "",
+      "page": 5,
+      "index": 4,
+      "width": 3168,
+      "height": 2016
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-005.webp",
+      "caption": "",
+      "page": 7,
+      "index": 5,
+      "width": 3254,
+      "height": 1882
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-marchellus-link-to-the-past-temporal-propagation-for-fast-3d-human-cvpr-2025-paper/fig-006.webp",
+      "caption": "",
+      "page": 8,
+      "index": 6,
+      "width": 2412,
+      "height": 1340
+    }
+  ]
+}

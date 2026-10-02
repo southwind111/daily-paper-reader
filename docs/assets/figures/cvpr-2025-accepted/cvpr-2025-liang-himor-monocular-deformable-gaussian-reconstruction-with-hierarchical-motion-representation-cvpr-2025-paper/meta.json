@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liang-himor-monocular-deformable-gaussian-reconstruction-with-hierarchical-motion-representation-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 3,
+      "index": 1,
+      "width": 1883,
+      "height": 869
+    }
+  ]
+}

@@ -1,0 +1,411 @@
+Title: MSCD-GS: Motion-Separated Cooperative Deblurring Dynamic Reconstruction via Gaussian Splatting
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Liao_MSCD-GS_Motion-Separated_Cooperative_Deblurring_Dynamic_Reconstruction_via_Gaussian_Splatting_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:47:41 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# MSCD-GS: Motion-Separated Cooperative Deblurring Dynamic Reconstruction via Gaussian Splatting 
+
+## Yongjian Liao 1,† Xu Zou 1,†,∗ Wenjun Chen 2 Huixuan Li 2 Xiaoen Xie 2 Chunxi Li 1
+
+## Shixiang Huang 1 Gang Zhang 3 Jiahuan Zhou 4,∗ Sheng Zhong 1 Luxin Yan 11Huazhong University of Science and Technology 2Guangdong University of Technology  
+
+> 3
+
+## China Mobile (Hangzhou) Information Technology Co., Ltd. 4Peking University (d) Sharp Image (GT) (a) Blurry Image (b) NAFNet (c) Ours    
+
+> (a) Blurred Image (b) NAFNet (c) SoM + NAFNet (d) MSCD-GS (Ours)
+
+Figure 1. Motion blur is inevitably present in images captured by a monocular camera, which significantly degrades the quality of 4D reconstruction. Although the addition of the deblurring model NAFNet [2] improves image sharpness, the reconstruction results of SoM [34] still suffer from blur. Therefore, we propose a novel deblurring 4D Gaussian method MSCD-GS, which can render sharper images. 
+
+## Abstract 
+
+Although 4D reconstruction based on Gaussian Splat-ting has achieved many impressive results, reconstructing real-world images captured by a casual monocular camera remains a significant challenge. In dynamic scenes, as the camera and objects move during the exposure time, these input images inevitably contain a considerable amount of motion blur, which severely compromises the quality of re-construction and new view synthesis. The existing deblur-ring 3D Gaussian models still cannot directly handle mo-tion blur issues in real 4D dynamic scenes. To address these challenges, we propose MSCD-GS—a novel method for motion-separated collaborative deblurring 4D recon-struction via Gaussian Splatting, capable of effectively han-dling motion-blurred inputs. Specifically, due to the distinct motion characteristics of static and dynamic Gaussians, we perform separate motion models for dynamic scene recon-struction. To predict Gaussian changes over exposure time, we designed motion-aware networks for static and dynamic Gaussians, thereby synthesizing blurred virtual images. Fi-nally, we utilize the results from the deblurring model and the synthesized images to supervise 4D reconstruction collaboratively. Extensive experiments demonstrate that  
+
+> †Equal contribution. ∗Corresponding author.
+
+MSCD-GS can effectively reconstruct high-quality dynamic scenes from blurred image inputs, with performance sur-passing existing methods. Our project page is available at https://liaoyongjian1.github.io/MSCD-GS/. 
+
+## 1. Introduction 
+
+4D reconstruction [13, 16, 25, 35] has emerged as an exten-sion of 3D reconstruction [9, 21], aiming not only to recover spatial geometry but also to model the temporal evolution of dynamic scenes. 4D reconstruction explicitly captures time-varying geometry, motion, and appearance changes, making it indispensable for applications such as dynamic SLAM [8, 41, 48], autonomous driving [7, 27, 50], and robotic perception [17, 18, 39]. However, the introduc-tion of the temporal dimension also brings additional chal-lenges. In dynamic scenes, both the foreground objects and the background may move relative to each other, resulting in complex non-rigid deformations and depth inconsistencies across frames. Moreover, when the camera itself is mov-ing, real-world cameras integrate light over a finite expo-sure time. Consequently, when either the camera or scene objects are in motion during this integration period, the cap-tured images inevitably contain motion blur. Motion blur arises from positional offsets between the This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 11726 Methods Deblurring Novel View Synthesis                                
+
+> PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> NAFNet [2] (Lower Bound) 32.65 0.933 0.078 ---SoM [34] + NAFNet [2] 29.01 0.949 0.101 27.76 0.910 0.167 MSCD-GS 33.21 0.957 0.043 29.49 0.941 0.065 MSCD-GS* (Upper Bound) 38.96 0.976 0.017 29.99 0.945 0.045
+> Table 1. Quantitative comparison on the Stereo Blur dataset. *indicates that sharp images are used as input, while all others use motion-blurred images.
+
+camera and moving objects during the exposure time. This issue frequently occurs in data acquisition. If such blurred images are used for supervised training, the model’s render-ing results will inevitably be severely compromised. Typ-ically, motion blur can be categorized into camera motion blur and object motion blur. Camera motion blur is caused by changes in camera pose during the exposure period, whereas object motion blur emerges from the intertwined movements of objects and the camera. Obviously, address-ing object motion blur is far more challenging. For the problem of camera motion blur, several NeRF-based [20, 33] and 3DGS-based [3, 47] methods generate multiple virtual frames within the exposure time to synthe-size blurred images, which are then aligned with the input blurred images. However, this type of approach only applies to deblurring static backgrounds and fails to resolve object motion blur. Currently, BARD-GS [19] and Deblur4DGS [38] are 4D reconstruction works (4D Gaussian Splatting, 4DGS) that can effectively handle both types of motion blur while maintaining real-time rendering capabilities. Never-theless, these two methods rely heavily on extensive prior data, such as depth maps, trajectories, and optical flow. Beyond the aforementioned deblurring works, signifi-cant contributions have also been made to image deblurring research [2, 4, 46] based on deep neural networks (DNNs). These methods can recover relatively sharp images using only a single blurred image, demonstrating remarkable effi-ciency and practicality. However, motion-blurred images contain numerous and complex blurred components, and the geometry information inherent in the frame is limited. Consequently, the deblurring effect inevitably yields unsat-isfactory results in terms of detail recovery, as shown in Fig-ure 1. A straightforward and concise solution is to integrate a deblurring model with 4DGS. However, relying solely on the outputs of the deblurring model to supervise 4DGS is in-feasible due to inconsistent deblurring results. The deblur-ring capability of the deblurring model will dictate the lower bound of the reconstruction performance, as illustrated in the Table 1. The issue of how to achieve the effective in-tegration of the deblurring model and 4DGS, while fully leveraging the advantages of both components, remains a challenge worthy of in-depth investigation. 
+
+Based on the imaging principle of motion-blurred im-ages, we model the motion of objects and propose a novel deblurring 4D reconstruction framework MSCD-GS. Specifically, we utilize a deblurring model [2] to provide high-quality prior information for aiding the construction and optimization of Gaussians. Given the distinct motion characteristics of these Gaussians, we employ motion dis-tance and a motion mask to classify them into static and dy-namic Gaussians. Static Gaussians are typically rendered as the background, so camera motion blur can be repre-sented as the linear superposition of the overall motion of static Gaussians during the exposure time. We design a Static Gaussian Motion Network to predict the rigid motion of static Gaussians at multiple sampled times. In contrast, the motion of dynamic Gaussians is independent and non-linear. Therefore, we model the motion of each individual dynamic Gaussian and design a Dynamic Gaussian Motion Network to predict the motion of each dynamic Gaussian at the sampled times. Finally, we combine and render the static and dynamic Gaussians at the same sampled time to generate virtual sharp images, aligned with the prior sharp images provided by the deblurring model. Additionally, we synthesize a virtual blurred image by fusing the virtual sharp images across multiple sampled times and align this virtual blurred image with the input blurred image. This design prevents overfitting to the prior sharp images and ul-timately achieves high-quality 4D reconstruction results. In summary, our contributions are as follows: 
+
+• By integrating a deblurring model, we propose a novel deblurring dynamic 4D scene reconstruction framework: MSCD-GS. It enables the efficient combination of deblur-ring model and dynamic reconstruction, achieving superior deblurring 4D reconstruction results. 
+
+• We separately modeled static and dynamic Gaussian motion and constructed motion aware networks to predict Gaussian variations at different sampling times within the same exposure duration. 
+
+• We propose a concise cooperative regularization con-straint that balances the results of the deblurring model and motion-synthesized blurred. 
+
+## 2. Related Work 
+
+2.1. 4D Gaussians Splatting 
+
+To address the computational bottleneck of Neural Radi-ance Fields (NeRF) [21], Kerbl et al. [9] proposed 3D Gaussian Splatting (3DGS)—an explicit scene representa-tion method with real-time rendering capabilities. How-ever, 3DGS primarily targets static scene reconstruction and cannot directly model dynamic changes in environ-ments with motion or temporal variations. Currently, nu-merous improved strategies [16, 28, 35, 42] have been pro-posed to adapt it for dynamic scene reconstruction. 4D Gaussians [37] and Deformable 3DGS [43] treat time as the fourth dimension and introduce a deformation field. 11727 Dynamic Gaussians 
+
+𝐀, 𝐀, 𝐀, 𝐀 𝐀 2，𝐀 2，𝐀 2
+
+A
+
+> Blur image
+
+𝐀 𝐀 𝐀 𝐀𝐀𝐀𝐀𝐀𝐀   
+
+> R:Rasterizer
+> A:Average :Add :Virtual Camera :Real Camera
+> ...
+> Exposure time
+> ...
+
+Blur images Trajectory  
+
+> SFM & Initialization 3D Gaussian points
+
+Motion Threshold Filtering 
+
+> Masks
+> Separation
+> Static & Dynamic
+
+𝐀 𝐀   
+
+> shutter open shutter close
+> 𝐀 0𝐀 1
+> 𝐀 2
+
+Adaptive Density Control   
+
+> Static Gaussians Dynamic Gaussians
+> 𝐀 0，𝐀 0𝐀 1，𝐀 1
+> 𝐀 2，𝐀 2
+> 𝐀 0，𝐀 0，𝐀 0𝐀 1，𝐀 1，𝐀 1
+> 𝐀 2，𝐀 2，𝐀 2
+
+R Debluring Net 
+
+> Virtual images
+
+A
+
+> Blur image
+> Deblur image
+
+𝐀 𝐀 𝐀 𝐀𝐀𝐀𝐀𝐀𝐀 𝐀 𝐀𝐀𝐀𝐀𝐀𝐀   
+
+> R:Rasterizer
+> A:Average :Add :Virtual Camera :Real Camera
+
+{𝐀 𝐀 (𝐀), 𝐀, 𝐀, 𝐀, 𝐀} {𝐀 𝐀 (𝐀), 𝐀 𝐀 (𝐀), 𝐀, 𝐀 𝐀 (𝐀), 𝐀} 
+
+Section A: Section C: Section B: Figure 2. The pipeline of our MSCD-GS. We construct an initial Gaussian model using blurred images as input. Section A: During optimization, static and dynamic Gaussians are separated using Gaussian motion distance and dynamic masks. Section B: We model static and dynamic Gaussian motion separately and design two motion-aware MLPs to predict their changes over exposure time, thereby generating multiple virtual sharp images. Section C: We also utilize the results from the deblurring network to constrain these virtual images, and these virtual sharp images are synthesized into a virtual blurred image to align with the input real image. 
+
+They achieve dynamic continuous reconstruction by learn-ing time-dependent Gaussian parameters, opening a new av-enue for real-time rendering methods. Other works [13, 44] construct dynamic scenes in a fully explicit manner by mod-eling the motion and visibility of Gaussians. These works have all achieved satisfying results in dynamic scene re-construction, but they all rely on sharp images to supervise model training. How to achieve high-quality 4D reconstruc-tion from blurred images remains a significant challenge. 
+
+2.2. Reconstruction from Blurred Images 
+
+Although several works based on NeRF [12, 20, 29, 33] and 3DGS [3, 11, 24, 47] have been proposed can render sharp images in static scenes, they still fail to reconstruct dynamic scenes. Deblur4DGS [38] achieves deblurring 4D recon-struction by estimating the exposure time and introducing a series of regularization to constrain Gaussian optimiza-tion. BARD-GS [19] decomposes motion blur and models its components separately to improve the rendering quality. Although both methods yield promising deblurring results, they both rely on multiple types of prior data to constrain model training. Although our method is similar to these two methods in that they both render multiple virtual sharp images to simulate blurred images, our method does not re-quire as much prior data for supervised training and can still achieve higher-quality 4D reconstruction. Therefore, our method is more practical. 
+
+2.3. Images Deblurring Network 
+
+The rise of deep learning has brought about a paradigmatic shift in image deblurring tasks, enabling models to automat-ically learn the mapping relationship between blurred and sharp images in a data-driven manner. Motion deblurring methods can be categorized by network structure into three types: CNN-based models[5, 15, 46], Transformer-based models [4, 10, 32], and diffusion-based models [14, 40, 45]. While the aforementioned methods achieve impressive de-blurring results on static images, they share a critical limi-tation: they lack 3D spatial perception. Without explicitly modeling the 3D geometry of the scene, these methods fail to maintain spatiotemporal consistency—a key requirement for video deblurring or dynamic scene processing. This leads to artifacts such as frame-wise inconsistency or in-correct depth-aware blur removal. To address this gap, our work integrates a deblurring network [2] with 4DGS, which models 3D scene geometry to enforce spatiotemporal co-herence and further boost deblurring quality. 
+
+## 3. Method 
+
+Given a sequence of monocular video frames with motion blur and the corresponding intrinsic and extrinsic camera parameters, our goal is to achieve high-quality 4D recon-struction. Our pipeline is illustrated in Figure 2. 
+
+3.1. Preliminary 
+
+Motion Blur Formulation. A motion-blurred image B can be represented as the integral of the virtual sharp images captured during a single exposure time τ ∈ [τs, τ e] as 
+
+B =
+
+Z τe
+
+> τs
+
+I(Pτ )dτ ≈ 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+I(Pτi ), (1) 11728 where I(Pτ ) denotes sharp image acquired from the camera pose Pτ . To approximate the integral operation as in previ-ous works [3, 19, 38], we uniformly discretize the exposure time into N timestamps and treat the captured blurred im-age as the average of N sharp images Pτi within the expo-sure time τi = τs + i−1  
+
+> N−1
+
+(τe − τs).
+
+3D Gaussian Splatting. 3DGS [9] serves as a funda-mental research method for the explicit reconstruction of 4D scenes. Each 3D Gaussian ellipsoid that constitutes the scene is defined by a center μ ∈ R3, a covariance matrix 
+
+Σ ∈ R3×3, an opacity o, and a color c as: 
+
+G(x) = e− 12 (x−μ)⊤Σ−1(x−μ), (2) 
+
+Σ = RSS ⊤R⊤, (3) where S ∈ R3×3 and R ∈ R3×3 denote the scaling and rotation matrices, respectively. To enable differentiable ras-terization rendering, 3D Gaussians are projected onto the 2D image plane of a specified camera. The 2D form of the covariance matrix Σ′ ∈ R2×2 is as follows: 
+
+Σ′ = JW ΣW ⊤J⊤, (4) where J is the Jacobian of the affine approximation of the projective transformation and W is a viewing transforma-tion matrix. Therefore, the color of each pixel c(u) is cal-culated based on N overlapping Gaussians projected onto it using the α-blending process: 
+
+c(u) = X
+
+> i∈N
+
+ciαii−1Y
+
+> j=1
+
+(1 − αj ), (5) where ci and αi are the color and the opacity of the pro-jected 3D Gaussian, respectively. 
+
+3.2. Motion Trajectory Modeling and Deblurring 
+
+Given a set of motion-blurred images as input to supervise the training of the Gaussian model, a blurred 4D scene will be reconstructed. Starting from the primitives that construct the scene, we decouple these primitives into static and dy-namic Gaussians. Inspired by [3, 47], we refer to the input camera poses as real camera poses, and the camera poses synthetically sampled within the exposure time as virtual camera poses. Each sampling time corresponds to a spe-cific set of motion states of Gaussians (both static and dy-namic), which will be rendered into virtual sharp images using Equation 5. Multiple virtual sharp images within the same exposure time interval are synthesized into a single motion-blurred image using Equation 1. Prior to reconstruction, we divide the input motion-blurred images into N subsets Φ = {I1 · · · IN } . We use BootsTAPIR [6, 31] to track the motion of each pixel, thereby obtaining the 2D dynamic mask MD for each im-age. Subsequently, we classify Gaussians whose 2D pro-jected centers lie within the dynamic range of the mask 
+
+MD and whose motion distance falls within the top 1.5% as dynamic Gaussians GD , and the rest as static Gaussians GS .Within each subset, the motion of the camera and objects is continuous with small variation amplitudes, ensuring the stability of our Gaussian ellipsoid modeling. We employ a gradual reconstruction approach for each subset, and finally concatenate the subsets in chronological order to construct the entire 4D scene. 
+
+3.2.1. Static Gaussians Motion Model 
+
+In dynamic scenes, the background remains stationary and is primarily reconstructed and rendered using static Gaus-sians. We assume the camera remains stationary while the static Gaussians are in motion. Because the image subset time τd is extremely short, the motion of static Gaussians can be treated as linear motion. We normalize the time 
+
+ti = iτd ∈ [0 , 1] for n frames within the same image subset. Finally, we model the motion trajectory of static Gaussians at an arbitrary time t as follows: 
+
+μS (ti) = μS (ts) + ti
+
+τd
+
+d, (6) where μS (ts) is initial position of the static Gaussian at start time ts of the image subset, d is the displacement of the static Gaussian during the duration time τd of the image subset. The construction of the remaining parameters for static Gaussians follows the same process as in 3DGS. Dur-ing training, the model optimizes the parameter set of static Gaussians, denoted as GS = {μS (ti), R, S, o, c}.
+
+3.2.2. Dynamic Gaussians Motion Model 
+
+Since the motion of dynamic Gaussians involves both cam-era motion and object motion, their motion trajectories are non-linear. Catmull-rom splines [30] fit curves through con-trol points and are commonly used for non-linear interpola-tion. We utilize Catmull-Rom splines to fit the motion tra-jectories of dynamic Gaussians within each image subset. We normalize the time ti = iτd ∈ [0 , 1] for n frames within the same image subset. Taking the start and end points (μs, μe) of each image subset as the curve endpoints, and the adjacent points ( μ−1, μ+1 ) as control points, the inter-polation function is given as follows: 
+
+μD (ti) = T (ti) · Mμ · μ, (7) 
+
+where T(ti) = 
+
+
+
+1
+
+ti
+
+t2
+
+> i
+
+t3
+
+> i
+
+
+
+> T
+
+, μ =
+
+
+
+μs
+
+μ−1
+
+μ+1 
+
+μe
+
+ . (8) 
+
+Mμ is the Catmull-Rom basis matrix as: 
+
+Mμ = 12
+
+
+
+0 2 0 0
+
+−1 0 1 02 −5 4 −1
+
+−1 3 −3 1
+
+ . (9) 11729 In addition to modeling the position μD (ti) of dy-namic Gaussians, we used Slerp [26] to model their rota-tion RD (ti). For convenience of computation, we convert the rotation RD (ti) into a quaternion qD (ti). Taking the adjacent points q−1, q+1 , the interpolation function for ro-tation is given as follows: 
+
+qD (ti) = sin((1 −ti)θ)q−1+sin( tiθ)q+1   
+
+> sin θ
+
+, (10) 
+
+where cos θ = q−1 · q+1 . (11) Furthermore, considering that dynamic objects may gradually appear or disappear in the field of view, we also model the opacity o(x, t ) of dynamic Gaussians. Inspired by the single Gaussian decay model in [36], and consider-ing that our work models image subsets (where the opacity of Gaussians exhibits a certain degree of persistence), we adopt a dual Gaussian decay model. The persistence of ob-jects is represented by the intermediate time td of the two Gaussians σ(ti), as follows: 
+
+oD (x, t i) = σ(ti) · o · G(x), (12) 
+
+σ(ti) = 
+
+(1, if (μ0 − ti) · (μ1 − ti) < 0exp 
+
+
+
+− (min( ti−μ0,t i−μ1)) 2
+
+> 2td
+
+
+
+, otherwise .
+
+(13) 
+
+o and G(x) denote the parameter of the original Gaus-sian ellipsoid. μ0 and μ1 are the time of the two Gaus-sian primitive. During training, the model optimizes the parameter set of dynamic Gaussians, denoted as GD =
+
+{μD (ti), R D (ti), S, oD (x, t i), c}.
+
+3.2.3. Motion Awareness Deblurring Static Gaussians Deblurring. We consider that back-ground blur is caused by the motion of static Gaussians dur-ing exposure. The motion of static Gaussians is rigid and can be decomposed into rotation and translation. Therefore, we use multi-layer perceptron (MLP) to predict the rota-tion ∆R and translation ∆T corresponding to the N virtual sharp images within the exposure time, as follows: 
+
+{∆Ri, ∆T i|i ∈ N } = FS (μS (t), i ). (14) We can thereby obtain the motion μS (ti) of static Gaus-sians at multiple sampling time instants ti within the expo-sure time, which is as follows: 
+
+μS (ti) = μS (t) · ∆Ri + ∆ T i, where i ∈ N. (15) Thus, we obtain a set of static Gaussians within the same exposure time, denoted as GS (ti) = {μS (ti), R, S, o, c}.
+
+Dynamic Gaussians Deblurring. In dynamic scenes, humans are common dynamic objects, and their motion is non-rigid—each body part exhibits independent mo-tion characteristics. We introduce a lightweight yet ex-pressive MLP designed to predict per-Gaussian deforma-tions given a 3-D position ∆μD (t), anisotropic scales 
+
+∆S, and a rotation ∆RD (t). The network is composed of three modular components: (i) a sinusoidal embed-der that maps raw observations to a high-frequency space, (ii) three branch encoders that separately process position, scale, and geometric state, and (iii) a residual trunk that fuses the branches and regresses residual updates. There-fore, within the same exposure time, we independently pre-dict the deformations of each dynamic Gaussian GD (ti) = 
+
+{μD (ti), R D (ti), S (ti), oD (x, t i), c} at multiple sampling time instants ti as: 
+
+{∆μD (ti),∆RD (ti), ∆S(ti)|i ∈ N }
+
+= FD (μD (t), qD (t), S ), (16) 
+
+μD (ti) = μD (t) + ∆ μD (ti), (17) 
+
+RD (ti) = RD (t) · ∆RD (ti), (18) 
+
+S(ti) = S · ∆S(ti). (19) We merge the static Gaussians GS (ti) and dynamic Gaussians GD (ti) at the same sampling time instant ti and render a set of virtual sharp images I(ti) using Equation 5. To synthesize the blurred image ˆB(t), we merge and com-pute the average of the virtual sharp images I(ti) within the same exposure time t using Equation 1: 
+
+ˆB(t) = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+I(ti). (20) 
+
+3.3. Optimization 
+
+To improve the efficiency and quality of deblurring, we use the pre-trained NAFNet [2] to deblur the blurred images. First, we supervise and optimize the training of 4D Gaus-sians using the deblurred image set Bd, thereby obtaining a high-quality initial 4D Gaussians model. We assume that at sampling time ti, the rendered image is I(ti). The rendering loss is given as follows: 
+
+L′
+
+> render
+
+(ti) = X
+
+> i∈N
+
+Bd(ti) − I(ti) 1 . (21) We find that supervision using only deblurred images is in-sufficient and also limits the quality of rendered images. Therefore, after obtaining an initial 4D Gaussian model, we introduce real blurred images B as supervision to optimize the Gaussian parameters within the exposure time t. Thus, the loss for calculating the constraints of collaborative de-blurring is as follows: 
+
+Lrender (t) = λL′ 
+
+> render
+
+(t)+ (1 − λ) X B(t) − ˆB(t) 1
+
+, (22) where λ is a hyperparameter used to balance the deblurring term and the synthetic blurred term. 11730 Types Methods Deblurring Novel View Synthesis FPS Training Time (h) PSNR ↑ SSIM ↑ LPIPS ↓ PSNR ↑ SSIM ↑ LPIPS ↓                                                                                                
+
+> Static Deblurring Reconstruction Deblurring-3DGS (ECCV’24) [11] 20.20 0.597 0.332 19.65 0.592 0.327 276 0.51 BAD-GS (ECCV’24) [47] 22.79 0.656 0.301 21.43 0.802 0.146 250 0.20 Dynamic Reconstruction 4D Gaussians (CVPR’24) [37] 26.86 0.819 0.287 22.22 0.840 0.234 61 0.25 E-D3DGS (ECCV’24) [1] 27.68 0.852 0.202 22.83 0.851 0.231 81 2.50 SoM (ICCV’25) [34] 27.79 0.932 0.190 26.87 0.913 0.192 96 1.20 SplineGS (CVPR’25) [23] 27.61 0.915 0.196 26.04 0.908 0.193 130 0.28 Dynamic Reconstruction + Deblurring Network E-D3DGS + NAFNet [2] 28.92 0.941 0.098 25.23 0.901 0.162 --SoM + NAFNet [2] 29.01 0.949 0.101 27.76 0.910 0.167 --Dynamic Deblurring Reconstruction DyBluRF (CVPR’24) [29] 28.67 0.936 0.101 25.90 0.908 0.138 0.2 51.1 BARD-GS (CVPR’25) [19] 30.21 0.945 0.096 27.02 0.938 0.116 80 4.62 Deblur4DGS (arXiv’25) [38] 30.32 0.950 0.085 27.84 0.935 0.096 96 6.10
+> MSCD-GS (Ours) 33.21 0.957 0.043 29.49 0.941 0.065 121 0.72
+
+Table 2. Quantitative comparison of Deblurring 4D Reconstruction and Novel View Synthesis on the Stereo Blur dataset. Colors indicate the best , second best , and third best results respectively. Per-scene results are provided in the supplementary material. Our method can reconstruct high-quality 4D scenes while being more efficient and achieving a higher rendering frame rate compared to similar methods. (a) Input Image (b) SoM+NAFNet (c) Deblur4DGS (d) BARD-GS (e) MSCD-GS (f) Sharp Image 
+
+Figure 3. Qualitative comparison of Deblurring 4D Reconstruction. The challenging regions have been highlighted with bounding boxes. Whether the background or dynamic objects, our method provides the best deblurring 4D reconstruction results. 
+
+## 4. Experiments 
+
+4.1. Datasets and Implementation Details 
+
+To evaluate the motion deblurring capability and novel view synthesis performance of our method MSCD-GS in real-world scenarios, we selected two real-world datasets con-taining motion-blurred content: the Stereo Blur dataset [49] and the real-world blurry dataset [19]. The Stereo Blur dataset contains 6 scenes with severe motion blur. In the experiment, we used 48 images per scene, with an origi-nal resolution of 1280 × 720 . These 6 scenes were cap-tured using a ZED stereo camera, which provides two views (left and right). The left-view images were used to synthe-size blurred images following the general protocol [22] for generating blurred frames. The real-world blurry dataset is collected using two GoPro cameras with different exposure 11731 (a) SoM+NAFNet (b) Deblur4DGS (c) BARD-GS (d) MSCD-GS (e) GT Figure 4. Qualitative comparison of Novel View Synthesis. The challenging regions have been highlighted with bounding boxes. Whether the background or dynamic objects, our method provides the best Novel View Synthesis results.                                   
+
+> Types Methods Novel View Synthesis
+> PSNR ↑SSIM ↑LPIPS ↓
+> Dynamic Reconstruction 4D Gaussians (CVPR’24) [37] 22.29 0.871 0.200 E-D3DGS (ECCV’24) [1] 22.96 0.898 0.192 SoM (ICCV’25) [34] 22.61 0.897 0.198 SplineGS (CVPR’25) [23] 23.02 0.891 0.190 Dynamic Reconstruction + Deblured Network E-D3DGS + NAFNet [2] 23.92 0.902 0.174 SoM + NAFNet [2] 24.01 0.900 0.163 Dynamic Deblurring Reconstruction DyBluRF (CVPR’24) [29] 22.99 0.879 0.192 BARD-GS (CVPR’25) [19] 25.13 0.851 0.157 Deblur4DGS (arXiv’25) [38] 24.59 0.889 0.164
+> MSCD-GS (Ours) 28.13 0.909 0.106
+
+Table 3. Quantitative comparison of Novel View Synthesis on the real-world blurry dataset. Per-scene results are provided in the supplementary material. The results demonstrate that our method can achieve SOTA performance in Novel View Synthesis. 
+
+time settings: one camera has an exposure time of 1/24 
+
+(second) for capturing blurred images, while the other has an exposure time of 1/240 (second) for capturing sharp im-ages. Similarly, we conducted experiments using the origi-nal resolution of 960 × 540 for 7 scenes. To improve the training efficiency of the 4D Gaussian model, we set the number of samples within the exposure time to N = 3 . The parameter for balancing the regulariza-tion term is set to λ = 0 .4. Our experiments were conducted on a single NVIDIA A100 40GB GPU. Since existing 4D reconstruction methods cannot handle motion-blurred im-ages, we employ a pre-trained NAFNet [2] to assist these 4D methods in reconstruction for fair comparisons. 
+
+4.2. 4D Reconstruction Performance 
+
+We evaluated the deblurring 4D reconstruction performance of MSCD-GS on the Stereo Blur dataset, as it provides blurred images along with their corresponding sharp im-ages. We took motion-blurred images as input and used the corresponding sharp images as ground truth (GT) to com-pute the PSNR, SSIM, and LPIPS metrics for the rendered images. We also measure frame-per-second (FPS) for ren-dering speed and training time. The quantitative compari-son results of 4D reconstruction deblurring are shown in Ta-ble 2, and the qualitative comparison results are presented in Figure 3. Many 4D reconstruction baselines were severely affected by motion-blurred images, leading to a significant degradation in their reconstruction quality—even when as-sisted by the pre-trained deblurring model (NAFNet [2]). Although Deblur4DGS [38], BARD-GS [19], and Dy-BluRF [29] can alleviate motion blur to a certain extent, they still perform poorly in reconstructing dynamic ob-jects. In contrast, our proposed method achieves SOTA per-formance on the background or dynamic objects. Mean-while, among dynamic deblurring reconstruction methods, MSCD-GS maintains the highest rendering frame rate and the shortest training time. 
+
+4.3. Novel View Synthesis 
+
+We quantitatively evaluated the novel view synthesis capa-bility of MSCD-GS on two datasets, as shown in Tables 2 11732 (a) w/o DN (b) w/o DGD (c) w/o SGD (d) MSCD-GS (e) GT Figure 5. Qualitative results of ablation experiments on each module of MSCD-GS. The experimental results demonstrate that each module proposed in our method is indispensable for deblurring 4D reconstruction. (a) w/o DN (b) w/o DGD (c) w/o SGD (d) MSCD-GS (e) GT 
+
+> (a) Input Image (d) Sharp Image (b) Deblur4DGS (c) MSCD-GS
+
+Figure 6. Although deblurring 4D reconstruction methods (De-blur4DGS) can render sharp images, they still fail to recover the missing parts in the image. The challenging regions have been highlighted with bounding boxes.                                                          
+
+> Settings Deblurring Novel View Synthesis
+> DN SGD DGD PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> ✓29.50 0.918 0.056 27.01 0.890 0.071
+> ✓28.23 0.909 0.061 26.29 0.885 0.074
+> ✓27.41 0.903 0.064 25.62 0.880 0.077
+> ✓✓29.14 0.916 0.057 27.36 0.893 0.070
+> ✓✓30.15 0.923 0.054 28.25 0.904 0.059
+> ✓✓31.02 0.929 0.053 29.33 0.906 0.065
+> ✓✓✓31.72 0.930 0.052 29.64 0.929 0.054
+
+Table 4. Quantitative results of ablation experiments on each mod-ule of MSCD-GS. DN: Deblurring Network, SGD: Static Gaus-sians Deblurring, DGD: Dynamic Gaussians Deblurring.                                           
+
+> Virtual Views Deblurring Novel View Synthesis Training Time (h) PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> 231.32 0.922 0.053 29.37 0.921 0.059 0.55 331.72 0.930 0.052 29.64 0.929 0.054 0.72 431.81 0.926 0.052 29.46 0.927 0.055 1.09 631.12 0.921 0.055 29.51 0.925 0.057 1.58 10 30.72 0.915 0.057 29.11 0.912 0.065 2.51
+
+Table 5. Quantitative results of ablation experiments on the num-ber of virtual views. The results indicate that a relatively small number of virtual views can achieve high-quality reconstruction. 
+
+and 3, respectively. As our method’s excellent deblurring capability, the reconstructed model is less affected by mo-tion blur, resulting in significantly higher metrics for novel view synthesis compared to other methods. Additionally, we provide qualitative comparison results of novel view synthesis on the real-world blurry dataset in Figure 4. It is evident that MSCD-GS can still achieve high-quality novel view synthesis for such real-world scenarios with heavy blur and complex lighting conditions. 
+
+4.4. Ablation 
+
+To evaluate the impact of each module of MSCD-GS and the setting of virtual frame numbers on deblurring and novel view synthesis, we conducted experiments on Man scene of the Stereo Blur dataset. The quantitative results of the mod-ule ablation experiments are presented in Table 4, and the qualitative results are shown in Figure 5. The absence of the pre-trained deblurring network module has a relatively significant impact, as it forms the foundation for the de-blurring performance of MSCD-GS. The results in Table 1 further demonstrate that our method can efficiently inte-grate deblurring networks to achieve collaborative deblur-ring. The absence of the dynamic Gaussian deblurring mod-ule has a smaller impact due to the small size of dynamic regions in the images. The quantitative results of the vir-tual frame number experiments are provided in Table 5. As the number of virtual frames increases, the reconstruction quality metrics gradually decrease after reaching a peak. 
+
+4.5. Limitation 
+
+In real-world scenarios, there exist small and fast-moving objects, which are likely to appear as ghosting or even dis-appear in captured images. Since current 4D reconstruction methods rely on images for supervision, this “missing con-tent” cannot be reconstructed, as illustrated in Figure 6. One of the woman’s legs “disappears” in the image, and 4D re-construction baselines fail to infer this missing part, thus only rendering the background. In future work, a diffusion model can be introduced to generate the missing content, which then supervises the reconstruction process. 
+
+## 5. Conclusion 
+
+We propose MSCD-GS, a 4D Gaussian Splatting recon-struction method that integrates motion separation and a cooperative deblurring model. We separately model the motion of static and dynamic Gaussians and design two lightweight motion-aware MLPs to predict their changes during the exposure time, respectively. Additionally, a col-laborative deblurring model is used to jointly constrain the rendering results, achieving high-quality 4D reconstruction. Experimental results demonstrate that MSCD-GS can re-construct satisfactory 4D models from motion-blurred im-ages captured freely with a monocular camera. 11733 Acknowledgement 
+
+This work was supported by the National Natural Science Foundation of China (62401217, 62376011) and the Na-tional Key R&D Program of China (2024YFA1410000). The computation is completed in the HPC Platform of Huazhong University of Science and Technology. 
+
+## References 
+
+[1] Jeongmin Bae, Seoha Kim, Youngsik Yun, Hahyun Lee, Gun Bang, and Youngjung Uh. Per-gaussian embedding-based deformation for deformable 3d gaussian splatting. In ECCV ,2024. 6, 7 [2] Liangyu Chen, Xiaojie Chu, Xiangyu Zhang, and Jian Sun. Simple baselines for image restoration. In ECCV , pages 17– 33. Springer, 2022. 1, 2, 3, 5, 6, 7 [3] Wenbo Chen and Ligang Liu. Deblur-gs: 3d gaussian splat-ting from camera motion blurred images. PACMCGIT , 7(1): 1–15, 2024. 2, 3, 4 [4] Xiang Chen, Hao Li, Mingqiang Li, and Jinshan Pan. Learn-ing a sparse transformer network for effective image derain-ing. In CVPR , pages 5896–5905, 2023. 2, 3 [5] Yuning Cui, Wenqi Ren, and Alois Knoll. Omni-kernel net-work for image restoration. In AAAI , pages 1426–1434, 2024. 3 [6] Carl Doersch, Yi Yang, Mel Vecerik, Dilara Gokay, Ankush Gupta, Yusuf Aytar, Joao Carreira, and Andrew Zisserman. TAPIR: Tracking any point with per-frame initialization and temporal refinement. In ICCV , pages 10061–10072, 2023. 4 [7] Georg Hess, Carl Lindstr¨ om, Maryam Fatemi, Christoffer Petersson, and Lennart Svensson. Splatad: Real-time li-dar and camera rendering with 3d gaussian splatting for au-tonomous driving. In CVPR , pages 11982–11992, 2025. 1 [8] Xinggang Hu, Chenyangguang Zhang, Mingyuan Zhao, Yuanze Gui, Xiangkui Zhang, and Xiangyang Ji. Dygs-slam: Real-time accurate localization and gaussian reconstruction for dynamic scenes. In ICCV , pages 9561–9571, 2025. 1 [9] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. TOG , 42(4):139–1, 2023. 1, 2, 4 [10] Lingshun Kong, Jiangxin Dong, Jianjun Ge, Mingqiang Li, and Jinshan Pan. Efficient frequency domain-based trans-formers for high-quality image deblurring. In CVPR , pages 5886–5895, 2023. 3 [11] Byeonghyeon Lee, Howoong Lee, Xiangyu Sun, Usman Ali, and Eunbyung Park. Deblurring 3d gaussian splatting. In 
+
+ECCV , pages 127–143. Springer, 2024. 3, 6 [12] Dogyoon Lee, Minhyeok Lee, Chajin Shin, and Sangyoun Lee. Dp-nerf: Deblurred neural radiance field with physical scene priors. In CVPR , pages 12386–12396, 2023. 3 [13] Junoh Lee, ChangYeon Won, Hyunjun Jung, Inhwan Bae, and Hae-Gon Jeon. Fully explicit dynamic gaussian splat-ting. In NeurIPS , 2024. 1, 3 [14] Xin Li, Yulin Ren, Xin Jin, Cuiling Lan, Xingrui Wang, Wenjun Zeng, Xinchao Wang, and Zhibo Chen. Diffusion models for image restoration and enhancement: a compre-hensive survey. IJCV , pages 1–31, 2025. 3 [15] Yawei Li, Yuchen Fan, Xiaoyu Xiang, Denis Demandolx, Rakesh Ranjan, Radu Timofte, and Luc Van Gool. Effi-cient and explicit modelling of image hierarchies for image restoration. In CVPR , pages 18278–18289, 2023. 3 [16] Youtian Lin, Zuozhuo Dai, Siyu Zhu, and Yao Yao. Gaussian-flow: 4d reconstruction with dynamic 3d gaussian particle. In CVPR , pages 21136–21145, 2024. 1, 2 [17] Guanxing Lu, Shiyi Zhang, Ziwei Wang, Changliu Liu, Ji-wen Lu, and Yansong Tang. Manigaussian: Dynamic gaus-sian splatting for multi-task robotic manipulation. In ECCV ,pages 349–366. Springer, 2024. 1 [18] Guanxing Lu, Baoxiong Jia, Puhao Li, Yixin Chen, Ziwei Wang, Yansong Tang, and Siyuan Huang. Gwm: Towards scalable gaussian world models for robotic manipulation. In 
+
+ICCV , pages 9263–9274, 2025. 1 [19] Yiren Lu, Yunlai Zhou, Disheng Liu, Tuo Liang, and Yu Yin. Bard-gs: Blur-aware reconstruction of dynamic scenes via gaussian splatting. In CVPR , pages 16532–16542, 2025. 2, 3, 4, 6, 7 [20] Li Ma, Xiaoyu Li, Jing Liao, Qi Zhang, Xuan Wang, Jue Wang, and Pedro V Sander. Deblur-nerf: Neural radiance fields from blurry images. In CVPR , pages 12861–12870, 2022. 2, 3 [21] Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik, Jonathan T Barron, Ravi Ramamoorthi, and Ren Ng. Nerf: Representing scenes as neural radiance fields for view syn-thesis. CACM , 65(1):99–106, 2021. 1, 2 [22] Seungjun Nah, Tae Hyun Kim, and Kyoung Mu Lee. Deep multi-scale convolutional neural network for dynamic scene deblurring. In CVPR , pages 3883–3891, 2017. 6 [23] Jongmin Park, Minh-Quan Viet Bui, Juan Luis Gonza-lez Bello, Jaeho Moon, Jihyong Oh, and Munchurl Kim. Splinegs: Robust motion-adaptive spline for real-time dy-namic 3d gaussians from monocular video. In CVPR , pages 26866–26875, 2025. 6, 7 [24] Cheng Peng, Yutao Tang, Yifan Zhou, Nengyu Wang, Xijun Liu, Deming Li, and Rama Chellappa. Bags: Blur agnostic gaussian splatting through multi-scale kernel modeling. In 
+
+ECCV , pages 293–310. Springer, 2024. 3 [25] LIU Qingming, Yuan Liu, Jiepeng Wang, Xianqiang Lyu, Peng Wang, Wenping Wang, and Junhui Hou. Modgs: Dy-namic gaussian splatting from casually-captured monocular videos with depth priors. In ICLR , 2025. 1 [26] Ken Shoemake. Animating rotation with quaternion curves. In SIGGRAPH , pages 245–254, 1985. 5 [27] Rui Song, Chenwei Liang, Yan Xia, Walter Zimmer, Hu Cao, Holger Caesar, Andreas Festag, and Alois Knoll. Coda-4dgs: Dynamic gaussian splatting with context and deformation awareness for autonomous driving. In ICCV , pages 28031– 28041, 2025. 1 [28] Colton Stearns, Adam Harley, Mikaela Uy, Florian Dubost, Federico Tombari, Gordon Wetzstein, and Leonidas Guibas. Dynamic gaussian marbles for novel view synthesis of casual monocular videos. In SIGGRAPH , pages 1–11, 2024. 2 [29] Huiqiang Sun, Xingyi Li, Liao Shen, Xinyi Ye, Ke Xian, and Zhiguo Cao. Dyblurf: Dynamic neural radiance fields from blurry monocular video. In CVPR , pages 7517–7527, 2024. 3, 6, 7 11734 [30] Christopher Twigg. Catmull-rom splines. Computer , 41(6): 4–6, 2003. 4 [31] Mel Vecerik, Carl Doersch, Yi Yang, Todor Davchev, Yusuf Aytar, Guangyao Zhou, Raia Hadsell, Lourdes Agapito, and Jon Scholz. RoboTAP: Tracking arbitrary points for few-shot visual imitation. ICRA , pages 5397–5403, 2024. 4 [32] Cong Wang, Jinshan Pan, Wei Wang, Gang Fu, Siyuan Liang, Mengzhu Wang, Xiao-Ming Wu, and Jun Liu. Cor-relation matching transformation transformers for uhd image restoration. In AAAI , pages 5336–5344, 2024. 3 [33] Peng Wang, Lingzhe Zhao, Ruijie Ma, and Peidong Liu. Bad-nerf: Bundle adjusted deblur neural radiance fields. In 
+
+CVPR , pages 4170–4179, 2023. 2, 3 [34] Qianqian Wang, Vickie Ye, Hang Gao, Weijia Zeng, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of mo-tion: 4d reconstruction from a single video. In ICCV , 2025. 1, 2, 6, 7 [35] Qianqian Wang, Vickie Ye, Hang Gao, Weijia Zeng, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of mo-tion: 4d reconstruction from a single video. In ICCV , 2025. 1, 2 [36] Yifan Wang, Peishan Yang, Zhen Xu, Jiaming Sun, Zhan-hua Zhang, Yong Chen, Hujun Bao, Sida Peng, and Xiaowei Zhou. Freetimegs: Free gaussian primitives at anytime any-where for dynamic scene reconstruction. In Proceedings of the Computer Vision and Pattern Recognition Conference ,pages 21750–21760, 2025. 5 [37] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering. In CVPR , pages 20310–20320, 2024. 2, 6, 7 [38] Renlong Wu, Zhilu Zhang, Mingyang Chen, Xiaopeng Fan, Zifei Yan, and Wangmeng Zuo. Deblur4dgs: 4d gaus-sian splatting from blurry monocular video. arXiv preprint arXiv:2412.06424 , 2024. 2, 3, 4, 6, 7 [39] Yuxuan Wu, Lei Pan, Wenhua Wu, Guangming Wang, Yanzi Miao, Fan Xu, and Hesheng Wang. Rl-gsbridge: 3d gaussian splatting based real2sim2real method for robotic manipula-tion learning. In ICRA , pages 192–198. IEEE, 2025. 1 [40] Bin Xia, Yulun Zhang, Shiyin Wang, Yitong Wang, Xing-long Wu, Yapeng Tian, Wenming Yang, and Luc Van Gool. Diffir: Efficient diffusion model for image restoration. In 
+
+ICCV , pages 13095–13105, 2023. 3 [41] Yueming Xu, Haochen Jiang, Zhongyang Xiao, Jianfeng Feng, and Li Zhang. Dg-slam: Robust dynamic gaussian splatting slam with hybrid pose optimization. NeurIPS , 37: 51577–51596, 2024. 1 [42] Zhen Xu, Sida Peng, Haotong Lin, Guangzhao He, Jiaming Sun, Yujun Shen, Hujun Bao, and Xiaowei Zhou. 4k4d: Real-time 4d view synthesis at 4k resolution. In CVPR , pages 20029–20040, 2024. 2 [43] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruction. In CVPR ,pages 20331–20341, 2024. 2 [44] Zeyu Yang, Hongye Yang, Zijie Pan, and Li Zhang. Real-time photorealistic dynamic scene representation and render-ing with 4d gaussian splatting. In ICLR , 2024. 3 [45] Zongsheng Yue, Jianyi Wang, and Chen Change Loy. Effi-cient diffusion model for image restoration by residual shift-ing. PAMI , 2024. 3 [46] Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, Ming-Hsuan Yang, and Ling Shao. Multi-stage progressive image restoration. In CVPR ,pages 14821–14831, 2021. 2, 3 [47] Lingzhe Zhao, Peng Wang, and Peidong Liu. Bad-gaussians: Bundle adjusted deblur gaussian splatting. In ECCV , pages 233–250. Springer, 2024. 2, 3, 4, 6 [48] Jianhao Zheng, Zihan Zhu, Valentin Bieri, Marc Pollefeys, Songyou Peng, and Iro Armeni. Wildgs-slam: Monocular gaussian splatting slam in dynamic environments. In CVPR ,pages 11461–11471, 2025. 1 [49] Shangchen Zhou, Jiawei Zhang, Wangmeng Zuo, Haozhe Xie, Jinshan Pan, and Jimmy S Ren. Davanet: Stereo deblur-ring with view aggregation. In CVPR , pages 10996–11005, 2019. 6 [50] Xiaoyu Zhou, Zhiwei Lin, Xiaojun Shan, Yongtao Wang, Deqing Sun, and Ming-Hsuan Yang. Drivinggaussian: Composite gaussian splatting for surrounding dynamic au-tonomous driving scenes. In CVPR , pages 21634–21643, 2024. 1 11735

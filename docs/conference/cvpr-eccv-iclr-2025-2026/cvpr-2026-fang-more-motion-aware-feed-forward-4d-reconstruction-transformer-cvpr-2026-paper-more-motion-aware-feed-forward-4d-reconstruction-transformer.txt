@@ -1,0 +1,322 @@
+Title: MoRe: Motion-aware Feed-forward 4D Reconstruction Transformer
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Fang_MoRe_Motion-aware_Feed-forward_4D_Reconstruction_Transformer_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:51:24 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# MoRe: Motion-aware Feed-forward 4D Reconstruction Transformer 
+
+# Junton Fang 1∗, Zequn Chen 2∗, Weiqi Zhang 1∗,Donglin Di 2, Xuancheng Zhang 1,2, Chengmin Yang 2, Yu-Shen Liu 1†
+
+> 1
+
+# School of Software, Tsinghua University, Beijing, China 2Li Auto 
+
+fangjt21@mails.tsinghua.edu.cn, chenzequn@lixiang.com, zwq23@mails.tsinghua.edu.cn 
+
+{didonglin, zhangxuancheng, yangchengmin }@lixiang.com, liuyushen@tsinghua.edu.cn . . . 
+
+> Stream Input
+
+. . . 
+
+Figure 1. We propose MoRe, a motion-aware 4D reconstruction transformer that explicitly disentangles dynamic motion from static scene structure. This capability is enabled by our attention-forcing training strategy, which guides the model to separate motion cues from background geometry. At inference time, More further supports streaming inputs through its grouped causal attention design. 
+
+# Abstract 
+
+Reconstructing dynamic 4D scenes remains challenging due to the presence of moving objects that corrupt camera pose estimation. Existing optimization methods alleviate this issue with additional supervision, but they are mostly computationally expensive and impractical in real-time ap-plications. To address these limitations, we propose MoRe, 
+
+> *Equal contribution, where Zequn leads this project.
+> †The corresponding author is Yu-Shen Liu. This work was supported by Deep Earth Probe and Mineral Resources Exploration - National Sci-ence and Technology Major Project (2024ZD1003405), and the National Natural Science Foundation of China (62272263).
+
+a feedforward 4D reconstruction network that efficiently re-covers dynamic 3D scenes from monocular videos. Built upon a strong static reconstruction backbone, MoRe em-ploys an attention-forcing strategy to disentangle dynamic motion from static structure. To further enhance robustness, we fine-tune the model on large-scale, diverse datasets en-compassing both dynamic and static scenes. Moreover, our grouped causal attention captures temporal dependencies and adapts to varying token lengths across frames, ensuring temporally coherent geometry reconstruction. Extensive ex-periments on multiple benchmarks demonstrate that MoRe achieves high-quality dynamic reconstructions with excep-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 28914 tional efficiency. Project page: https://hellexf. github.io/MoRe/ .
+
+# 1. Introduction 
+
+Reconstructing the evolving three-dimensional structure of a scene (i.e., 4D reconstruction) is increasingly central to applications in augmented reality, robotics, digital twins, and immersive content creation[43, 44, 46, 47]. Classical geometry based techniques such as SfM/MVS [8, 26] and SLAM [5, 22, 30] have laid the foundation by estimating camera poses and scene structure under the assumption of a mostly static environment. They achieve high accuracy in controlled settings but struggle when objects deform or move, or when the camera undergoes complex motion. Recent deep learning methods promise faster and more generalizable reconstruction [6, 9, 15, 32, 34, 37]. They split broadly into real time inference models and hybrid op-timization pipelines. Real time reconstruction models map image sequences directly to camera poses and depths (or point clouds) in one feedforward pass, enabling fast pro-cessing of video input. However, these approaches are trained predominantly on static scenes. The presence of moving objects or large camera motion can significantly de-grade the accuracy of estimated 3D structure. Hybrid opti-mization pipelines [18, 38, 40 ? ] integrate learned modules such as depth estimation, optical flow estimation, or mo-tion segmentation. However, they retain a multistage struc-ture or rely on iterative refinement. These methods han-dle dynamic scenes more robustly but incur high computa-tional cost and struggle when processing long sequences or streaming video data in real time. A clear gap remains: how to design a fast, generalizable framework that handles camera and object motion in dy-namic scenes under streaming or long sequence input while producing accurate camera poses and depths for point cloud reconstruction. We propose MoRe, a motion aware 4D streaming reconstruction system for monocular video. Our core innovation lies in teaching the reconstruction model to distinguish dynamic objects from the static background purely through training, without introducing explicit mo-tion or segmentation priors during inference. MoRe builds upon a strong reconstruction backbone and introduces an attention forcing strategy that explicitly supervises motion disentanglement while implicitly preserving geometric con-sistency. This integration allows the network to learn how motion influences both scene structure and camera trajec-tory, enabling robust depth and pose estimation even under significant dynamic movement. To enhance temporal coherence and scalability, we propose a temporally aware streaming inference strategy combining grouped causal attention with a bundle adjust-ment [12] like incremental refinement process. The atten-tion mechanism captures long range temporal dependencies and adapts to varying token lengths across frames. The re-finement process incrementally updates camera poses and scene geometry to maintain temporal consistency. Com-bined with large scale finetuning on diverse static and dy-namic datasets, MoRe achieves fast, motion aware, and gen-eralizable 4D reconstruction suitable for real world dynamic environments. We train our model end to end on large scale 3D datasets covering diverse static and dynamic scenarios and compre-hensively evaluate its performance across multiple down-stream applications. Our main contributions are as follows: • We present MoRe, a unified motion aware 4D recon-struction framework capable of jointly estimating camera poses, depths, and motion masks in dynamic scenes. • We introduce an attention forcing strategy that effectively teaches the network to disentangle dynamic motion from static structure during training through explicit supervi-sion and implicit geometric consistency. • We design a temporally aware inference mechanism com-bining grouped causal attention and bundle adjustment like streaming refinement, which captures long range de-pendencies while performing lightweight global refine-ment. • Extensive experiments on diverse benchmarks demon-strate that MoRe achieves state of the art accuracy and strong generalization in dynamic 4D reconstruction. 
+
+# 2. Related Work 
+
+2.1. 4D Reconstruction 
+
+4D reconstruction recovers time-evolving 3D structures by jointly predicting camera poses and depth. Optimization-based systems [18, 38] refine geometry and motion using auxiliary cues (e.g., optical flow, masks), but are computa-tionally heavy for slong sequences or streaming input. Re-cent modular pipelines [20, 40] leverage foundation mod-els yet remain complex for real-time use. Another line of work [7, 13, 28, 41] regresses temporally aligned point-maps; however, they often lack explicit motion-static disen-tanglement and require dense 4D supervision. Unlike these, MoRe preserves an elegant, easy-to-use feed-forward archi-tecture while removing the need for auxiliary motion priors or extra annotations: we teach the model to separate dy-namic and static regions during training so that inference remains lightweight, end-to-end and suitable for streaming video. 
+
+2.2. Learning-based Reconstrucion 
+
+Recent learning-based methods directly regress geometry from images. Dust3R [34] formulates reconstruction as point-map regression, eliminating explicit calibration. Sub-sequent works like MASt3R [17] and Fast3R [37] improve 28915 Aggregated   
+
+> Transformer
+> . . .
+> Frame 1
+> Frame 2
+> Frame T
+> ViT
+> Encoder
+> ViT
+> Encoder
+> ViT
+> Encoder
+> camera token
+> Motion-Aligned
+> Frame Attention . . .
+> . . . . . . Camera Head
+> DPT
+> Point maps
+> Motion masks
+> Depth maps
+> Poses
+> DPT
+> DPT
+
+Figure 2. Method Overview. During training, an attention-forcing mechanism aligns the attention weights with ground-truth motion masks, enabling the model to effectively disentangle dynamic motion from static scene structure. For streaming reconstruction task, MoRe is based on a causal transformer where global attention is replaced by aggregated causal attention. 
+
+correspondences and scalability, while VGGT [32] uses a large Transformer to infer poses and depth maps across many views. Despite these advances, Transformer-based solutions face two limitations: quadratic inference costs with respect to sequence length, making streaming imprac-tical, and a lack of explicit motion modeling, which re-duces robustness in dynamic scenes.Despite their advances, Transformer-based solutions still face two key limitations: inference cost often scales quadratically with input length (making long or streaming video sequences impractical), and they typically neglect explicit modelling of camera or scene motion—which reduces robustness when objects or the camera itself move significantly. Our method addresses these shortcomings by introducing a causal attention mech-anism and a streaming inference strategy, enabling efficient long-sequence processing and motion-aware geometry esti-mation. 
+
+2.3. Streaming Reconstruction 
+
+Sreaming reconstruction in dynamic scenes builds on vi-sual SLAM, which estimates trajectories and maps incre-mentally. However, SLAM typically assumes static en-vironments, limiting its 4D applicability. Recent frame-works like CUT3R [33] introduce transformer-based per-sistent latent states for online dense reconstruction. Follow-ing this, several systems [16, 19, 49] adopt LLM-style ar-chitectures [2, 31] and unidirectional causal attention with KV-caching to handle long sequences. However, standard LLM causal attention in 3D reconstruction faces two is-sues: first, it breaks intra-frame token correspondences by treating tokens as a flat sequence; second, streaming in-put imposes hard constraints where errors accumulate and long-term context drift persists. In contrast, our method in-tegrates a causal attention mechanism tailored for image-tokens, combined with a BA-like token aggregation mecha-nism for global refinement. 
+
+# 3. Method 
+
+To address disconnections in 4D reconstruction, we propose MoRe, a feed-forward transformer designed for streaming input with a BA-like global alignment module. As shown in Fig. 2, MoRe jointly predicts per-frame depths, cam-era poses, point maps, and motion masks from monocular video. Our approach is built upon a formal problem for-mulation (Sec. 3.1), followed by an attention-forcing strat-egy (Sec. 3.2) that integrates implicit and explicit supervi-sion for temporal consistency. For efficient inference, we introduce a frame-aware grouped causal attention mecha-nism (Sec. 3.3) tailored for streaming reconstruction, with the overall training objective detailed in Sec. 3.4. 
+
+3.1. Problem Formulation 
+
+Given a monocular video consisting of a frame sequence 
+
+{It ∈ R3×H×W }Tt=1 , our objective is to jointly estimate the per-frame depths {Dt ∈ RH×W }Tt=1 , camera param-eters {gt ∈ R9}Tt=1 , and dynamic point maps {Pt ∈
+
+R3×H×W }Tt=1 .4D reconstruction typically involves long temporal se-quences that arrive continuously and must be processed in real time. To accommodate this streaming nature, we refor-mulate the task as an online process: 
+
+{Dt, g t, P t}Tt=1 = fθ ({Ct}T −1 
+
+> t=1
+
+, I T −1), (1) where Ct represents the cached information for It.Yet, streaming reconstruction further amplifies the un-certainty introduced by dynamic regions, where object mo-tion leads to inconsistent geometry and appearance over time. The priors used in existing approaches are mainly effective in static areas and tend to fail in dynamic ones. 28916 To address this issue, we introduce motion masks MtTt=1 as auxiliary guidance for motion-aware reconstruction: 
+
+{Dt, g t, P t, M t}Tt=1 = fθ ({Ct}T −1 
+
+> t=1
+
+, I T −1). (2) Notably, our method does not rely on motion masks as explicit inputs, since their ground truth is typically unavail-able; instead, motion cues are implicitly inferred and inte-grated into the model’s representation. Building upon this formulation, we next describe how our attention-forcing strategy enables MoRe to effectively exploit temporal dependencies while remaining robust to motion-induced ambiguities. 
+
+3.2. Motion-aligned Attention   
+
+> Figure 3. Attention Map Visualization. We visualize the atten-tion map of the camera token within VGGT [32] and observe that the model tends to confuse moving objects with static background regions, which accounts for the degradation in prediction accuracy.
+
+In this section, we describe how our model disentangles dynamic motion from static structure. The key strategy re-lies on ground-truth motion masks during training and is completely test-time-free, avoiding any additional overhead during inference. Our motivation comes from directly transferring the foundation model to 4D reconstruction. As illustrated in Fig. 3, VGGT [32] performs well on the left example, where the camera token largely ignores moving regions. In contrast, in the right example, the camera token dis-tributes nearly uniform attention across the image, indi-cating motion-induced confusion. When dynamic objects appear within an otherwise static scene, features used for camera estimation are severely corrupted, leading to de-graded performance. This observation motivates the de-sign of motion-aligned attention , which explicitly guides the model to focus on static regions while partially ignor-ing moving objects. Motion-aligned attention is implemented by leveraging ground-truth motion masks during training. Given a mo-tion mask Mt, we divide it into patches of size s × s
+
+consistent with image tokenization, producing mask tokens 
+
+{mi} Hs × Ws 
+
+> i=1
+
+. The motion score for each image token is com-puted via average pooling over its corresponding mask to-ken: 
+
+ai = 1 − 1
+
+s2
+
+X
+
+> (u,v )∈mi
+
+mi(u, v ), (3) where ai ∈ [0 , 1] represents the prior we have for image token i, with higher values corresponding to static regions. These motion scores provide a soft supervision signal, al-lowing the model to learn which regions should contribute more to camera estimation. Crucially, the camera token’s attention weights {αi}
+
+over the image tokens can be interpreted as a probability distribution. Specifically, ai serves as a penalty prior to modulate the distribution of αi. By supervising αi based on ai, we provide explicit supervision that guides the model to differentiate between static and dynamic regions, thereby improving robustness to motion. By relying solely on ground-truth masks during training, this method avoids in-troducing extra outputs or computations during inference, making it fully test-time-free and suitable for streaming or real-time 4D reconstruction scenarios. Overall, motion-aligned attention allows the model to se-lectively attend to informative static regions, mitigating the negative impact of dynamic objects and enabling more ac-curate and stable camera and scene reconstruction in chal-lenging dynamic environments. 
+
+3.3. Grouped Causal Attention 
+
+In this section, we mainly discuss the streaming infer-ence mechanism that allows MoRe to incrementally recon-struct 4D scenes in real time, based on a specially designed 
+
+grouped causal attention scheme. Causal attention has been widely adopted in large lan-guage models to enforce autoregressive dependency across tokens, ensuring that each token only attends to its past context. However, such a formulation is not directly suit-able for our image-based reconstruction scenario. Image tokens within the same frame should maintain mutual vis-ibility to preserve spatial coherence and consistent geo-metric reasoning. Therefore, we reformulate the conven-tional upper-triangular causal mask into a frame-wise causal mask, as illustrated in Figure, which enforces temporal causality across frames while allowing full bidirectional at-tention within each frame. This adaptation enables MoRe to simultaneously maintain causal temporal reasoning and spatial consistency. During streaming inference, the first image pair initial-izes the key–value (KV) cache. For each subsequent frame 
+
+It, MoRe performs causal attention over the accumulated context from previous frames: 
+
+Ft = Attn( Qt, [K1: t−1, Kt], [V1: t−1, Vt]) ,
+
+KV 1: t ← [KV 1: t−1; ( Kt, Vt)] . (4) Here, Ft denotes the extracted feature representation for frame It, and KV 1: t stores all key–value pairs up to time 28917 Additional 
+
+> Query
+> . . .
+> Q
+> K
+
+Figure 4. Grouped Causal Attention. Unlike traditional causal attention, our design allows image tokens within the same frame to attend to each other regardless of their ordering. This formula-tion enables the model to preserve causal temporal reasoning while maintaining spatial consistency within each frame. 
+
+t. This design enables MoRe to process frames sequentially while preserving temporal causality and avoiding redundant recomputation, leading to highly efficient streaming 4D re-construction. However, such a strictly causal formulation also intro-duces a limitation: since each camera token only attends to its current and past contexts, long-term global infor-mation exchange becomes restricted. As a result, the ac-curacy of camera pose estimation may gradually degrade across extended sequences. To address this issue, we in-troduce a bundle-adjustment-like token aggregation mech-anism, which serves as a lightweight post-hoc refinement step after the streaming inference. Specifically, we cache the camera queries Qcam  
+
+> t
+
+during inference alongside the key–value features of all frames. Once the full sequence has been processed, each camera token performs an additional attention pass over all cached features to recover global geometric consistency: 
+
+Copt  
+
+> t
+
+= Attn( Qcam  
+
+> t
+
+, [K1: T ], [V1: T ]) . (5) This aggregation mechanism is analogous to the optimiza-tion step in bundle adjustment, effectively refining camera parameters in a globally consistent manner while maintain-ing real-time inference efficiency. Overall, the proposed streaming inference framework enables MoRe to achieve both efficiency and accuracy: causal attention ensures online processing capability, while the global token aggregation guarantees stable geometric re-construction even in long sequences. 
+
+3.4. Training Objective 
+
+Following VGGT [32] and Dust3R [34], our training objec-tive combines multi-task regression and classification, cov-ering depth maps, point maps, camera parameters, and mo-tion masks. For depth and point map regression, we adopt a confidence-weighted regression loss, which encourages ViT 
+
+> Decoder
+> Frame 1
+> KV Cache
+> ViT
+> Decoder
+> Frame 2
+> ViT
+> Decoder
+> Frame T
+> . . .
+> Duplicated
+> camera tokens
+> Decoder
+> . . .
+> . . .
+> . . .
+
+Figure 5. Streaming Inference pipeline. Leveraging causal atten-tion, our model can efficiently process streaming input in an online manner. To enhance camera pose accuracy, we apply a bundle-adjustment-like post-processing step after the entire sequence has been processed. Specifically, for each frame, we duplicate the camera token and perform inference again using the previously cached key-value pairs. 
+
+both accurate predictions and reliable confidence estimates: 
+
+Lconf =
+
+> N
+
+X
+
+> i=1
+
+
+
+ˆci ∥ˆyi − yi∥22 − λ log(ˆ ci)
+
+
+
+, (6) where N is the number of pixels or points, ˆyi and yi denote the predicted and ground-truth values respectively, and ˆci ∈
+
+[1 , ∞) represents the predicted confidence for each point. For motion mask prediction, we employ a standard bi-nary cross-entropy (BCE) loss, supervising each pixel to in-dicate whether it belongs to a dynamic region: 
+
+Lmotion = − 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+h
+
+Mi log( ˆMi) + (1 − Mi) log(1 − ˆMi)
+
+i
+
+.
+
+(7) As mentioned in Sec. 3.2, we encourage the camera to-ken’s attention distribution over image tokens to align with the normalized motion scores. We use a simple confidence-like loss to enforce this alignment: 
+
+Lattn = 1
+
+M
+
+> M
+
+X
+
+> i=1
+
+max(0 , a i − C) · αi, (8) where M is the number of image tokens and C is a constant to control the penalty region. To enhance both the accuracy of the streaming predic-tions and the final grouped camera estimates, we adopt a training strategy that explicitly supervises the camera token in two parallel paths. During training, for each frame, we duplicate the camera token and move them to the end of the sequence. Both the original and the duplicated tokens are decoded to predict camera parameters, which are then compared to the ground truth. This encourages the model to maintain consistent predictions across both the streaming path and the post-hoc aggregation path. 28918 Ours input images  MapAnything VGGT Figure 6. Qualititive Comparison of Our Full Attention Model with Other Methods. MoRe delivers outstanding performance in real-world scenes, outperforming other methods through its precise and robust geometry estimation. Table 1. Camera Pose Estimation on Sintel [3], TUM-dynamics [27], Bonn [23], and ScanNet [4] datasets. FA refers to full attention. 
+
+Sintel Bonn TUM-dynamics ScanNet (static) 
+
+Method type ATE ↓ RPE trans ↓ RPE rot ↓ ATE ↓ RPE trans ↓ RPE rot ↓ ATE ↓ RPE trans ↓ RPE rot ↓ ATE ↓ RPE trans ↓ RPE rot ↓
+
+MapAnything [15] FA 0.2104 0.0919 2.7396 0.0248 0.0132 0.6927 0.0244 0.0161 0.3871 0.0603 0.0280 0.8490 VGGT [32] FA 0.1715 0.0617 0.4695 0.0141 0.0100 0.6323 0.0109 0.0092 0.2992 0.0347 0.0151 0.3758 
+
+MoRe(FA) FA 0.0877 0.0580 0.3899 0.0138 0.0099 0.6267 0.0115 0.0088 0.2980 0.0375 0.0147 0.3847 Spann3R [ ? ] Streaming 0.3313 0.1111 4.4952 0.0344 0.0212 2.2539 0.0421 0.0333 0.8120 0.0651 0.0339 0.9348 CUT3R [33] Streaming 0.2163 0.0756 0.6518 0.0420 0.0094 0.6825 0.0438 0.0134 0.4210 0.0929 0.0223 0.5811 StreamVGGT [49] Streaming 0.4159 0.1097 1.1056 0.0451 0.0148 0.5982 0.0760 0.0317 0.7012 0.1436 0.0437 1.6533 Wint3R [19] Streaming 0.2251 0.0972 1.0922 0.0366 0.0084 0.7170 0.0700 0.0221 0.7325 0.0618 0.0204 0.7028 Stream3R [16] Streaming 0.2144 0.0764 0.8674 0.0235 0.0108 0.6664 0.0240 0.0123 0.3180 0.0521 0.0215 0.9919 MoRe Streaming 0.1474 0.0776 0.6157 0.0211 0.0117 0.6496 0.0260 0.0122 0.3201 0.0605 0.0212 0.5595 
+
+As for specific supervision, we apply a relative supervi-sion for each predicted pose pair. Formally, let Si→j denote the relative transform at time t. Ri→j and ti→j respectively represents the rotation matrix and transform vector. The camera loss is defined as: 
+
+Lcam = 1
+
+T (T − 1) 
+
+X
+
+> i̸=j
+
+(θ ˆRi→j ,R i→j + ∥ˆti→j − ti→j ∥), (9) where T is the total number of frames in the sequence. Additionally, this loss is applied differently to the orig-inal and duplicated camera tokens. For the original cam-era tokens, when computing losses over relative trans-forms from earlier to later frames, gradients are detached for tokens from the earlier timestamps to prevent back-propagation through the entire temporal chain. In contrast, for the duplicated camera tokens, we retain full gradient flow across all temporal relations. 28919 Ours  STream3R  CUT3R Figure 7. Qualitative Comparison of our Stream Model with Other Methods. MoRe strikes an optimal balance between reconstruction quality and computational efficiency, delivering high-fidelity results at competitive inference speeds. 
+
+# 4. Experiments 
+
+Datasets. Our model is trained on a large and diverse col-lection of datasets encompassing both static and dynamic scenes. Specifically, we utilize Dynamic Replica [14], PointOdyssey [45], Spring [21], Virtual KITTI [10], TartanAir [35], Co3Dv2 [24], ScanNet [4], Blend-edMVS [39], Hypersim [25], ARKitScenes [1], Waymo [29], and OmniWorld-Game [48]. These datasets jointly cover a wide variety of indoor and outdoor environ-ments, object categories, lighting conditions, and motion patterns. To ensure a balanced training distribution, datasets with fewer sequences are duplicated proportionally. 
+
+4.1. Camera Pose Estimation 
+
+Following previous works [16, 33], we evaluate our pre-dicted camera poses on Sintel [3], TUM-dynamics [27], Bonn [23], and ScanNet [4]. The first three are dynamic datasets containing a large proportion of moving objects. Among them, TUM-dynamics and Bonn are real-world datasets with random camera jitter and complex motion patterns, posing significant challenges to static reconstruc-tion methods. These properties make them ideal for eval-uating camera pose estimation in 4D reconstruction sce-narios. Notably, none of these dynamic datasets are seen during training, demonstrating the zero-shot generalization ability of our model.In contrast, ScanNet is a static in-door dataset, which helps verify that our model not only performs well in dynamic 4D settings but also maintains strong capability on static reconstruction tasks. Our evalua-tion metrics include Absolute Translation Error (ATE), Rel-ative Translation Error (RPE trans ), and Relative Rotation Er-ror (RPE rot ), computed post Sim(3) alignment with ground truth poses. Quantitative results are summarized in Tab. 1. Among full-attention methods, our approach achieves com-parable performance to the state-of-the-art π3 [36], de-spite being trained with significantly less data. Moreover, our method consistently outperforms streaming-based ap-proaches, highlighting the effectiveness of our attention-forcing strategy in disentangling dynamic motion from static structure. This demonstrates that explicitly guiding attention during training leads to more robust and accurate camera pose estimation under challenging dynamic scenes. 
+
+4.2. Video Depth Estimation 
+
+We evaluate depth prediction on four widely used bench-marks, including Sintel, Bonn, TUM, and kitti, which col-lectively cover diverse scenarios, including both synthetic and real-world data, as well as indoor and outdoor envi-ronments. This provides a comprehensive evaluation of the model’s generalization ability across different domains.To quantify performance, we adopt standard metrics: the Ab-solute Relative Error (Abs-Rel), which measures the aver-28920 Table 2. Video Depth Estimation on Sintel [3], TUM-dynamics [27], Bonn [23] and kitti [11].                                                                                                                
+
+> Sintel Bonn TUM-dynamics kitti Method type Abs Rel ↓δ < 1.25 ↑Abs Rel ↓δ < 1.25 ↑Abs Rel ↓δ < 1.25 ↑Abs Rel ↓δ < 1.25 ↑
+> Flare [42] FA 0.729 0.336 0.116 0.897 0.152 0.790 0.356 0.570 MapAnything [15] FA 0.632 0.461 0.125 0.859 0.241 0.813 0.277 0.742 VGGT [32] FA 0.387 0.584 0.055 0.970 0.132 0.901 0.073 0.961 MoRe(FA) FA 0.335 0.645 0.055 0.971 0.120 0.902 0.066 0.967
+> Spann3R [ ?]Streaming 0.740 0.364 0.229 0.729 0.264 0.645 0.422 0.358 CUT3R [33] Streaming 1.363 0.434 0.076 0.949 0.160 0.856 0.124 0.873 StreamVGGT [49] Streaming 0.698 0.591 0.058 0.972 0.156 0.889 0.173 0.722 Wint3R [19] Streaming 0.830 0.537 0.071 0.912 0.177 0.808 0.201 0.601 Stream3R [16] Streaming 0.397 0.632 0.070 0.952 0.151 0.898 0.079 0.949 MoRe Streaming 0.254 0.637 0.068 0.961 0.173 0.868 0.072 0.966
+
+Table 3. Ablation on Camera Pose Estimation                         
+
+> Sintel TUM-dynamics Method ATE ↓RPE trans ↓RPE rot ↓ATE ↓RPE trans ↓RPE rot ↓
+> w/o attention forcing 0.163 0.092 0.660 0.028 0.014 0.329 w/o BA-like refinement 0.155 0.085 0.619 0.027 0.014 0.321 full 0.147 0.082 0.616 0.026 0.013 0.320
+
+age proportional deviation between predicted and ground-truth depths, and δ1.25 accuracy, representing the percent-age of predictions within a multiplicative factor of 1.25 from the ground truth. Following prior works [16, 33], all predicted depth maps are aligned to the ground truth via a scale-only transformation before computing metrics.As shown in Tab. 2, our model achieves consistently strong results across all benchmarks. It performs competitively among full-attention methods and clearly surpasses exist-ing streaming-based approaches, demonstrating its strong capability in monocular video depth estimation. Combined with the accurate camera pose estimation discussed earlier, these results validate that MoRe is well-suited for unified and robust 4D reconstruction. 
+
+4.3. Ablation Study 
+
+We perform ablation studies to investigate how different components of our model contribute to its overall perfor-mance. In particular, we examine the impact of the attention forcing mechanism, grouped causal attention and BA-like refinement under consistent training configurations. 
+
+Attention Forcing To validate of the proposed attention forcing strategy, we train two variants of our model: one with attention forcing and one without. Both models share the identical architecture, training schedule, and data con-figuration. We report their camera pose estimation results on the Sintel [3] and TUM-Dynamics [27] in Tab. 3. As shown in the table, introducing the attention forcing mech-anism significantly improves the accuracy of camera pose estimation. This demonstrates that explicitly guiding the attention map toward static regions helps the model better disentangle dynamic motion from static structures. 
+
+Table 4. Ablation on Video Depth Estimation                           
+
+> Sintel Bonn kitti Method Abs Rel ↓δ < 1.25 ↑Abs Rel ↓δ < 1.25 ↑Abs Rel ↓δ < 1.25 ↑
+> w/o GCA 0.277 0.592 0.070 0.953 0.079 0.949 w/ 0.254 0.637 0.068 0.961 0.072 0.966
+
+Grouped Causal Attention To evaluate the effectiveness of our grouped causal attention, we compare it against a variant that adopts the standard causal attention for both training and inference. The baseline model is implemented with FlashAttention, and all other configurations are kept identical to ensure a fair comparison. We report depth es-timation metrics on Sintel [3], Bonn [23] and kitti [11], as summarized in Tab. 4, where GCA refers to Grouped Causal Attention. Results show that our grouped causal attention consistently improves performance across datasets. This design enables each image token to attend to others within the same frame while maintaining causal temporal depen-dency, effectively enhancing both temporal reasoning and spatial consistency. 
+
+BA-like refinement We ablate the BA-like refinement by removing the duplicated camera tokens used for post-process refinement. Results on Sintel [3] and TUM-dynamics [27] are shown in Tab. 3. The variant without refinement shows noticeably higher translation and rota-tion errors, confirming that our BA-like refinement effec-tively improves pose accuracy and temporal consistency in streaming reconstruction. 
+
+# 5. Conclusion 
+
+We introduced MoRe, a feed-forward network for dy-namic 4D reconstruction from monocular videos that effectively tackles challenges arising from moving objects and camera motion. By incorporating an attention-forcing strategy, MoRe explicitly disentangles dynamic motion from static scene geometry without requiring explicit motion priors during inference. Our stream-ing inference mechanism which combines grouped causal attention with a lightweight BA–like refinement, achieves efficient and temporally coherent reconstructions. 28921 References 
+
+[1] Gilad Baruch, Zhuoyuan Chen, Afshin Dehghan, Tal Dimry, Yuri Feigin, Peter Fu, Thomas Gebauer, Brandon Joffe, Daniel Kurz, Arik Schwartz, and Elad Shulman. ARK-itscenes - a diverse real-world dataset for 3d indoor scene understanding using mobile RGB-d data. In Thirty-fifth Con-ference on Neural Information Processing Systems Datasets and Benchmarks Track (Round 1) , 2021. 7 [2] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Sub-biah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakan-tan, Pranav Shyam, Girish Sastry, Amanda Askell, Sand-hini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens Winter, Chris Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners. In Advances in Neural Information Pro-cessing Systems , pages 1877–1901. Curran Associates, Inc., 2020. 3 [3] Daniel J. Butler, Jonas Wulff, Garrett B. Stanley, and Michael J. Black. A naturalistic open source movie for optical flow evaluation. In Proceedings of the 12th Euro-pean Conference on Computer Vision - Volume Part VI , page 611–625, Berlin, Heidelberg, 2012. Springer-Verlag. 6, 7, 8 [4] Angela Dai, Angel X. Chang, Manolis Savva, Maciej Hal-ber, Thomas Funkhouser, and Matthias Nießner. Scannet: Richly-annotated 3d reconstructions of indoor scenes. In 
+
+Proceeding Computer Vision and Pattern Recognition, IEEE ,2017. 6, 7 [5] Andrew J. Davison, Ian D. Reid, Nicholas D. Molton, and Olivier Stasse. Monoslam: Real-time single camera slam. 
+
+IEEE Transactions on Pattern Analysis and Machine Intelli-gence , 29(6):1052–1067, 2007. 2 [6] Xianze Fang, Jingnan Gao, Zhe Wang, Zhuo Chen, Xingyu Ren, Jiangjing Lyu, Qiaomu Ren, Zhonglei Yang, Xiaokang Yang, Yichao Yan, and Chengfei Lyu. Dens3R: A foun-dation model for 3D geometry prediction. arXiv preprint arXiv:2507.16290 , 2025. 2 [7] Haiwen Feng, Junyi Zhang, Qianqian Wang, Yufei Ye, Pengcheng Yu, Michael J Black, Trevor Darrell, and Angjoo Kanazawa. St4rtrack: Simultaneous 4d reconstruction and tracking in the world. In Proceedings of the IEEE/CVF Inter-national Conference on Computer Vision , pages 8503–8513, 2025. 2 [8] Yasutaka Furukawa, Carlos Hern´ andez, et al. Multi-view stereo: A tutorial. Foundations and trends® in Computer Graphics and Vision , 9(1-2):1–148, 2015. 2 [9] Jingnan Gao, Zhe Wang, Xianze Fang, Xingyu Ren, Zhuo Chen, Shengqi Liu, Yuhao Cheng, Jiangjing Lyu, Xi-aokang Yang, and Yichao Yan. MoRE: 3D visual geome-try reconstruction meets mixture-of-experts. arXiv preprint arXiv:2510.27234 , 2025. 2 [10] A Geiger, P Lenz, C Stiller, and R Urtasun. Vision meets robotics: The kitti dataset. 32(11):1231–1237, 2013. 7 [11] Andreas Geiger, Philip Lenz, Christoph Stiller, and Raquel Urtasun. Vision meets robotics: The kitti dataset. The in-ternational journal of robotics research , 32(11):1231–1237, 2013. 8 [12] Richard Hartley and Andrew Zisserman. Multiple view ge-ometry in computer vision . Cambridge university press, 2003. 2 [13] Linyi Jin, Richard Tucker, Zhengqi Li, David Fouhey, Noah Snavely, and Aleksander Holynski. Stereo4D: Learning How Things Move in 3D from Internet Stereo Videos. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2025. 2 [14] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia Neverova, Andrea Vedaldi, and Christian Rupprecht. Dy-namiStereo: Consistent dynamic depth from stereo videos. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 13229–13239, 2023. 7[15] Nikhil Keetha, Norman M¨ uller, Johannes Sch¨ onberger, Lorenzo Porzi, Yuchen Zhang, Tobias Fischer, Arno Knapitsch, Duncan Zauss, Ethan Weber, Nelson Antunes, et al. MapAnything: Universal feed-forward metric 3d re-construction. arXiv preprint arXiv:2509.13414 , 2025. 2, 6, 8[16] Yushi Lan, Yihang Luo, Fangzhou Hong, Shangchen Zhou, Honghua Chen, Zhaoyang Lyu, Shuai Yang, Bo Dai, Chen Change Loy, and Xingang Pan. STream3R: Scalable sequential 3D reconstruction with causal transformer. In 
+
+ICLR , 2026. 3, 6, 7, 8 [17] Vincent Leroy, Yohann Cabon, and J´ erˆ ome Revaud. Ground-ing image matching in 3D with Mast3R. In European Con-ference on Computer Vision , pages 71–91. Springer, 2024. 2[18] Zhengqi Li, Richard Tucker, Forrester Cole, Qianqian Wang, Linyi Jin, Vickie Ye, Angjoo Kanazawa, Aleksander Holyn-ski, and Noah Snavely. MegaSaM: Accurate, fast and ro-bust structure and motion from casual dynamic videos. In 
+
+Proceedings of the Computer Vision and Pattern Recognition Conference , pages 10486–10496, 2025. 2 [19] Zizun Li, Jianjun Zhou, Yifan Wang, Haoyu Guo, Wen-zheng Chang, Yang Zhou, Haoyi Zhu, Junyi Chen, Chun-hua Shen, and Tong He. WinT3R: Window-based stream-ing reconstruction with camera token pool. arXiv preprint arXiv:2509.05296 , 2025. 3, 6, 8 [20] Jiahao Lu, Tianyu Huang, Peng Li, Zhiyang Dou, Cheng Lin, Zhiming Cui, Zhen Dong, Sai-Kit Yeung, Wenping Wang, and Yuan Liu. Align3R: Aligned monocular depth estimation for dynamic videos. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 22820–22830, 2025. 2 [21] Lukas Mehl, Jenny Schmalfuss, Azin Jahedi, Yaroslava Nali-vayko, and Andr´ es Bruhn. Spring: A high-resolution high-detail dataset and benchmark for scene flow, optical flow and stereo. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4981– 4991, 2023. 7 [22] Richard A Newcombe, Dieter Fox, and Steven M Seitz. Dynamicfusion: Reconstruction and tracking of non-rigid 28922 scenes in real-time. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 343–352, 2015. 2[23] Emanuele Palazzolo, Jens Behley, Philipp Lottes, Philippe Giguere, and Cyrill Stachniss. Refusion: 3d reconstruction in dynamic environments for rgb-d cameras exploiting resid-uals. In 2019 IEEE/RSJ International Conference on Intelli-gent Robots and Systems , pages 7855–7862. IEEE, 2019. 6, 7, 8 [24] Jeremy Reizenstein, Roman Shapovalov, Philipp Henzler, Luca Sbordone, Patrick Labatut, and David Novotny. Com-mon objects in 3d: Large-scale learning and evaluation of real-life 3d category reconstruction. In Proceedings of the IEEE/CVF International Conference on Computer Vision ,pages 10901–10911, 2021. 7 [25] Mike Roberts, Jason Ramapuram, Anurag Ranjan, Atulit Kumar, Miguel Angel Bautista, Nathan Paczan, Russ Webb, and Joshua M Susskind. Hypersim: A photorealistic syn-thetic dataset for holistic indoor scene understanding. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 10912–10922, 2021. 7 [26] Johannes L Schonberger and Jan-Michael Frahm. Structure-from-motion revisited. In Proceedings of the IEEE/CVF con-ference on Computer Vision and Pattern Recognition , pages 4104–4113, 2016. 2 [27] J¨ urgen Sturm, Nikolas Engelhard, Felix Endres, Wolfram Burgard, and Daniel Cremers. A benchmark for the eval-uation of rgb-d slam systems. In 2012 IEEE/RSJ Interna-tional Conference on Intelligent Robots and Systems , pages 573–580. IEEE, 2012. 6, 7, 8 [28] Edgar Sucar, Zihang Lai, Eldar Insafutdinov, and Andrea Vedaldi. Dynamic point maps: A versatile representation for dynamic 3d reconstruction. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 7295– 7305, 2025. 2 [29] Pei Sun, Henrik Kretzschmar, Xerxes Dotiwalla, Aurelien Chouard, Vijaysai Patnaik, Paul Tsui, James Guo, Yin Zhou, Yuning Chai, Benjamin Caine, et al. Scalability in perception for autonomous driving: Waymo open dataset. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 2446–2454, 2020. 7 [30] Takafumi Taketomi, Hideaki Uchiyama, and Sei Ikeda. Vi-sual slam algorithms: A survey from 2010 to 2016. IPSJ transactions on computer vision and applications , 9(1):16, 2017. 2 [31] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timoth´ ee Lacroix, Baptiste Rozi` ere, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. 
+
+arXiv preprint arXiv:2302.13971 , 2023. 3 [32] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea Vedaldi, Christian Rupprecht, and David Novotny. VGGT: Visual geometry grounded transformer. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Conference , pages 5294–5306, 2025. 2, 3, 4, 5, 6, 8 [33] Qianqian Wang, Yifei Zhang, Aleksander Holynski, Alexei A Efros, and Angjoo Kanazawa. Continuous 3d per-ception model with persistent state. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 10510–10522, 2025. 3, 6, 7, 8 [34] Shuzhe Wang, Vincent Leroy, Yohann Cabon, Boris Chidlovskii, and Jerome Revaud. Dust3R: Geometric 3d vi-sion made easy. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 20697– 20709, 2024. 2, 5 [35] Wenshan Wang, Delong Zhu, Xiangwei Wang, Yaoyu Hu, Yuheng Qiu, Chen Wang, Yafei Hu, Ashish Kapoor, and Se-bastian Scherer. Tartanair: A dataset to push the limits of visual slam. In 2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 4909–4916. IEEE, 2020. 7 [36] Yifan Wang, Jianjun Zhou, Haoyi Zhu, Wenzheng Chang, Yang Zhou, Zizun Li, Junyi Chen, Jiangmiao Pang, Chun-hua Shen, and Tong He. π3: Permutation-equivariant visual geometry learning. arXiv preprint arXiv:2507.13347 , 2025. 7[37] Jianing Yang, Alexander Sax, Kevin J Liang, Mikael Henaff, Hao Tang, Ang Cao, Joyce Chai, Franziska Meier, and Matt Feiszli. Fast3R: Towards 3d reconstruction of 1000+ images in one forward pass. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition Con-ference , pages 21924–21935, 2025. 2 [38] David Yifan Yao, Albert J Zhai, and Shenlong Wang. Uni4D: Unifying visual foundation models for 4d modeling from a single video. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Conference , pages 1116–1126, 2025. 2 [39] Yao Yao, Zixin Luo, Shiwei Li, Jingyang Zhang, Yufan Ren, Lei Zhou, Tian Fang, and Long Quan. Blendedmvs: A large-scale dataset for generalized multi-view stereo networks. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition , pages 1790–1799, 2020. 7 [40] Junyi Zhang, Charles Herrmann, Junhwa Hur, Varun Jam-pani, Trevor Darrell, Forrester Cole, Deqing Sun, and Ming-Hsuan Yang. MonST3R: A simple approach for estimating geometry in the presence of motion. In The Thirteenth In-ternational Conference on Learning Representations , 2025. 2[41] Songyan Zhang, Yongtao Ge, Jinyuan Tian, Guangkai Xu, Hao Chen, Chen Lv, and Chunhua Shen. Pomato: Marry-ing pointmap matching with temporal motions for dynamic 3d reconstruction. In Proceedings of the IEEE/CVF Inter-national Conference on Computer Vision , pages 5680–5689, 2025. 2 [42] Shangzhan Zhang, Jianyuan Wang, Yinghao Xu, Nan Xue, Christian Rupprecht, Xiaowei Zhou, Yujun Shen, and Gor-don Wetzstein. Flare: Feed-forward geometry, appearance and camera estimation from uncalibrated sparse views. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition Conference , pages 21936– 21947, 2025. 8 [43] Weiqi Zhang, Junsheng Zhou, Haotian Geng, Wenyuan Zhang, and Yu-Shen Liu. GAP: Gaussianize any point clouds with text guidance. In Proceedings of the IEEE/CVF Interna-28923 tional Conference on Computer Vision , pages 25627–25638, 2025. 2 [44] Weiqi Zhang, Junsheng Zhou, Haotian Geng, Kanle Shi, Yi Fang, and Yu-Shen Liu. GaussianGrow: Geometry-aware gaussian growing from 3d point clouds with text guidance. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2026. 2 [45] Yang Zheng, Adam W Harley, Bokui Shen, Gordon Wet-zstein, and Leonidas J Guibas. Pointodyssey: A large-scale synthetic dataset for long-term point tracking. In Proceed-ings of the IEEE/CVF International Conference on Com-puter Vision , pages 19855–19865, 2023. 7 [46] Junsheng Zhou, Weiqi Zhang, and Yu-Shen Liu. DiffGS: Functional gaussian splatting diffusion. In Advances in Neu-ral Information Processing Systems , pages 37535–37560. Curran Associates, Inc., 2024. 2 [47] Junsheng Zhou, Weiqi Zhang, Baorui Ma, Kanle Shi, Yu-Shen Liu, and Zhizhong Han. UDiFF: Generating condi-tional unsigned distance fields with optimal wavelet diffu-sion. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , pages 21496–21506, 2024. 2 [48] Yang Zhou, Yifan Wang, Jianjun Zhou, Wenzheng Chang, Haoyu Guo, Zizun Li, Kaijing Ma, Xinyue Li, Yating Wang, Haoyi Zhu, et al. Omniworld: A multi-domain and multi-modal dataset for 4d world modeling. arXiv preprint arXiv:2509.12201 , 2025. 7 [49] Dong Zhuo, Wenzhao Zheng, Jiahe Guo, Yuqi Wu, Jie Zhou, and Jiwen Lu. Streaming 4d visual geometry transformer. 
+
+arXiv preprint arXiv:2507.11539 , 2025. 3, 6, 8 28924

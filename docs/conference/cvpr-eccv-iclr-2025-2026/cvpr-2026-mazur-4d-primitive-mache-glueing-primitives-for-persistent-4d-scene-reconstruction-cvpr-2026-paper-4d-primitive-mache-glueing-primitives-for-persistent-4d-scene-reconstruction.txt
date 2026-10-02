@@ -1,0 +1,274 @@
+Title: 4D Primitive-Mache: Glueing Primitives for Persistent 4D Scene Reconstruction
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Mazur_4D_Primitive-Mache_Glueing_Primitives_for_Persistent_4D_Scene_Reconstruction_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:47:04 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# 4D Primitive-Mˆ ach´ e: Glueing Primitives for Persistent 4D Scene Reconstruction 
+
+# Kirill Mazur, Marwan Taher, Andrew J. Davison Dyson Robotics Lab, Imperial College London 
+
+{k.mazur21, m.taher, a.davison }@imperial.ac.uk time 
+
+> 4DPM  Observed
+
+t=1  t=11  t=20 
+
+> 4DPM
+> Observed
+
+t=20  t=20 
+
+Figure 1. Our method (4DPM) takes in casual monocular videos (captured by an iPhone) and outputs complete 3D scene reconstructions at every observed timestamp, using all scene observations. The method takes in the outputs of a feedforward reconstruction model (top row) 
+
+and glues dynamic geometry observations across time (middle row) . This results in a complete and accurate geometric reconstruction, which re-uses observations from all timestamps (bottom row) .
+
+# Abstract 
+
+We present 4DPM , a dynamic reconstruction system that receives a casual monocular RGB video as input, and out-puts a complete and persistent reconstruction of the scene. In other words, we reconstruct not only the currently visi-ble parts of the scene, but also all previously viewed parts, which enables replaying the complete reconstruction across all timesteps. Our method decomposes the scene into a set of rigid 3D primitives, which are assumed to be moving through the scene. Using estimated dense 2D correspondences, we This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 7372 jointly infer the rigid motion of these primitives through an optimisation pipeline, yielding a 4D reconstruction of the scene, i.e. providing 3D geometry dynamically moving through time. To achieve this, we also introduce a mecha-nism to extrapolate motion for objects that become invisible, employing motion-grouping techniques to maintain conti-nuity. The resulting system enables 4D spatio-temporal aware-ness, offering capabilities such as replayable 3D recon-structions of articulated objects through time, multi-object scanning, and object permanence. On object scanning and multi-object datasets, our system significantly outper-forms existing methods both quantitatively and qualita-tively. Project page: https://makezur.github.io/4DPM/ 
+
+# 1. Introduction 
+
+Building accurate and complete geometric reconstructions of dynamic scenes is a critical task in computer vision with broad applications in robotics, embodied intelligence, and augmented reality. Spatial AI systems typically oper-ate in dynamic environments, requiring maps that are both complete and precise. Whilst SLAM [4, 7, 13, 22] and SfM [27, 34] methods excel in building maps of static envi-ronments, they abstain from mapping dynamic scene parts. Agents typically interact with and modify their surround-ings, and many environments are inherently dynamic, with objects and actors constantly changing position and config-uration. The main goal of mapping is persistence, i.e to retain as much relevant observed information as possible. For dy-namic scenes, only the latest frame depth represents up-to-date geometric observations. Most dynamic mapping sys-tems lack persistence and do not aggregate observed geom-etry across time. Thus, a lot of the information about previ-ously observed scene elements is lost. Our goal in this paper is to build the most complete and persistent reconstruction possible, by not discarding previously observed information about moving objects. The most general case of persistent, non-rigid dynamic reconstruction remains very challenging even for RGB-D systems and can only be performed on short sequences in controlled scenarios. Here, we make a piecewise-rigid mo-tion assumption but show that this still covers a wide range of scenes and allows for replayable moving reconstructions consisting of many parts. We present a new scene reconstruction approach, 4D Primitive-Mˆ ach´ e (4DPM), which enables corresponding re-construction of every observed keyframe at all given times-tamps . This contrasts with previous methods [12, 18, 38] that reconstruct geometry (possibly coupled with point tracks) only at the time it was observed. This allows us to replay the 3D reconstruction in 4D. The key to our method is to decompose scenes into object-like chunks, as in SuperPrimitive [21] (SP), aprimitive-based approach to SLAM and SfM. We tackle dy-namic scene reconstruction using scene primitives as the underlying representation. This enables compact and op-timisable representation of dense scene geometry. Whilst SP assumes pixel-aligned primitives and estimates only un-known depth scales, we extend this framework by endowing each primitive with rigid motion parameters. This formulation allows us to efficiently reduce the com-plex all-to-all temporal dense mapping problem to estimat-ing a single SE (3) pose per primitive . The pose encodes the transformation to the last observed timestamp of that object. We demonstrate that this compact representation suffices to encode the complete temporal trajectory of each primitive, enabling tractable motion inference across a diverse range of dynamic scenes. In order to estimate the motion of these primitives (“glue” them across time), we employ an off-the-shelf dense 2D correspondence estimation network [11]. Given the esti-mated correspondence between 3D primitives, we estimate their motion by direct 3D alignment in their respective co-ordinate systems. To briefly summarise our contributions: • We introduce a primitive-based motion parameterisation that represents per-pixel motion fields through sparse per-primitive SE (3) poses, dramatically reducing the dimen-sionality of dynamic scene reconstruction whilst main-taining expressiveness for piecewise-rigid motion. • We demonstrate geometric accuracy significantly higher than the existing monocular methods on challenging scenarios including multi-object interactions, validated against multi-view ground truth. • Our primitive persistence enables spatial memory capa-bilities, maintaining representations of temporarily oc-cluded objects. To the best of the authors’ knowledge, our method is the first monocular reconstruction system demonstrating such capabilities. 
+
+# 2. Related Work 
+
+Compact Scene Representations Rather than optimis-ing dense geometric (such as depth) values for every ob-served pixel, compact representations parameterise scenes through learned models or structured primitives. Code-based methods [2, 6, 20] learn depth prediction networks conditioned on optimisable latent codes, enabling joint op-timisation during reconstruction. Similarly, COMO [8] em-ploys explicit 3D control points as an optimisable scene rep-resentation. Primitive-based approaches take this further by representing scenes as compositions of higher-level struc-tures: SLAM++ [26] represents scenes as collections of CAD models and optimises their poses, while SuperPrim-itive [21] decomposes frames into 2.5D primitives obtained 7373 through surface normal integration within image segments, estimating their depth scales through optimisation. 
+
+Compact Motion Representations Early sparse recon-struction systems of moving bodies segmented motion into multiple rigid components [5], which was later extended to articulated objects [31]. To move beyond rigid-body assumptions, subsequent work explored compact motion representations through decomposition: [3] proposed de-composing moving objects as linear combinations of shape bases, whilst [1] instead decomposed trajectories using a linear basis set. With the advent of commercially available depth sensors, fusion-based methods enabled dense dynamic reconstruc-tion. DynamicFusion [23] pioneered RGB-D non-rigid re-construction by representing motion via a sparse set of de-formation nodes and fusing observations into a canonical, voxel-based TSDF model. Object-centric approaches such as Co-fusion [25] and MID-fusion [37] spawned individual dense maps — surfel-based and octree-based respectively — for different objects. In contrast with [23], these methods enabled dynamic scene level reconstruction. Whilst these methods share our object-based motion representation, they require continuous depth streams for map fusion and model-based tracking, making them inapplicable to monocular sce-narios. For monocular dense reconstruction, SuperPixel Soup [16, 17] represents scene motion by decomposing the scene into rigidly moving superpixels; however, these methods are largely limited to two-view, small-baseline configurations. 
+
+4D reconstruction methods In recent years, joint depth and camera pose estimation from casual videos containing dynamic objects has gained significant attention. Initial ap-proaches combined learned priors with scene-specific op-timisation [12, 15, 18, 40], which were later followed by feed-forward reconstruction models [36, 42]. Our method is complementary to these approaches: whilst they esti-mate geometry only at the time of observation, we focus on remapping observed reconstructions to all timestamps. Consequently, the outputs of these methods can be used as the input to ours. Inspired by the recent success of DUSt3R [35], a se-ries of recent methods [9, 30, 39] has extended DUSt3R’s shared coordinate frame mapping paradigm to dynamic scenes by establishing temporal correspondences, thereby warping point maps across different time frames. While these methods are theoretically more expressive, real data for training supervision remains extremely sparse, leading to limited performance even on scenes with predominantly rigid motion. Additionally, pair-wise methods suffer from quadratic complexity when the number of frames increases. 
+
+# 3. Method 
+
+## 3.1. Formulation 
+
+Our geometry representation is based on point maps Xtk ∈
+
+RH×W ×3, which represent 3D geometry captured from camera k and warped to time t in world coordinates. For a video sequence I = {I0, . . . , I n |Ii ∈ RH×W ×3},the scene reconstruction at time t is the collection X t =
+
+{Xt
+
+> 0
+
+, . . . , Xtn}.Prior work reconstructs image-aligned point maps only at their respective observation times, yielding 
+
+{X00, X11, . . . , Xnn}. In contrast, our goal is to recon-struct the complete scene geometry at every observed timestamp, obtaining {X 0, . . . , X n}. We achieve this by taking observation-time point maps from a feed-forward model [36] as input to our 3D primitive glueing method. 
+
+Primitives Every keyframe Ii is partitioned into a set of non-overlapping image regions Sp ∈ Ii. These regions cut 3D primitives out of Xi, which we denote as Sp ⊙ Xi. To represent scene motion, we allow these primitives to move as rigid bodies over time, which is parametrised with SE (3) 
+
+poses T (Sp) of each individual 3D primitive. In Sec. 3.4 we describe how to infer this motion from estimated 2D correspondences between images. 
+
+Pose representation Object and camera poses T ∈
+
+SE (3) are stored as 4 × 4 matrices. For optimisation, we employ a Lie group parametrisation following the notation in [28]. Pose updates are represented as Lie algebra ele-ments τ ∈ se (3) ≃ R6, and transformations are updated via: 
+
+T ← T ⊕ τ (1) 
+
+## 3.2. Objects 
+
+Our 3D primitives are matched across time to form object-like structures for two key reasons. First, this enables fil-tering of spurious correspondences, which frequently arise at object boundaries. Second, and more importantly, this matching facilitates a compact motion representation: each 3D primitive requires only a single SE (3) to represent its motion at all visible timestamps, see Sec. 3.5. The scene primitives are clustered into object groups O.Intuitively, our method assumes each object-like entity to be rigidly moving in the scene. Each object O is a set of primitives, grouped by time O = {Ststart , . . . , S tend }.To represent an object O’s motion, we couple each seg-ment S ∈ O with an SE (3) pose T (S), which maps it in the coordinate frame of the last observed segment, Stend . The pose T (Stend ) corresponding to the last observed segment is set to identity, since pose estimation for each object entity has a natural SE (3) gauge freedom [29, 32] (since the scale between objects is fixed). 7374 …
+
+> Freeze Static Primitives
+> …
+
+Split into 3D Primitives 
+
+Feed-Forward Reconstruction 
+
+Video Segmentation 
+
+Replay Everything Observed 
+
+Glue Primitives Through Time 
+
+> …
+> ……
+> t=13 t=8 t=2
+
+Figure 2. 4D reconstruction with 4DPM. (left) Our frontend takes in a monocular RGB video and splits it into a set of 3D primitives. Each primitive is represented as a 3D point map in the world coordinate space, cut out by a segmentation mask. These primitives are matched across time (visualised with consistent colours) to form consistent entities across time, to which we refer as objects . (top right) 
+
+Given geometric observations positioned at their respective timestamps, we “glue” primitives belonging to the same object across time according to their estimated dense 2D correspondences. (bottom right) The resulting complete reconstruction can be replayed across all observed timestamps. 
+
+Static-Dynamic classification Monocular videos present a natural geometric ambiguity: from 2D correspondences alone, motion induced by camera movement cannot be eas-ily disambiguated from actual scene motion. To resolve this gauge freedom in the backend optimisation, we freeze ob-jects based on their initial correspondence residuals. These frozen objects are assumed to be static in the world frame, such that their observed motion arises solely from camera movement. 
+
+## 3.3. Frontend 
+
+Geometry Given a set of keyframes I, we run afeed-forward scene reconstruction model π3 [36], which estimates point map at observation times π3(I) =
+
+{X00, X11, . . . , Xnn}. This serves as the basis for our Primitive-Mˆ ach´ e glueing algorithm. 
+
+Segmentation Given a video sequence I, our frontend should decompose this video into a set of non-overlapping objects, covering most of the video sequence. To this end, we segment the first frame of the video as in SuperPrimitive [21]. These masks are propagated to all other keyframes using SAMv2 [24]. Our algorithm sequen-tially processes subsequent frames, instantiating new ob-jects in uncovered image regions via active sampling and All 3D Primitives  Static are frozen 
+
+Figure 3. Static vs dynamic segmentation. We visualise all esti-mated primitives on the left . Before motion estimation, we freeze primitives with insufficiently high correspondence residuals, as-suming they are static. On the right , only dynamic primitives are shown. Our system produces motion segmentation as a by-product. 
+
+propagating them forwards, akin to [41]. This process partitions the imagery into the set of objects introduced in Sec. 3.2. 7375 Correspondence To extract dense correspondence be-tween subsequent keyframes, we run a dense point track-ing model [11] on the videos between the keyframes. These correspondences are then filtered to only align points that belong to the same object. 
+
+## 3.4. Backend 
+
+To estimate 3D primitives’ poses, we employ dense 2D cor-respondences between consecutive keyframes as constraints in a 3D optimisation. We perform joint optimisation across all objects and keyframes to find poses that best align cor-responding 3D points. Intuitively, this process “glues” the objects out of their constituent primitives. We use a dense correspondence network to estimate pixel-wise flow between temporally adjacent keyframes Ik
+
+and Ik+1 . While non-adjacent keyframes can also be used, we find adjacent pairs provide the best efficiency-robustness trade-off. The network[36] also provides per-pixel corre-spondence confidence weights which we use in the cost cal-culation. Given a pointmap Xkk (which we further denote as Xk
+
+for brevity) and flow field, we obtain corresponding 3D points X 
+
+> V
+> k+1
+
+by warping Xk+1 according to the flow. Sim-ilarly, segment masks Sk are warped to produce Sk+1 
+
+> V
+
+.For a single object O = {Sn, ..., S m} , our dense optimi-sation aims to estimate the poses T (Sn), . . . , T (Sm) of its constituent primitives. Our cost function directly minimises the distance between the 3D points of primitives belonging to the same object, weighted by correspondence confidence 
+
+wij :
+
+E (O) = X 
+
+> (i,j )∈T (O)
+
+wij · Si · Sj
+
+> V
+
+
+
+T −1 
+
+> j
+
+TiXi − Xj
+
+> V
+
+
+
+> ρ
+
+(2) where T (O) is the set of temporally-adjacent primitives which belong to object O and || · || ρ is the Huber cost func-tion. The final cost is combined across all objects present in the scene that are not classified as static: 
+
+Efinal = X
+
+> i
+
+E(Oi) (3) Jacobians J for all poses are derived analytically and ef-ficiently inferred in parallel for all objects in the scene. We solve this optimisation problem for all objects jointly via it-eratively reweighed least squares using Gauss-Newton op-timisation [32]: 
+
+JT WJ τ = −JT Wr , T i = Ti ⊕ τ (4) 
+
+## 3.5. Time Remapping 
+
+Having estimated poses for all primitives, we now aim to produce reconstructions of every frame at each times-tamp, namely X 0, . . . X n. In contrast to the non-rigid sce-nario, having mapped rigid objects onto their latest ob-served frame allows us to infer these object’ positions at all observed timestamps. More precisely, given an object O represented with prim-itives {Ststart , . . . , S tend } together with their estimated poses T (Ststart ), . . . T (Stend )) we can express the warp-ing as follows. As covered in Sec. 3.2, each pose maps a primitive onto the coordinate system of the last observed primitive, Stend . Then, the warping of Sp to time q can be naturally expressed as: 
+
+T p7→ q : = [ T (Sq )] −1 T (Sp) , (5) which corresponds to first transforming Sp onto the coordi-nate frame of Stend and then pulling it back to time q.
+
+## 3.6. Motion Segmentation 
+
+While some objects might become unobservable, humans can still reason about their positions in the 3D space. Our representation enables such reasoning. When an object becomes unobservable (e.g., an item placed in a closing drawer), we infer its continued motion (when possible) by linking it to a parent object that remains visible. We identify potential parent objects using two criteria: spatial contact and velocity similarity. Parents are only as-signed across objects in spatial contact, up to transitive clo-sure with the preference to objects with clustered velocities. 
+
+Spatial Contact To determine whether or not two objects are in contact, we fit Oriented Bounding Boxes (OBBs) to every object at each timestamp. We consider the objects to be in contact if their bounding boxes extended by α have non-zero intersection. In our experiments, we set α = 1 .1.
+
+Velocity Clustering Every object has its own coordinate system for poses, as discussed in Sec. 3.2. Hence object poses T ′ 
+
+> obj
+
+= FTobj are defined up to an unknown gauge freedom F ∈ SE (3) . Thus comparing their poses di-rectly is ill-posed. However, comparing velocities is gauge-invariant: 
+
+T ′(t)−1T ′(t − 1) = T (t)−1F−1FT (t − 1) = T (t)−1T (t − 1)  (6) Velocities V and W of two co-observed objects are then compared log( V−1W) under the Mahalanobis distance with diagonal covariance parameters στ (translation) and σψ (ro-tation). Objects with distance below threshold are consid-ered to have similar motion. 
+
+# 4. Experiments 
+
+We evaluate our dynamic geometry reconstruction quality, both in terms of accuracy and completeness. This is done by 7376 warping all observations to the final timestamp and compar-ing against the GT geometry of the scene. In this setup, we assume a scene is captured by a set synchronised RGB-D cameras, providing multi-view GT. Note that only one RGB camera stream is used as input to all methods, to which we further refer as the main camera. Ideally, after processing the whole sequence, a method should reuse all observations to produce as complete and accurate reconstruction as possible. Specifically, for all methods, we time-warp each pointmap onto the lat-est keyframe n, yielding the final reconstruction X n =
+
+{Xn 
+
+> 0
+
+, Xn 
+
+> 1
+
+, . . . , Xnn}.Due to gauge freedom, the estimated geometry has a 
+
+Sim(3) transformation ambiguity. For every method, we align its prediction to the ground truth coordinate system using Umeyama alignment [33], applying the transforma-tion computed from the last observed keyframe’s pointmap. For DUSt3R-based baselines (St4track [9] and PO-MATO [39]), we first extract all pointmaps temporally aligned to the final observation Xnn , and align them to a shared coordinate frame. 
+
+Metrics We evaluate reconstruction quality using two complementary metrics against pseudo-ground-truth pointmaps: (1) accuracy — the percentage of predicted points within a 1cm threshold of the ground truth, measur-ing precision; and (2) recall — the percentage of ground truth points covered by at least one predicted point within 1cm, measuring completeness. Following the established practice [14], we report the F-score, the harmonic mean of accuracy and recall, which reflects both metrics in a single value. In all our experiments, we evaluate reconstruction qual-ity solely on dynamic scene parts. Including static parts in the evaluation would dominate the completeness (i.e., re-call) metric. Specifically, auxiliary cameras in multi-view datasets typically capture static scene regions that are never visible from the main camera. Evaluating completeness on these regions would penalise a method for failing to recon-struct geometry that was never observed in the input video, making the recall measure uninformative for assessing the quality of dynamic scene reconstruction. Long sequences are split onto chunks of 150 consecutive frames and all methods are tested on each chunk separately. In this case, we report average result per sequence. 
+
+Baselines We propose two natural baselines for our method. First, ( π3 last view in the tables) only uses the lat-est frame pointmap as estimated geometry. In the last frame the positioning of dynamic geometry is up to date, but it lacks completeness. Another natural baseline ( π3 in the tables) is simply the untouched estimate of a feed-forward reconstruction model run on the input keyframes. While the geometrical informa-tion in this case is complete, it is not properly positioned for early keyframes. Besides these baselines, we also compare our system to state-of-the art methods, that are capable of dense time-warping of observed scene geometry: St4track [9], PO-MATO [39] and TraceAnything [19]. All our experiments are conducted with a single NVIDIA GeForce RTX 4090 GPU. 
+
+## 4.1. Object Scanning 
+
+We evaluate our system on HO3D [10], an object scanning dataset in which stationary cameras capture humans manip-ulating objects of interest. We select sequences recorded with four calibrated depth cameras, which provide ground truth depth for evaluation. Although human hands are non-rigid, hand poses remain largely static in this dataset. We therefore report geometric accuracy for both hands and scanned objects (i.e., dynamic scene parts) using the ground truth segmentation masks provided. In Tab. 1, we report per-sequence F-scores for all methods, alongside average F-score, recall, and precision. While ( π3 last frame) achieves higher precision, its recall (i.e., scene coverage) is poor because information from all keyframes except the last is discarded. Other baselines per-form well in terms of recall, indicating decent object cover-age. However, most fall short in precision. Our method pro-vides the best balance between precision and recall, achiev-ing the highest F-score across all compared methods. 
+
+## 4.2. Multi-Object Dataset 
+
+Due to the scarcity of real-world datasets capturing com-plex multi-object rigid motion, we collected our own dataset using four time-synchronised Azure Kinect cameras. Fol-lowing our evaluation protocol for HO3D, only one camera stream serves as input to all methods, while all four syn-chronised views are used to generate more reliable pseudo-ground-truth (pseudo-GT) geometry. Although these cam-eras include depth sensors, we observed unsatisfactory depth quality for most objects in practice. We therefore employed the metric-aligned feed-forward reconstruction from [36] on all four synchronised views to obtain pseudo-GT geometry estimates. We provide ground-truth masks for all dynamic scene parts and evaluate using the same ge-ometric metrics as on HO3D, namely accuracy, recall and F-score all evaluated at 1cm threshold. Quantitative results are presented in Tab. 2: our method marginally outperforms all other baselines in terms of our main evaluation metric, F-score. Qualitatively, as seen in Fig. 4 our method produces significantly more accurate and complete reconstructions than others. 
+
+## 4.3. Object Permanence 
+
+Our primitive-based representation naturally allows us to reason about spatial relationships between moving scene 7377 ABF1 BB1 GPMF1 GSF1 MDF1 ShSu1 SiBF1 avg. F-score Precision Recall 
+
+π3 last view 0.3185 0.3399 0.2553 0.4330 0.2604 0.2794 0.3581 0.3206 0.9255 0.2018 
+
+π3 0.4405 0.4913 0.5257 0.5394 0.4855 0.6744 0.4968 0.5219 0.4735 0.6296 St4Track 0.4717 0.3015 0.5699 0.6414 0.4913 0.7892 0.5095 0.5392 0.4549 0.7293 POMATO 0.4572 0.4304 0.5254 0.6747 0.5581 0.5271 0.4766 0.5214 0.4065 0.7650 TraceAny 0.5656 0.6323 0.6199 0.7158 0.5772 0.7375 0.6069 0.6365 0.5748 0.7398 Ours 0.7259 0.7306 0.7645 0.7636 0.7586 0.7758 0.7824 0.7573 0.7630 0.7774 
+
+Table 1. Quantitative evaluation on HO3D dataset. We report F-score (threshold at 1 cm) per sequence for all methods. Average F-score, precision, and recall across all sequences are also reported. Our method outperforms all baselines by a substantial margin in terms of F-score for dynamic object scanning, providing the best balance between completeness and accuracy. Best is highlighted as bold , while second-best is underscored. ta St4track Pomato 
+
+4DPM (ours) 
+
+4DPM (ours) 
+
+POMATO 
+
+POMATO 
+
+St4RTrack 
+
+St4RTrack 
+
+TraceAnything 
+
+TraceAnything 
+
+Figure 4. Qualitative comparison on Multi-Object dataset. Input video frames are shown in purple. Below each video, we visualise all observed point-maps time-warped to the latest timestamp. Our system successfully handles multi-object motion and performs well on particularly challenging objects such as the spinning ball and robot gripper (top row) . We provide a top-down view of multiple objects spinning on a rotating base (bottom row) . Our method correctly aggregates all observations, resulting in complete and accurate object scans. 
+
+parts. This capability proves especially useful when objects become occluded, due to motion. In Figure 5, we demon-strate our system operating on a closing drawer sequence. We show the top-down view of our 4D reconstruction. Ini-tially, objects inside the drawer are visible and can be or-dinarily reconstructed. As the drawer closes, these objects gradually become occluded, yet their motion and position can be inferred from the drawer front’s movement. Our 7378 BallPush BoxSpin MultiObj1 MultiObj2 PanStir Spin1 Spin2 Mean Precision Recall 
+
+π3 last view 0.3627 0.5296 0.6470 0.8318 0.1898 0.4711 0.5179 0.5071 0.8837 0.3707 
+
+π3 0.2176 0.6128 0.6828 0.6900 0.1640 0.3987 0.5934 0.4799 0.3637 0.7382 St4track 0.3968 0.7955 0.4514 0.6608 0.0401 0.4778 0.4189 0.4630 0.3585 0.6792 POMATO 0.4311 0.7175 0.6541 0.6373 0.4597 0.6225 0.5827 0.5864 0.4668 0.8071 TraceAny 0.4581 0.6876 0.3191 0.6175 0.4616 0.3706 0.4578 0.4817 0.3773 0.6946 Ours 0.7683 0.9179 0.8226 0.8903 0.6359 0.8544 0.6746 0.7948 0.7195 0.9000 
+
+Table 2. Quantitative evaluation on Multi-Object dataset. We report F-score (threshold at 1 cm) per sequence for all methods. Average F-score, precision, and recall across all sequences are also reported. Our method significantly outperforms all baselines in terms of F-score multi-object dynamic reconstruction, providing the best balance between completeness and accuracy. Best is highlighted as bold , while second-best is underscored. time 
+
+# Top down view  Drawer and objects inside    
+
+> are still reconstructed!
+> t=2 t=7 t=9 t=11
+
+Figure 5. Object permanence capabilities. In (top row) we show input frames of a drawer closing sequence. The resulting reconstruction estimated with 4DPM from the top-down view in the (bottom row) . When the drawer is fully closed (rightmost column), our method still reconstructs objects inside the drawer and the drawer body, despite it being completely occluded. This showcases object permanence capabilities of 4DPM. The top of the drawer is removed from reconstruction for better viewing. 
+
+primitive-based 3D representation, coupled with the motion segmentation technique described in Sec. 3.6, enables such capability. Based on motion segmentation, our system groups the drawer body with its front. Importantly, the objects inside are not in direct contact with the drawer front; hence their motion must be transitively inferred through the drawer body. Consequently, these occluded objects remain spa-tially associated and motion-grouped with the drawer, pre-serving them in the reconstruction. To the best of the authors’ knowledge, this is the first sys-tem to demonstrate such capabilities from casual monocu-lar videos. We strongly encourage reviewers to consult the supplementary materials for video demonstrations of this capability. 
+
+# 5. Limitations 
+
+Our system assumes that each primitive is rigid and thus cannot represent more intricate non-rigid deformations. Ex-tending the method to handle such deformations whilst maintaining computational efficiency remains an important direction for future work. Additionally, incremental map-ping capabilities, where the scene representation is built and updated over extended sequences, have yet to be explored. 
+
+# 6. Conclusion 
+
+We have presented 4D Primitive-Mˆ ach´ e (4DPM), a novel method for monocular 4D dense scene reconstruction from casual RGB videos. Our primitive-based motion parametri-sation achieves more accurate and complete reconstructions than existing monocular methods across object scanning and multi-object interaction scenarios. A persistence mech-anism further enables spatial memory of occluded objects — a capability not previously demonstrated in monocular reconstruction. By dramatically reducing the dimensional-ity of the dynamic reconstruction problem without sacrific-ing expressiveness, 4DPM opens new possibilities for ro-bust scene understanding from monocular video. 
+
+# 7. Acknowledgments 
+
+Research presented in this paper was supported by Dyson Technology Ltd. 7379 References 
+
+[1] Ijaz Akhter, Yaser Sheikh, Sohaib Khan, and Takeo Kanade. Nonrigid structure from motion in trajectory space. In Neural Information Processing Systems (NeurIPS) , 2008. 3 [2] M. Bloesch, J. Czarnowski, R. Clark, S. Leutenegger, and A. J. Davison. CodeSLAM — learning a compact, opti-misable representation for dense visual SLAM. In Proceed-ings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2018. 2 [3] Christoph Bregler, Aaron Hertzmann, and Henning Bier-mann. Recovering non-rigid 3d shape from image streams. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2000. 3 [4] Carlos Campos, Richard Elvira, Juan J. Gomez, Jose M. M. Montiel, and Juan D. Tardos. ORB-SLAM3: An accurate open-source library for visual, visual-inertial and multi-map SLAM. IEEE Transactions on Robotics , 2021. 2 [5] Joao Costeira and Takeo Kanade. A multi-body factorization method for motion analysis. In Proceedings of the Interna-tional Conference on Computer Vision (ICCV) , 1995. 3 [6] J. Czarnowski, T. Laidlow, R. Clark, and A. J. Davi-son. Deepfactors: Real-time probabilistic dense monocular SLAM. In IEEE Robotics and Automation Letters , 2020. 2 [7] A. J. Davison, N. D. Molton, I. Reid, and O. Stasse. MonoSLAM: Real-Time Single Camera SLAM. IEEE Transactions on Pattern Analysis and Machine Intelligence (PAMI) , 2007. 2 [8] Eric Dexheimer and Andrew J Davison. Como: Compact mapping and odometry. In European Conference on Com-puter Vision , pages 349–365. Springer, 2024. 2 [9] Haiwen Feng, Junyi Zhang, Qianqian Wang, Yufei Ye, Pengcheng Yu, Michael J. Black, Trevor Darrell, and Angjoo Kanazawa. St4rtrack: Simultaneous 4d reconstruction and tracking in the world. In Proceedings of the IEEE Confer-ence on Computer Vision and Pattern Recognition (CVPR) ,2025. 3, 6 [10] Shreyas Hampali, Mahdi Rad, Markus Oberweger, and Vin-cent Lepetit. Honnotate: A method for 3d annotation of hand and object poses. In CVPR , 2020. 6 [11] Adam W Harley, Yang You, Xinglong Sun, Yang Zheng, Nikhil Raghuraman, Yunqi Gu, Sheldon Liang, Wen-Hsuan Chu, Achal Dave, Suya You, et al. Alltracker: Efficient dense point tracking at high resolution. In Proceedings of the Inter-national Conference on Computer Vision (ICCV) , 2025. 2, 5[12] Jiahui Huang, Qunjie Zhou, Hesam Rabeti, Aleksandr Ko-rovko, Huan Ling, Xuanchi Ren, Tianchang Shen, Jun Gao, Dmitry Slepichev, Chen-Hsuan Lin, et al. Vipe: Video pose engine for 3d geometric perception. arXiv preprint arXiv:2508.10934 , 2025. 2, 3 [13] G. Klein and D. W. Murray. Parallel Tracking and Map-ping for Small AR Workspaces. In Proceedings of the Inter-national Symposium on Mixed and Augmented Reality (IS-MAR) , 2007. 2 [14] Arno Knapitsch, Jaesik Park, Qian-Yi Zhou, and Vladlen Koltun. Tanks and temples: Benchmarking large-scale scene reconstruction. ACM Transactions on Graphics , 36(4), 2017. 6[15] Johannes Kopf, Xuejian Rong, and Jia-Bin Huang. Ro-bust consistent video depth estimation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 1611–1621, 2021. 3 [16] Suryansh Kumar, Yuchao Dai, and Hongdong Li. Monocular dense 3d reconstruction of a complex dynamic scene from two perspective frames. In Proceedings of the IEEE inter-national conference on computer vision , pages 4649–4657, 2017. 3 [17] Suryansh Kumar, Yuchao Dai, and Hongdong Li. Super-pixel soup: Monocular dense 3d reconstruction of a complex dynamic scene. IEEE transactions on pattern analysis and machine intelligence , 43(5):1705–1717, 2019. 3 [18] Zhengqi Li, Richard Tucker, Forrester Cole, Qianqian Wang, Linyi Jin, Vickie Ye, Angjoo Kanazawa, Aleksander Holyn-ski, and Noah Snavely. Megasam: Accurate, fast and ro-bust structure and motion from casual dynamic videos. In 
+
+Proceedings of the Computer Vision and Pattern Recognition Conference , pages 10486–10496, 2025. 2, 3 [19] Xinhang Liu, Yuxi Xiao, Donny Y Chen, Jiashi Feng, Yu-Wing Tai, Chi-Keung Tang, and Bingyi Kang. Trace any-thing: Representing any video in 4d via trajectory fields. 
+
+arXiv preprint arXiv:2510.13802 , 2025. 6 [20] H. Matsuki, R. Scona, J. Czarnowski, and A. J. Davison. CodeMapping: Real-time dense mapping for sparse SLAM using compact scene representations. IEEE Robotics and Au-tomation Letters , 6(4):7105–7112, 2021. 2 [21] Kirill Mazur, Gwangbin Bae, and Andrew Davison. Su-perPrimitive: Scene reconstruction at a primitive level. In 
+
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 2, 4 [22] Riku Murai, Eric Dexheimer, and Andrew J Davison. Mast3r-slam: Real-time dense slam with 3d reconstruction priors. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2025. 2 [23] Richard A Newcombe, Dieter Fox, and Steven M Seitz. Dynamicfusion: Reconstruction and tracking of non-rigid scenes in real-time. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2015. 3[24] Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang Hu, Chaitanya Ryali, Tengyu Ma, Haitham Khedr, Roman R¨ adle, Chloe Rolland, Laura Gustafson, Eric Mintun, Junt-ing Pan, Kalyan Vasudev Alwala, Nicolas Carion, Chao-Yuan Wu, Ross Girshick, Piotr Doll´ ar, and Christoph Feicht-enhofer. Sam 2: Segment anything in images and videos. 
+
+arXiv preprint arXiv:2408.00714 , 2024. 4 [25] Martin R¨ unz and Lourdes Agapito. Co-fusion: Real-time segmentation, tracking and fusion of multiple objects. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2017. 3 [26] R. F. Salas-Moreno, R. A. Newcombe, H. Strasdat, P. H. J. Kelly, and A. J. Davison. SLAM++: Simultaneous Local-isation and Mapping at the Level of Objects. In Proceed-ings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2013. 2 7380 [27] Johannes Lutz Sch¨ onberger and Jan-Michael Frahm. Structure-from-motion revisited. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2016. 2 [28] Joan Sola, Jeremie Deray, and Dinesh Atchuthan. A micro lie theory for state estimation in robotics. arXiv preprint arXiv:1812.01537 , 2018. 3 [29] H. Strasdat, J. M. M. Montiel, and A. J. Davison. Scale Drift-Aware Large Scale Monocular SLAM. In Proceedings of Robotics: Science and Systems (RSS) , 2010. 3 [30] Edgar Sucar, Zihang Lai, Eldar Insafutdinov, and Andrea Vedaldi. Dynamic point maps: A versatile representation for dynamic 3d reconstruction. In Proceedings of the Inter-national Conference on Computer Vision (ICCV) , 2025. 3 [31] Phil Tresadern and Ian Reid. Articulated structure from mo-tion by factorization. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2005. 3[32] B. Triggs, P. McLauchlan, R. Hartley, and A. Fitzgibbon. Bundle Adjustment — A Modern Synthesis. In Proceedings of the International Workshop on Vision Algorithms, in asso-ciation with ICCV , 1999. 3, 5 [33] Shinji Umeyama. Least-squares estimation of transformation parameters between two point patterns. IEEE Trans. Pattern Anal. Mach. Intell. , 13:376–380, 1991. 6 [34] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea Vedaldi, Christian Rupprecht, and David Novotny. Vggt: Vi-sual geometry grounded transformer. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recogni-tion (CVPR) , 2025. 2 [35] Shuzhe Wang, Vincent Leroy, Yohann Cabon, Boris Chidlovskii, and Jerome Revaud. Dust3r: Geometric 3d vi-sion made easy. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 20697– 20709, 2024. 3 [36] Yifan Wang, Jianjun Zhou, Haoyi Zhu, Wenzheng Chang, Yang Zhou, Zizun Li, Junyi Chen, Jiangmiao Pang, Chunhua Shen, and Tong He. π3: Scalable permutation-equivariant vi-sual geometry learning. In Proceedings of the International Conference on Learning Representations (ICLR) , 2026. 3, 4, 5, 6 [37] Binbin Xu, Wenbin Li, Dimos Tzoumanikas, Michael Bloesch, Andrew Davison, and Stefan Leutenegger. MID-Fusion: Octree-based object-level multi-instance dynamic slam. In Proceedings of the IEEE International Conference on Robotics and Automation (ICRA) , 2019. 3 [38] Junyi Zhang, Charles Herrmann, Junhwa Hur, Varun Jam-pani, Trevor Darrell, Forrester Cole, Deqing Sun, and Ming-Hsuan Yang. Monst3r: A simple approach for estimating ge-ometry in the presence of motion. In Proceedings of the In-ternational Conference on Learning Representations (ICLR) ,2025. 2 [39] Songyan Zhang, Yongtao Ge, Jinyuan Tian, Guangkai Xu, Hao Chen, Chen Lv, and Chunhua Shen. Pomato: Marrying pointmap matching with temporal motions for dynamic 3d reconstruction. In Proceedings of the International Confer-ence on Computer Vision (ICCV) , 2025. 3, 6 [40] Zhoutong Zhang, Forrester Cole, Zhengqi Li, Michael Ru-binstein, Noah Snavely, and William T Freeman. Structure and motion from casual videos. In European Conference on Computer Vision , pages 20–37. Springer, 2022. 3 [41] Chenhao Zheng, Jieyu Zhang, Mohammadreza Salehi, Ziqi Gao, Vishnu Iyengar, Norimasa Kobori, Quan Kong, and Ranjay Krishna. One trajectory, one token: Grounded video tokenization via panoptic sub-object trajectory. In Proceed-ings of the International Conference on Computer Vision (ICCV) , 2025. 4 [42] Kaichen Zhou, Yuhan Wang, Grace Chen, Xinhai Chang, Gaspard Beaudouin, Fangneng Zhan, Paul Pu Liang, and Mengyu Wang. Page-4d: Disentangled pose and ge-ometry estimation for 4d perception. arXiv preprint arXiv:2510.17568 , 2025. 3 7381

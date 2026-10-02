@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-slam3r-real-time-dense-scene-reconstruction-from-monocular-rgb-videos-cvpr-2025-paper/fig-001.webp",
+      "caption": "",
+      "page": 1,
+      "index": 1,
+      "width": 1900,
+      "height": 1706
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-slam3r-real-time-dense-scene-reconstruction-from-monocular-rgb-videos-cvpr-2025-paper/fig-002.webp",
+      "caption": "",
+      "page": 4,
+      "index": 2,
+      "width": 2844,
+      "height": 792
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-slam3r-real-time-dense-scene-reconstruction-from-monocular-rgb-videos-cvpr-2025-paper/fig-003.webp",
+      "caption": "",
+      "page": 4,
+      "index": 3,
+      "width": 1404,
+      "height": 1002
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-slam3r-real-time-dense-scene-reconstruction-from-monocular-rgb-videos-cvpr-2025-paper/fig-004.webp",
+      "caption": "",
+      "page": 6,
+      "index": 4,
+      "width": 2867,
+      "height": 895
+    },
+    {
+      "url": "assets/figures/cvpr-2025-accepted/cvpr-2025-liu-slam3r-real-time-dense-scene-reconstruction-from-monocular-rgb-videos-cvpr-2025-paper/fig-005.webp",
+      "caption": "",
+      "page": 7,
+      "index": 5,
+      "width": 2876,
+      "height": 1364
+    }
+  ]
+}

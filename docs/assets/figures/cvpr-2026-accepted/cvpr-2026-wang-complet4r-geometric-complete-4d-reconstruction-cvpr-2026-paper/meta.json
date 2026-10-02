@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-001.webp",
+      "caption": "",
+      "page": 1,
+      "index": 1,
+      "width": 658,
+      "height": 323
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-002.webp",
+      "caption": "",
+      "page": 1,
+      "index": 2,
+      "width": 1022,
+      "height": 446
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-003.webp",
+      "caption": "",
+      "page": 1,
+      "index": 3,
+      "width": 2162,
+      "height": 1212
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-004.webp",
+      "caption": "",
+      "page": 3,
+      "index": 4,
+      "width": 462,
+      "height": 278
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-005.webp",
+      "caption": "",
+      "page": 3,
+      "index": 5,
+      "width": 607,
+      "height": 427
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-006.webp",
+      "caption": "",
+      "page": 3,
+      "index": 6,
+      "width": 502,
+      "height": 360
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-007.webp",
+      "caption": "",
+      "page": 7,
+      "index": 7,
+      "width": 643,
+      "height": 410
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-008.webp",
+      "caption": "",
+      "page": 7,
+      "index": 8,
+      "width": 667,
+      "height": 411
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-009.webp",
+      "caption": "",
+      "page": 7,
+      "index": 9,
+      "width": 497,
+      "height": 473
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-010.webp",
+      "caption": "",
+      "page": 7,
+      "index": 10,
+      "width": 638,
+      "height": 446
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-011.webp",
+      "caption": "",
+      "page": 7,
+      "index": 11,
+      "width": 450,
+      "height": 474
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-012.webp",
+      "caption": "",
+      "page": 7,
+      "index": 12,
+      "width": 705,
+      "height": 411
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-013.webp",
+      "caption": "",
+      "page": 7,
+      "index": 13,
+      "width": 713,
+      "height": 388
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-014.webp",
+      "caption": "",
+      "page": 7,
+      "index": 14,
+      "width": 659,
+      "height": 426
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-015.webp",
+      "caption": "",
+      "page": 7,
+      "index": 15,
+      "width": 996,
+      "height": 487
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-016.webp",
+      "caption": "",
+      "page": 8,
+      "index": 16,
+      "width": 1032,
+      "height": 517
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-017.webp",
+      "caption": "",
+      "page": 8,
+      "index": 17,
+      "width": 942,
+      "height": 651
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-018.webp",
+      "caption": "",
+      "page": 8,
+      "index": 18,
+      "width": 1141,
+      "height": 580
+    },
+    {
+      "url": "assets/figures/cvpr-2026-accepted/cvpr-2026-wang-complet4r-geometric-complete-4d-reconstruction-cvpr-2026-paper/fig-019.webp",
+      "caption": "",
+      "page": 8,
+      "index": 19,
+      "width": 1031,
+      "height": 546
+    }
+  ]
+}

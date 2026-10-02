@@ -1,0 +1,972 @@
+Parametric SDF for
+Dynamic Surface Reconstruction
+Chong Gao1∗, Kai Ye2∗, Qiyu Dai2, Yiming Shao3, Qiong Zeng3, Ding Liang4,
+Yan-Pei Cao4, Guanbin Li1,5†, and Wenzheng Chen6,7†
+1Sun Yat-sen University
+2Peking University
+3Shandong University
+4VAST
+5Shenzhen Loop Area Institute
+6Wangxuan Institute of Computer Technology,
+Peking University
+7Beijing Academy of Artificial Intelligence, Beijing, China
+gaoch63@mail2.sysu.edu.cn, wenzhengchen@pku.edu.cn
+CMU Panoptic
+(real-world)
+DiVa-360
+(real-world)
+SynMotion-360
+(synthetic)
+GT
+p-SDF (Ours)
+AT-GS
+DG-Mesh
+Fig. 1: Qualitative Comparison of Dynamic Surface Reconstructions. Com-
+pared with previous works, p-SDF recovers more faithful geometry and appearance, es-
+pecially in scenarios with large non-rigid deformations and complex topological changes.
+Abstract. Reconstructing high-fidelity surfaces of dynamic scenes re-
+mains a critical challenge. While current methods excel at novel view
+synthesis, they often struggle to recover accurate and stable geometry,
+particularly under large non-rigid deformations. This results in noisy
+meshes that are unsuitable for downstream simulation or editing. In this
+work, we introduce a new paradigm for dynamic surface reconstruction
+based on a parametric Signed Distance Function (p-SDF). Our key in-
+sight is to generalize static SDF fields—where each spatial point stores a
+constant value—into time-dependent parametric curves where each curve
+models a temporally evolving SDF trajectory. This parametric SDF rep-
+resentation provides a principled way to capture complex temporal varia-
+tions, naturally enforcing smoothness and continuity in shape dynamics.
+∗Equal contribution.
+† Corresponding authors.
+
+
+2
+C. Gao et al.
+At each timestamp, a static SDF field can be queried from p-SDF and
+converted into an explicit surface mesh via differentiable iso-surfacing.
+By rendering these meshes with a physically based differentiable ren-
+derer, we optimize the underlying parametric curves end-to-end against
+2D image observations. Our framework produces high-fidelity surfaces
+and inherently disentangles geometry, material, and lighting from multi-
+view videos. It robustly reconstructs geometry under large-scale motions
+and resolves appearance ambiguities caused by lighting and occlusions.
+Experiments on both synthetic and real-world scenes demonstrate that
+our method achieves state-of-the-art geometric accuracy. The project
+page for p-SDF is available at https://timchonggao.github.io/psdf.
+Keywords: Dynamic Surface Reconstruction · Parametric SDF · Dif-
+ferentiable Rendering
+1
+Introduction
+Reconstructing high-fidelity surfaces from multi-view video is a long-standing
+pursuit in computer vision, powering applications in simulation, virtual and aug-
+mented reality (VR/AR), autonomous robotics, and film production. Achieving
+this remains highly challenging, as dynamic scenes often involve complex non-
+rigid motions, large-scale dynamics, and intricate topological changes.
+Recent advances in scene representations, such as Neural Radiance Fields [23]
+and 3D Gaussian Splatting [13], have dramatically advanced novel view synthesis
+(NVS). Their dynamic extensions [1,7,9,26,38] further enable photorealistic NVS
+across time. Nevertheless, these methods are designed primarily for appearance
+modeling, often producing noisy or temporally unstable underlying geometry.
+Two lines of work have explored ways to improve the quality of dynamic sur-
+face reconstruction. The first strategy adopts a Lagrangian perspective, tracking
+3D trajectories through deformation fields. This involves mapping a canonical
+template to the dynamic scene via global deformations [19, 42] or incremental
+deformations [2,35,43]. By explicitly disentangling appearance from motion, this
+approach maintains temporal consistency across frames. However, it is inherently
+limited by the fixed-topology template and the smoothing effect of deformation
+MLPs, making it difficult to handle topological changes and highly complex
+non-rigid dynamics. To bypass explicit tracking, the second strategy adopts an
+Eulerian perspective by factorizing the 4D spatio-temporal volume into plane or
+tensor features [9, 28]. Without explicit motion modeling, the representation is
+unconstrained by continuous motion functions, enabling it to handle topologi-
+cal changes or discontinuous events. However, without temporal regularization,
+mesh quality often becomes unstable under complex dynamics.
+In this work, we propose parametric Signed Distance Function(p-SDF), a
+novel dynamic scene representation that reconstructs high-fidelity surfaces across
+time. Our key intuition is that while 3D shapes deform, the evolution of the
+Signed Distance Function (SDF) at any fixed spatial coordinate follows a con-
+tinuous 1D trajectory (see Fig. 2; refer to Appendix Sec. A for a more detailed
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+3
+Fig. 2: Continuous SDF Trajectory. As a dynamic scene evolves, the SDF value at
+any fixed spatial coordinate follows a continuous temporal trajectory. In the example of
+a moving sphere (left), spatial points transition between positive (outside) and negative
+(inside) SDF values, forming distinct curves. We optimize p-SDF with a compact set
+of basis functions (Sec. 3.3) to represent these curves. As shown in the bottom-right
+plot, p-SDF closely follows the GT SDF trajectories.
+analysis). We thus generalize static SDF fields into time-dependent paramet-
+ric curves. Unlike Lagrangian methods that struggle with learning complex 3D
+deformation fields, p-SDF reformulates dynamic surface reconstruction as a 1D
+spatio-temporal signal fitting problem. p-SDF uses compact basis functions to
+represent these curves, naturally enforcing temporal coherence while handling
+large deformations and topological changes.
+Specifically, we represent dynamic geometry using a grid where each vertex
+stores basis function parameters: low-order polynomials for global deformations
+and Fourier bases for high-frequency details. At any timestamp, a static SDF field
+can be queried to extract an explicit mesh via differentiable iso-surfacing [30].
+Separately, an efficient temporal tri-plane appearance field models the scene’s
+appearance by predicting PBR material properties. The resulting mesh and ma-
+terials are then fed into a differentiable renderer for end-to-end optimization
+against 2D images. The explicit disentanglement of geometry, materials, and
+lighting constrains the network to reconstruct physically accurate surfaces.
+Our p-SDF provides a principled and efficient solution for dynamic 3D recon-
+struction. We evaluate our method on synthetic and real-world datasets, demon-
+strating improvements over prior approaches in geometric accuracy. Moreover,
+the high-quality material decomposition from our framework readily supports
+relighting applications, enabling physically plausible relighting effects.
+2
+Related Work
+2.1
+Neural 3D Representations
+Recent breakthroughs in Neural Radiance Fields [23] and 3D Gaussian Splat-
+ting [13] have revolutionized static novel-view synthesis. However, their primary
+focus on appearance modeling often comes at the expense of geometric accuracy.
+NeRF-based methods leverage coordinate-based networks to represent volume
+
+
+4
+C. Gao et al.
+density and color. To extract usable geometry, several works incorporate signed
+distance functions (SDFs) as underlying representations [34,35,40], enabling sur-
+face recovery via Marching Cubes [20]. Gaussian-based methods represent scenes
+as explicit 3D primitives. To bridge the gap between discrete points and con-
+tinuous surfaces, techniques such as surface-alignment regularization [4,5,8,10],
+Poisson reconstruction [5,8], and SDF fusion [3,11] have been introduced. How-
+ever, existing extraction pipelines, such as Poisson reconstruction or SDF fusion,
+typically fail to maintain stable topology or a fixed vertex count across dynamic
+frames. Despite these advancements in static reconstruction, extending these
+representations to dynamic scenarios remains a formidable challenge.
+2.2
+Dynamic Surface Reconstruction
+The central challenge in dynamic surface reconstruction is modeling temporal
+evolution while preserving spatial fidelity. Existing approaches generally follow
+three paradigms: Global Deformation [19, 25, 26, 37, 38, 42], Incremental Opti-
+mization [2,35,43], and 4D Space-Time Volumes [1,9,22,28].
+The global deformation paradigm establishes a mapping between a static
+canonical space and dynamic observations at time t. Many methods in this cate-
+gory are designed for monocular settings where each timestamp provides a single
+image from a randomly sampled viewpoint. For instance, DG-Mesh [19] deforms
+canonical 3D Gaussians into target frames and recovers surfaces via per-frame
+Poisson reconstruction. Dynamic 2DGS [42] refines this by employing surface-
+aligned 2D surfels with TSDF fusion. However, these methods are fundamentally
+limited by the fixed topology of their canonical templates. Furthermore, their
+deformations rely on continuous MLPs that can oversmooth temporal motion.
+We adapt these baselines to the multi-view setting for fair comparison.
+Instead of a global mapping, incremental optimization reconstructs scenes
+frame-by-frame, focusing on deformations between adjacent timestamps. Ap-
+proaches like NeuS2 [35] and AT-GS [2] typically propagate weights from the
+previous frame to the current one. While capable of handling large motions and
+topological changes, these methods are constrained by their reliance on auxiliary
+supervision, such as optical flow [43], to curb error accumulation.
+The 4D space-time volume paradigm decomposes the 4D domain into effi-
+cient spatio-temporal representations. Methods like Tensor4D [28] factorize 4D
+volumes into planes to represent density and color at any (x, y, z, t). As a highly
+flexible paradigm, it bypasses explicit motion modeling and fixed templates,
+enabling the recovery of complex dynamics and topological changes. However,
+lacking strong structural priors, 4D volumes suffer from temporal flickering.
+Similar to our work, SDFFlow [22] models SDF deformations but relies on
+an integral formulation that is computationally expensive and prone to error
+accumulation. This makes it unsuitable for long sequences and high-fidelity re-
+construction. In contrast, our method directly parameterizes the SDF trajec-
+tories with basis functions, inherently enforcing continuity regularization. The
+static SDF at a given timestamp is efficiently obtained by querying the function,
+avoiding costly explicit integration that accumulates errors.
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+5
+3
+Methodology
+We now describe our method. The key idea is to generalize static Signed Dis-
+tance Function (SDF) fields into parametric SDF trajectories. Below, we first
+review background concepts on SDF and temporal signal modeling in Sec. 3.1.
+We then provide an overview of the framework in Sec. 3.2, followed by detailed
+descriptions of our parametric SDF formulation (Sec. 3.3) and appearance mod-
+eling (Sec. 3.4). Lastly, we discuss the implementation details in Sec. 3.5.
+3.1
+Background
+Since our method integrates explicit surface reconstruction with basis-function-
+based temporal modeling, we first introduce preliminaries from both domains.
+Surface Reconstruction with Signed Distance Functions. A 3D sur-
+face ∂Ωcan be represented as the zero-level set of a Signed Distance Function
+(SDF). For any spatial point x ∈R3, the SDF value s(x) is the signed distance
+to ∂Ω, negative inside the enclosed volume Ωand positive outside:
+  \l a
+b
+e
+l
+ {eq
+:sdf_d e fin it i o n}
+ \s
+dfValu e (\ point ) = \left \{ \begin {aligned} -\inf _{\surfacePoint \in \surface } \lVert \point - \surfacePoint \rVert _2 \;\; &\text {if } \point \in \volume ,\;\; \\ \inf _{\surfacePoint \in \surface } \lVert \point - \surfacePoint \rVert _2 \;\; &\text {otherwise}. \end {aligned} \right . 
+(1)
+Explicit surface reconstruction methods [24] define SDF values on a 3D grid and
+use differentiable iso-surfacing [29,30] to extract a triangle mesh. The resulting
+mesh can then be rendered via a differentiable rasterizer [15]. While highly ef-
+fective for static scenes, naively extending such pipelines to dynamic scenes, i.e.,
+applying a per-frame reconstruction strategy, is computationally expensive.
+Temporally Varying Signal Modeling with Basis Functions. A stan-
+dard strategy for representing a temporal signal S(t) is to express it as a linear
+combination of basis functions, S(t) = PK
+k=1 wkBk(t), where {Bk}K
+k=1 are pre-
+defined temporal basis functions and {wk}K
+k=1 are learnable coefficients. With
+appropriate choices of basis functions, a small set of coefficients compactly en-
+codes complex temporal behavior while naturally encouraging smoothness.
+Common choices for the basis include polynomial and Fourier functions.
+Specifically, the polynomial basis employs a combination of power functions:
+  
+\lab e l {eq:polynomial_basis} B^p_k(t) = t^k 
+(2)
+which captures smooth and low-frequency trends. Alternatively, Fourier basis
+functions use periodic functions based on sin and cos:
+  
+\lab e l {eq :four i er } B ^f_k( t) = a_{k}\cos \left ({{\omega }_kt}\right ) +b_{k}\sin \left ({{\omega }_kt}\right ), 
+(3)
+where ωk is the predefined frequency for the k-th periodic function, and ak and bk
+are the coefficients. The Fourier basis is well-suited for periodic or high-frequency
+variations, as shown in the literature [16,27,31–33]. This decomposition improves
+interpretability: polynomial coefficients capture static and low-order SDF trends,
+while Fourier coefficients capture low- and high-frequency temporal variations.
+
+
+6
+C. Gao et al.
+𝓛𝐢𝐦𝐠
+Split-Sum
+PBR 
+Normal Map
+Learnable 
+Env Map
+PBR Attributes
+Nvdiffrast
+Render
+MLP
+Decoder
+Static Flexicubes
+Dynamic Flexicubes
+Triangle mesh
+4D HashGrid Encoder
+Dynamic Geometry 
+Module
+Dynamic Texture 
+Module
+PBR Shading
+Module
+GT Image
+Pred Image
+(Eq. 4)
+Isosurface
+Extraction (Eq. 5)
+(Eq. 6 & Eq. 7)
+Fig. 3: Pipeline. For a timestamp t, p-SDF queries the parametric function at each
+grid node to obtain the SDF value (Eq. (4)). We use FlexiCubes [30] to extract the
+mesh Mt = (Vt, Ft) (Eq. (5)) and query the Appearance Field (Sec. 3.4) to obtain
+(c, m, r, o) (Eq. (7)) at a point (x, t). A differentiable PBR shader renders multi-view
+images, with gradients propagating through all modules end-to-end (Sec. 3.5).
+3.2
+Framework Overview
+Motivation. Representing dynamic scenes requires modeling how surfaces evolve
+over time. As illustrated in Fig. 2, our key observation is that surface motion in-
+duces smooth temporal evolution of the SDF values at any fixed spatial location,
+i.e., s(x, t) traces a continuous 1D signal. These continuous 1D signals can be
+efficiently parameterized via a collection of basis functions. This parameteriza-
+tion naturally enforces temporal coherence in the SDF evolution while retaining
+flexibility for large deformations and topological changes.
+Pipeline. Fig. 3 illustrates the full system. Given a timestamp t, we first obtain
+per-node SDF values by evaluating basis functions and then extract an explicit
+mesh using differentiable iso-surfacing [30]. Concurrently, to model appearance,
+we apply a temporal tri-plane appearance field and query PBR attributes at
+each mesh vertex. A physically based differentiable renderer then synthesizes
+the target views; gradients backpropagate through geometry, appearance, and
+rendering, enabling end-to-end optimization (Sec. 3.5).
+3.3
+Parametric Signed Distance Function
+Formulation. We now introduce our dynamic geometry representation, p-SDF,
+which extends static SDF fields into the temporal domain. Specifically, the scene
+geometry is defined within a bounded 3D grid G with N ×N ×N nodes {pi}N3
+i=1.
+Unlike static methods that assign a single SDF value to each node, we model the
+SDF value at node pi as a continuous function of time: s(pi, t) : R3 × R →R.
+Following prior work on temporal signal modeling [18], we adopt a hybrid basis
+combining polynomials and Fourier terms to represent s(pi, t):
+  \la be l
+ {
+e
+q:s
+df_f l ow }
+ \
+s
+dfV
+alu e ( \vert e x _i, t) \; =\; \sum _{n=1}^{N_p} \mu _n t^n + a_{0} + \sum _{n=1}^{N_f}\left (a_{n}\cos \left ({{\omega }_nt}\right ) +b_{n}\sin \left ({{\omega }_nt}\right )\right ), 
+(4)
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+7
+where Np is the number of polynomial terms, and Nf is the number of Fourier
+components. Collectively, the entire spatio-temporal SDF field is compactly pa-
+rameterized by W ∈RN3×(Np+2Nf +1), the matrix of all node coefficients.
+Mesh Extraction. Given our time-varying SDF grid and a timestamp t, we eval-
+uate the basis functions to obtain per-node SDF values. A surface mesh is then
+extracted using FlexiCubes, a differentiable isosurface extraction method [30]:
+  \ label {eq:mesh_ex
+t
+ract} M_t \
+;
+=
+\
+; \t extt t {DualMarchingCubes}\big ( \{\sdfValue (\vertex _i , t)\}_i^{\numTerms ^3} \big ), \qquad M_t := (V_t, F_t), 
+(5)
+where Vt and Ft denote the mesh vertices and faces at time t.
+Discussion. This parametric surface-mesh design provides several important
+benefits: (i) the basis formulation inherently enforces temporal coherence, while
+the combination of polynomial and Fourier bases captures both large-scale defor-
+mations and fine-grained high-frequency motions, offering robustness in complex
+dynamic scenes; (ii) we model the geometry by storing per-node curve parame-
+ters on a grid, which enables efficient and scalable mesh extraction by directly
+querying the stored function, thus bypassing the computational overhead of per-
+point MLPs in prior works. (iii) by using the explicit mesh for rendering within
+the differentiable rendering-optimization loop, we apply direct supervision to
+the geometry. This ensures a consistent and detailed surface, avoiding the noisy
+artifacts common in purely implicit methods like AT-GS [2].
+3.4
+Appearance Representation
+Formulation. Having established a continuous representation for dynamic geom-
+etry, we now model the time-varying appearance and material properties. Un-
+like geometry, appearance signals such as RGB textures often undergo abrupt
+changes at fixed spatial locations and therefore cannot be compactly represented
+by smooth temporal trajectories because of lighting variation, occlusion, and
+surface reflectance effects. To address this, we separately model the appearance
+with a temporal tri-plane representation, parameterizing the appearance field
+with three multi-resolution 3D hash grids, Gxyt, Gxzt, and Gyzt, which cover
+the spatio-temporal domains (x, y, t), (x, z, t), and (y, z, t). For a surface point
+(x, y, z) at time t, we query these grids in parallel via trilinear interpolation:
+  \l a bel {eq :d yna
+mic_ t riplane _q uer
+y} \ m athbf { f} _{xyt} = G_{xyt}(x,y,t), \quad \mathbf {f}_{xzt} = G_{xzt}(x,z,t), \quad \mathbf {f}_{yzt} = G_{yzt}(y,z,t). 
+(6)
+The resulting feature vectors are concatenated and decoded by a lightweight
+MLP Φapp into physically based material properties:
+  \ la be l { eq:appearance_dec ode_d ynamic} (\mathbf {c}, m, r, o) = \Phi _\textrm {app}(\text {concat}(\mathbf {f}_{xyt}, \mathbf {f}_{xzt}, \mathbf {f}_{yzt})), 
+(7)
+where c denotes the diffuse albedo, m the metallic value, r the surface roughness,
+and o the self-occlusion attribute. At any timestamp t, this defines a complete,
+fine-grained PBR texture field aligned with the mesh Mt from p-SDF.
+
+
+8
+C. Gao et al.
+𝐟𝒚𝒛𝒕
+𝐟𝒙𝒛𝒕
+𝐟𝒙𝒚𝒕
+𝑮𝒙𝒚𝒕
+𝑮𝒙𝒛𝒕
+𝑮𝒚𝒛𝒕
+...
+4D Sequence
+Tri-Plane Field Sliced at t
+Tri-plane Decoder
+PBR Attributes
+4D Decomposed Hash Encoding
+Slice at 
+Time t
+F
+C
+F
+C
+F
+C
+Albedo
+Occlusion
+Roughness
+Metalic
+(Eq. 6)
+(Eq. 7)
+Fig. 4: Temporal Tri-plane Appearance Field. Left: an input multi-view video.
+Middle: three multi-resolution spatio-temporal hash grids Gxyt, Gxzt, Gyzt that are
+sliced at time t to produce an instantaneous tri-plane. Right: features sampled from
+the three planes are concatenated and fed into a small MLP decoder that predicts PBR
+attributes (albedo, occlusion, roughness, and metallic) for differentiable rendering.
+Rendering. At time t, we rasterize the mesh Mt = (Vt, Ft) extracted by the ge-
+ometry module (Sec. 3.3) and generate a G-buffer of world-space positions x and
+surface normals n. For each visible surface point, the Temporal Tri-plane Appear-
+ance Field is queried at (x, t) to produce material properties (c, m, r, o) (Eq. (7)).
+These attributes, combined with the mesh geometry and a shared learnable envi-
+ronment map, are passed to a differentiable PBR shader, following Nvdiffrec [24],
+to compute the final rendered RGB image. This design allows end-to-end opti-
+mization of both geometry and appearance against multi-view observations.
+Discussion. Our appearance representation offers two advantages: (i) by de-
+composing the 4D spatio-temporal domain into three 3D hash grids, it reduces
+computational complexity compared with directly modeling 4D appearance; (ii)
+with precise geometry, this simple representation can disentangle shape and ap-
+pearance and produce high-quality material and lighting estimates.
+3.5
+Implementation Details
+Optimization Pipeline. The input to p-SDF consists of multi-view RGB videos,
+foreground masks, and calibrated camera intrinsics/extrinsics. At each iteration,
+we query p-SDF at time t, extract a mesh with differentiable FlexiCubes [30],
+rasterize it with nvdiffrast [15], query PBR attributes at visible (x, t) surface
+points, and render the target view with a differentiable PBR shader following
+Nvdiffrec [24]. Gradients from the RGB and mask losses, together with regular-
+izers, are backpropagated end-to-end to the geometry, appearance, and lighting
+parameters.
+Loss Function. We employ a compact objective that balances photometric re-
+construction with geometric and appearance priors. The overall loss is:
+  \mat h cal {L } _{\tex t {total}} = \mathcal {L}_{\text {photo}} + \mathcal {L}_{\text {curve}} + \mathcal {L}_{\text {app}}, 
+(8)
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+9
+where Lphoto enforces consistency between rendered and ground-truth images,
+Lcurve regularizes the spatial smoothness of SDF trajectories to ensure coher-
+ent motion for neighboring vertices, and Lapp regularizes material and lighting.
+Detailed formulations of these losses are provided in Appendix Sec. B.
+Model Details. We represent p-SDF with a 963 grid, 6 polynomial basis func-
+tions, and a set of Fourier components whose number is chosen per scene from
+the range [18, 100] based on motion complexity. For the Temporal Tri-plane Ap-
+pearance Field, we adapt the multi-resolution hash grids following Grid4D [37],
+with spatial resolution spanning from 16 to 2048 and temporal resolution from
+8 to the full sequence length.
+Training and Optimization. We build our framework upon the open-source Radi-
+anceFieldStudio codebase [39] and conduct all experiments on a single NVIDIA
+RTX 4090 GPU. We train each scene for 5,000 iterations, which takes approxi-
+mately 1 to 3 hours. We optimize the model using an Adam optimizer [14] with
+exponential decay.
+4
+Experiments
+4.1
+Experimental Setup
+Datasets. We evaluate our method on three diverse datasets to demonstrate its
+robustness across synthetic and real-world scenarios with complex dynamics:
+SynMotion-360. We first curate a new synthetic benchmark designed to eval-
+uate dynamic surface reconstruction under large, non-rigid deformations that
+existing datasets rarely capture. Specifically, we select 7 animated assets from
+Objaverse [6,17], each comprising 70–300 frames rendered via Blender from 38
+viewpoints. For each sequence, 32 views are used for training and 6 for testing.
+Additional dataset visualizations are provided in Appendix Sec. J.
+DiVa-360. This is a real-world multi-view dataset featuring dynamic tabletop
+scenes captured by synchronized RGB cameras [21]. While it provides synchro-
+nized videos and foreground masks, ground-truth meshes are unavailable. We
+evaluate our method on 4 representative sequences, using 31 cameras for train-
+ing and 6 held-out views for evaluation.
+CMU Panoptic Studio. This widely used real-world dataset captures human
+dynamics [12]. Following the protocol in SDFFlow [22], we focus on challenging
+multi-person interactions. Each sequence consists of 24 frames recorded from 10
+calibrated cameras, and all views are used for training.
+Metrics. We evaluate performance from two aspects: geometric reconstruction
+accuracy and novel-view synthesis quality. Following [30], geometric quality is
+quantified using Chamfer Distance (CD) and F-Score (F1) for spatial alignment,
+while Edge Chamfer Distance (ECD) and Edge F-Score (EF1) assess boundary
+fidelity and topological connectivity. To assess mesh structural integrity, we re-
+port the percentage of sliver triangles using Aspect Ratio (AR) and Minimum
+Angle (MA) criteria: the AR metric counts triangles with aspect ratio above 4.0,
+
+
+10
+C. Gao et al.
+and the MA metric counts triangles with minimum angle below 10◦. Regarding
+synthesis quality, we report PSNR, SSIM [36], and LPIPS [41] to capture
+pixel-level accuracy, structural similarity, and perceptual realism, respectively.
+Held-out test images are used only for novel-view synthesis evaluation; geometry
+metrics are computed from ground-truth meshes or point clouds when available,
+and from mesh-quality statistics otherwise.
+Baselines. We evaluate our method against state-of-the-art (SOTA) baselines
+from two predominant paradigms: Global Deformation and Incremental Opti-
+mization. For the former, we compare with Dynamic 2DGS [42], which uses
+surface-aligned 2D surfels with TSDF fusion, and DG-Mesh [19], which performs
+per-frame Poisson reconstruction from deformed Gaussians. For the latter, we
+include NeuS2 [35], a representative SDF-based method using per-frame hash
+grids, and AT-GS [2], which employs neural transformation caches for frame-by-
+frame propagation. While SDFFlow [22] is conceptually related to our trajectory
+modeling, it is excluded due to its prohibitive optimization costs and error ac-
+cumulation as discussed in Sec. 2. GauSTAR [43] requires additional depth su-
+pervision, and DynaSurfGS is not included because its code was unavailable at
+the time of evaluation. All reported baselines are trained in the same multi-view
+video setting. For monocular baselines [19,42], we extend their data loaders to ag-
+gregate supervision from all training cameras at each timestamp; the main tables
+report these multi-view-adapted results. A controlled monocular-vs.-multi-view
+comparison is provided in Appendix Sec. F. This diverse selection of baselines
+supports a rigorous assessment of our model’s capacity to handle complex dy-
+namics and high-fidelity dynamic mesh reconstruction.
+4.2
+Experimental Results
+Quantitative Results. We provide comprehensive quantitative comparisons with
+all baselines in Tabs. 1 and 2, with per-scene details provided in Appendix Ta-
+bles A1–A3.
+Geometric Accuracy. Tab. 1 summarizes the quantitative geometric evalu-
+ation across three diverse datasets. We employ a tiered metric system based
+on ground-truth (GT) availability: mesh-to-mesh metrics (CD, F1, ECD, EF1)
+for SynMotion-360; point-to-mesh (CD, F1) and quality metrics (AR, MA) for
+CMU Panoptic Studio; and mesh quality (AR, MA) for the real-world DiVa-360.
+Our p-SDF consistently achieves state-of-the-art performance. Unlike incremen-
+tal baselines (NeuS2, AT-GS) limited by frame-wise propagation or template-
+based methods (DG-Mesh, D-2DGS) restricted by fixed topologies, our paramet-
+ric modeling offers the flexibility to represent non-linear trajectories and com-
+plex topological changes. Furthermore, while incremental methods suffer from
+accumulation error under sparse supervision (CMU Panoptic), our global curve
+modeling ensures temporal coherence and consistency. Finally, leveraging end-
+to-end supervision via differentiable FlexiCubes allows our framework to avoid
+floaters and degenerate triangles common in Gaussian-based extractions. The
+large AR/MA gap is expected: these values should be interpreted as mesh-quality
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+11
+diagnostics rather than direct reconstruction-accuracy metrics. p-SDF optimizes
+the SDF field and FlexiCubes extraction parameters end-to-end, whereas base-
+line meshes rely on post-hoc extraction pipelines such as Poisson reconstruction,
+TSDF fusion, or isosurfacing, which are more prone to sliver triangles.
+Table 1: Quantitative Evaluation of Geometry Quality. We evaluate geometric
+reconstruction across three diverse datasets. Our method achieves the strongest overall
+performance in reconstruction accuracy and mesh structural integrity. Detailed metric
+definitions are available in Sec. 4.1.
+SynMotion-360
+CMU Panoptic Studio
+DiVa-360
+Method
+CD↓
+F1↑
+ECD↓
+EF1↑
+CD↓
+F1↑
+AR↓
+MA↓
+AR↓
+MA↓
+Dynamic-2DGS
+2.104
+0.754
+3.802
+0.494
+2.000
+0.762
+22.656
+12.435
+23.156
+12.830
+DG-Mesh
+2.957
+0.661
+4.740
+0.438
+1.041
+0.788
+22.508
+12.894
+22.829
+13.207
+NeuS2
+1.203
+0.908
+3.220
+0.593
+7.654
+0.729
+21.631
+12.563
+22.530
+12.976
+AT-GS
+1.602
+0.882
+3.227
+0.566
+6.525
+0.687
+19.359
+11.353
+19.234
+11.206
+Ours
+1.157
+0.893
+3.170
+0.596
+0.026
+0.896
+4.983
+0.678
+3.126
+0.396
+GT Image
+Ours
+AT-GS
+NeuS2
+DG-Mesh
+D-2DGS
+Fig. 5: Qualitative comparison on the CMU Panoptic Studio dataset. We
+evaluate geometric reconstruction performance across challenging scenes featuring com-
+plex human interactions. Our method consistently recovers accurate geometry, whereas
+existing surface reconstruction baselines suffer from noticeable artifacts.
+Rendering Quality. For novel view synthesis (Tab. 2), we report PSNR,
+SSIM, and LPIPS on SynMotion-360 and DiVa-360. CMU Panoptic Studio is
+excluded from this evaluation as all available views are consumed for training.
+On SynMotion-360, our p-SDF achieves competitive results, ranking second in
+PSNR and SSIM while securing the best LPIPS. The high photometric scores of
+AT-GS can be attributed to its adaptive-density Gaussian primitives, which are
+highly optimized for capturing fine-grained texture details. However, as indicated
+by its suboptimal geometric metrics in Tab. 1, such rendering-centric representa-
+tions often compromise surface fidelity for photometric overfitting. In contrast,
+our p-SDF offers a more principled trade-off, delivering top-tier perceptual re-
+alism alongside far superior geometric accuracy. On the real-world DiVa-360
+dataset, our framework establishes new state-of-the-art performance across all
+
+
+12
+C. Gao et al.
+rendering metrics. This superiority in real-world tabletop scenarios highlights the
+advantage of our PBR-aligned appearance modeling. By leveraging precise ge-
+ometry as a prior, p-SDF effectively resolves appearance ambiguities and surface
+artifacts, ensuring robust generalization across diverse environments.
+Table 2: Quantitative Evaluation of Rendering Quality. Compared to prior
+works, p-SDF achieves state-of-the-art performance across all metrics on the real-world
+DiVa-360 dataset and remains highly competitive on synthetic sequences.
+SynMotion-360
+DiVa-360
+Method
+PSNR↑
+SSIM↑
+LPIPS↓
+PSNR↑
+SSIM↑
+LPIPS↓
+Dynamic-2DGS
+29.489
+0.959
+0.062
+17.513
+0.910
+0.187
+DG-Mesh
+25.719
+0.936
+0.081
+17.734
+0.919
+0.183
+NeuS2
+30.070
+0.967
+0.030
+26.087
+0.950
+0.056
+AT-GS
+32.671
+0.977
+0.045
+27.418
+0.956
+0.067
+Ours
+32.153
+0.974
+0.028
+27.584
+0.957
+0.049
+T = 212
+RGB
+Mesh
+T = 234
+RGB
+Mesh
+GT
+Ours
+AT-GS
+NeuS2
+DG-Mesh
+D-2DGS
+Fig. 6: Qualitative comparison of visual and geometry quality on the
+SynMotion-360 sequence. We show rendered images and the corresponding re-
+constructed meshes at two different time steps (T = 212, 234). Compared to previous
+methods, our approach accurately recovers fine-grained geometric details.
+Qualitative Results. We provide qualitative comparisons across three datasets
+in Figs. 1 and 5 to 7, with additional results in Appendix Figs. A3–A6.
+Robustness to Rapid Motion. As illustrated by the SynMotion-360 Lego se-
+quence in Fig. 1, where motions are highly nonlinear and fast, our method
+demonstrates robustness. Incremental baselines like AT-GS suffer from severe
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+13
+motion blur in fast-moving regions, while template-based methods such as DG-
+Mesh fail to track large deformations, resulting in fractured or missing meshes.
+In contrast, our p-SDF leverages parametric curves to fit the SDF trajectories,
+enabling it to precisely capture rapidly evolving geometric boundaries and re-
+construct complete dynamic surfaces.
+T = 34
+RGB
+Mesh
+T = 52
+RGB
+Mesh
+GT
+Ours
+AT-GS
+NeuS2
+DG-Mesh
+D-2DGS
+Fig. 7: Qualitative comparison of visual and geometry quality on the DiVa-
+360 sequence. We show rendered images and the corresponding reconstructed meshes
+at two different time steps (T = 34, 52). Compared to previous methods, our approach
+(p-SDF) achieves more realistic appearance and cleaner geometry with fewer artifacts.
+High-Fidelity Geometry. A key strength of our approach is the ability to re-
+cover fine-grained structural details and avoid artifacts. In the CMU Panoptic
+sequence (Fig. 1), p-SDF is the only method in this comparison that recon-
+structs thin structures like the chair legs, whereas baselines produce noisy or
+over-smoothed results. Our method preserves structural integrity for sharp fea-
+tures, such as the antlers in the SynMotion-360 deer sequence (Fig. 6). On the
+DiVa-360 sequence (Fig. 7), p-SDF recovers tiny details such as the logo texture
+under the penguin’s arm, which are lost or distorted by other methods.
+4.3
+Further Analysis
+Ablations. We analyze basis composition, grid resolution, and Fourier bandwidth
+in Appendix Tables A4–A6. Fourier bases are critical for dynamic geometry: the
+polynomial-only variant reaches only 25.91 dB PSNR, Fourier-only improves to
+35.90 dB, and the full mixed basis reaches 36.34 dB. For spatial discretization,
+963 provides our default quality-cost trade-off between the coarse 643 grid and
+
+
+14
+C. Gao et al.
+the costlier 1283 grid. For temporal bandwidth, smooth-motion Toy saturates at
+lower Nf, whereas fast-motion Lego benefits from larger bandwidth.
+Computational Cost. We report training cost, peak VRAM, and inference speed
+in Appendix Tables A9 and A10. p-SDF uses more VRAM (19.7 GB) because
+its dense parametric grid stores coefficients for the full temporal SDF field, but
+its training time remains practical at 121 min on an RTX 4090. At inference,
+p-SDF runs at 11.4 FPS, slower than Gaussian baselines due to mesh extraction
+and PBR material evaluation, but faster than NeuS2 (8.6 FPS).
+Topology Changes. We provide topology-change evidence in Appendix Figs. A1
+and A2. In a torus-to-sphere sequence, p-SDF fits the sharp SDF sign transition
+caused by hole closure and reconstructs the topology change from multi-view
+observations. This behavior follows from modeling per-location SDF trajectories
+directly, without relying on a fixed-connectivity canonical template.
+Large Motion and Temporal Smoothness. Appendix Sec. E evaluates large-motion
+robustness and temporal interpolation. On the fast-motion Lego sequence, the
+motion-velocity-versus-CD analysis shows that p-SDF maintains lower geomet-
+ric error in high-speed intervals and reconstructs more complete surfaces. Under
+an even-frame training and odd-frame testing protocol, p-SDF also achieves the
+lowest interpolation CD on both smooth Toy and fast-motion Lego, supporting
+the temporal consistency of the learned SDF trajectories.
+Monocular Setting. Appendix Sec. H further evaluates p-SDF under the monoc-
+ular protocol. A qualitative comparison with representative monocular baselines
+shows that p-SDF remains competitive for smooth dynamics, while additional
+analyses reveal noisy surfaces and degradation under large motion. These results
+clarify that the temporal SDF prior helps under weak supervision, but calibrated
+multi-view consistency remains essential for high-fidelity geometry.
+Additional Results. Appendix Sec. I provides additional qualitative Tensor4D
+comparisons and NHR dataset results, complementing our evaluation with a 4D
+volume baseline and human-centric multi-view captures.
+4.4
+Relighting
+To further validate the accuracy and reliability of our dynamic reconstruction,
+we conduct relighting experiments using our reconstructed geometry and PBR
+materials. As shown in Fig. 8, the reconstructed results enable high-quality re-
+lighting for dynamic scenes.
+5
+Conclusions and Limitations
+Conclusions. In this paper, we introduced parametric Signed Distance Function
+(p-SDF), a novel dynamic scene representation that leverages parametric basis
+functions to represent SDF trajectories. p-SDF naturally enforces temporal co-
+herence while remaining flexible to large deformations and topological changes.
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+15
+T = T0
+T = T1
+NVS
+Normal
+Albedo
+Metallic
+Roughness
+Visibility
+Relight
+Fig. 8: PBR material reconstruction and relighting results. Our method re-
+constructs plausible PBR materials (albedo, metallic and roughness) from multi-view
+videos, supporting re-lighting applications with new environment maps.
+Combined with physically based appearance modeling, our framework yields
+accurate geometry and robust material decomposition in highly dynamic condi-
+tions, and supports downstream applications such as relighting. Experiments on
+synthetic and real-world calibrated multi-view videos show that p-SDF estab-
+lishes state-of-the-art geometric accuracy while maintaining competitive novel-
+view synthesis quality. We believe p-SDF offers a promising direction for dynamic
+surface reconstruction and its applications.
+Limitations. Our method relies on multi-view consistency. In extremely sparse
+scenarios (e.g., monocular data), reconstruction accuracy inevitably degrades,
+although the analytical basis functions of p-SDF provide a smooth prior that
+prevents global structural collapse. Detailed analysis of this monocular setting
+is provided in Appendix Sec. H. As an Eulerian representation, p-SDF models
+the temporal evolution of SDF values at stationary grid nodes; thus, it does
+not inherently provide point-to-point correspondences, such as vertex tracking,
+across frames. Nevertheless, the temporal continuity of our basis functions natu-
+rally supports smooth temporal interpolation and slow-motion synthesis. These
+properties and their implications are analyzed in Appendix Sec. E.
+Acknowledgements
+This work is supported in part by the National Key R&D Program of China
+(Nos. 2024YFB3908503 and 2024YFB3908500), in part by the National Natural
+Science Foundation of China (Nos. 62322608 and 62595772), in part by the
+Beijing Science and Technology Program (No. Z251100008125028), and in part
+by the Shenzhen Loop Area Institute under grant FPF10120260001.
+
+
+16
+C. Gao et al.
+References
+1. Cao, A., Johnson, J.: Hexplane: A fast representation for dynamic scenes. In: Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recogni-
+tion. pp. 130–141 (2023)
+2. Chen, D., Oberson, B., Feldmann, I., Schreer, O., Hilsmann, A., Eisert, P.: Adap-
+tive and temporally consistent gaussian surfels for multi-view dynamic reconstruc-
+tion. In: 2025 IEEE/CVF Winter Conference on Applications of Computer Vision
+(WACV). pp. 742–752. IEEE (2025)
+3. Chen, H., Wei, F., Li, C., Huang, T., Wang, Y., Lee, G.H.: Vcr-gaus: View con-
+sistent depth-normal regularizer for gaussian surface reconstruction. Advances in
+Neural Information Processing Systems 37, 139725–139750 (2024)
+4. Choi, J., Lee, Y., Lee, H., Kwon, H., Manocha, D.: Meshgs: Adaptive mesh-aligned
+gaussian splatting for high-quality rendering. In: Proceedings of the Asian Confer-
+ence on Computer Vision. pp. 3310–3326 (2024)
+5. Dai, P., Xu, J., Xie, W., Liu, X., Wang, H., Xu, W.: High-quality surface recon-
+struction using gaussian surfels. In: ACM SIGGRAPH 2024 conference papers. pp.
+1–11 (2024)
+6. Deitke, M., Schwenk, D., Salvador, J., Weihs, L., Michel, O., VanderBilt, E.,
+Schmidt, L., Ehsani, K., Kembhavi, A., Farhadi, A.: Objaverse: A universe of
+annotated 3d objects. In: Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition. pp. 13142–13153 (2023)
+7. Duan, Y., Wei, F., Dai, Q., He, Y., Chen, W., Chen, B.: 4d-rotor gaussian splatting:
+Towards efficient novel-view synthesis for dynamic scenes. In: Proc. SIGGRAPH
+(July 2024)
+8. Fan, L., Yang, Y., Li, M., Li, H., Zhang, Z.: Trim 3d gaussian splatting for accurate
+geometry representation. arXiv preprint arXiv:2406.07499 (2024)
+9. Fridovich-Keil, S., Meanti, G., Warburg, F.R., Recht, B., Kanazawa, A.: K-planes:
+Explicit radiance fields in space, time, and appearance. In: Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition. pp. 12479–
+12488 (2023)
+10. Guédon, A., Lepetit, V.: Sugar: Surface-aligned gaussian splatting for efficient
+3d mesh reconstruction and high-quality mesh rendering. In: Proceedings of the
+IEEE/CVF conference on computer vision and pattern recognition. pp. 5354–5363
+(2024)
+11. Huang, B., Yu, Z., Chen, A., Geiger, A., Gao, S.: 2d gaussian splatting for geo-
+metrically accurate radiance fields. In: ACM SIGGRAPH 2024 conference papers.
+pp. 1–11 (2024)
+12. Joo, H., Liu, H., Tan, L., Gui, L., Nabbe, B., Matthews, I., Kanade, T., Nobuhara,
+S., Sheikh, Y.: Panoptic studio: A massively multiview system for social motion
+capture. In: Proceedings of the IEEE international conference on computer vision.
+pp. 3334–3342 (2015)
+13. Kerbl, B., Kopanas, G., Leimkühler, T., Drettakis, G.: 3d gaussian splatting for
+real-time radiance field rendering. ACM Trans. Graph. 42(4), 139–1 (2023)
+14. Kingma, D.P.: Adam: A method for stochastic optimization. arXiv preprint
+arXiv:1412.6980 (2014)
+15. Laine, S., Hellsten, J., Karras, T., Seol, Y., Lehtinen, J., Aila, T.: Modular primi-
+tives for high-performance differentiable rendering. ACM Transactions on Graphics
+39(6) (2020)
+
+
+Parametric SDF for Dynamic Surface Reconstruction
+17
+16. Li, Z., Tucker, R., Snavely, N., Holynski, A.: Generative image dynamics. In: Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recogni-
+tion (CVPR) (2024)
+17. Liang, H., Yin, Y., Xu, D., Liang, H., Wang, Z., Plataniotis, K.N., Zhao, Y., Wei,
+Y.: Diffusion4d: Fast spatial-temporal consistent 4d generation via video diffusion
+models. arXiv preprint arXiv:2405.16645 (2024)
+18. Lin, Y., Dai, Z., Zhu, S., Yao, Y.: Gaussian-flow: 4d reconstruction with dynamic
+3d gaussian particle. In: Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition. pp. 21136–21145 (2024)
+19. Liu, I., Su, H., Wang, X.: Dynamic gaussians mesh: Consistent mesh reconstruction
+from dynamic scenes. In: International Conference on Learning Representations.
+vol. 2025, pp. 1897–1932 (2025)
+20. Lorensen, W.E., Cline, H.E.: Marching cubes: A high resolution 3d surface con-
+struction algorithm. In: Seminal graphics: pioneering efforts that shaped the field,
+pp. 347–353 (1998)
+21. Lu, C.Y., Zhou, P., Xing, A., Pokhariya, C., Dey, A., Shah, I.N., Mavidipalli, R.,
+Hu, D., Comport, A.I., Chen, K., et al.: Diva-360: The dynamic visual dataset for
+immersive neural fields. In: Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition. pp. 22466–22476 (2024)
+22. Mao, W., Hartley, R., Salzmann, M., et al.: Neural sdf flow for 3d reconstruction
+of dynamic scenes. In: The Twelfth International Conference on Learning Repre-
+sentations (2024)
+23. Mildenhall, B., Srinivasan, P.P., Tancik, M., Barron, J.T., Ramamoorthi, R., Ng,
+R.: Nerf: Representing scenes as neural radiance fields for view synthesis. Commu-
+nications of the ACM 65(1), 99–106 (2021)
+24. Munkberg, J., Hasselgren, J., Shen, T., Gao, J., Chen, W., Evans, A., Müller, T.,
+Fidler, S.: Extracting Triangular 3D Models, Materials, and Lighting From Images.
+In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR). pp. 8280–8290 (June 2022)
+25. Park, K., Sinha, U., Barron, J.T., Bouaziz, S., Goldman, D.B., Seitz, S.M., Martin-
+Brualla, R.: Nerfies: Deformable neural radiance fields. In: Proceedings of the
+IEEE/CVF international conference on computer vision. pp. 5865–5874 (2021)
+26. Pumarola, A., Corona, E., Pons-Moll, G., Moreno-Noguer, F.: D-nerf: Neural ra-
+diance fields for dynamic scenes. In: Proceedings of the IEEE/CVF conference on
+computer vision and pattern recognition. pp. 10318–10327 (2021)
+27. Rabich, S., Stotko, P., Klein, R.: Fpo++: efficient encoding and rendering of dy-
+namic neural radiance fields by analyzing and enhancing fourier plenoctrees. The
+Visual Computer 40(7), 4777–4788 (2024)
+28. Shao, R., Zheng, Z., Tu, H., Liu, B., Zhang, H., Liu, Y.: Tensor4d: Efficient neu-
+ral 4d decomposition for high-fidelity dynamic reconstruction and rendering. In:
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recog-
+nition. pp. 16632–16642 (2023)
+29. Shen, T., Gao, J., Yin, K., Liu, M.Y., Fidler, S.: Deep marching tetrahedra: a hy-
+brid representation for high-resolution 3d shape synthesis. In: Advances in Neural
+Information Processing Systems (NeurIPS) (2021)
+30. Shen, T., Munkberg, J., Hasselgren, J., Yin, K., Wang, Z., Chen, W., Gojcic, Z.,
+Fidler, S., Sharp, N., Gao, J.: Flexible isosurface extraction for gradient-based
+mesh optimization. ACM Trans. Graph. 42(4) (jul 2023). https://doi.org/10.
+1145/3592430
+
+
+18
+C. Gao et al.
+31. Shi, L., Hassanieh, H., Davis, A., Katabi, D., Durand, F.: Light field reconstruction
+using sparsity in the continuous fourier domain. ACM Transactions on Graphics
+(TOG) 34(1), 1–13 (2014)
+32. Tancik, M., Srinivasan, P., Mildenhall, B., Fridovich-Keil, S., Raghavan, N., Sing-
+hal, U., Ramamoorthi, R., Barron, J., Ng, R.: Fourier features let networks learn
+high frequency functions in low dimensional domains. Advances in neural informa-
+tion processing systems 33, 7537–7547 (2020)
+33. Wang, L., Zhang, J., Liu, X., Zhao, F., Zhang, Y., Zhang, Y., Wu, M., Yu, J., Xu, L.:
+Fourier plenoctrees for dynamic radiance field rendering in real-time. In: Proceed-
+ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.
+pp. 13524–13534 (2022)
+34. Wang, P., Liu, L., Liu, Y., Theobalt, C., Komura, T., Wang, W.: Neus: learning
+neural implicit surfaces by volume rendering for multi-view reconstruction. In:
+Proceedings of the 35th International Conference on Neural Information Processing
+Systems. NIPS ’21, Curran Associates Inc., Red Hook, NY, USA (2021)
+35. Wang, Y., Han, Q., Habermann, M., Daniilidis, K., Theobalt, C., Liu, L.: Neus2:
+Fast learning of neural implicit surfaces for multi-view reconstruction. In: Proceed-
+ings of the IEEE/CVF International Conference on Computer Vision. pp. 3295–
+3306 (2023)
+36. Wang, Z., Bovik, A.C., Sheikh, H.R., Simoncelli, E.P.: Image quality assessment:
+from error visibility to structural similarity. IEEE transactions on image processing
+13(4), 600–612 (2004)
+37. Xu, J., Fan, Z., Yang, J., Xie, J.: Grid4d: 4d decomposed hash encoding for high-
+fidelity dynamic gaussian splatting. Advances in Neural Information Processing
+Systems 37, 123787–123811 (2024)
+38. Yang, Z., Gao, X., Zhou, W., Jiao, S., Zhang, Y., Jin, X.: Deformable 3d gaussians
+for high-fidelity monocular dynamic scene reconstruction. In: Proceedings of the
+IEEE/CVF conference on computer vision and pattern recognition. pp. 20331–
+20341 (2024)
+39. Ye, K., Gao, C., Li, G., Chen, W., Chen, B.: Geosplatting: Towards geometry
+guided gaussian splatting for physically-based inverse rendering. In: Proceedings
+of the IEEE/CVF International Conference on Computer Vision. pp. 28991–29000
+(2025)
+40. Yu, Z., Peng, S., Niemeyer, M., Sattler, T., Geiger, A.: Monosdf: Exploring monoc-
+ular geometric cues for neural implicit surface reconstruction. Advances in neural
+information processing systems 35, 25018–25032 (2022)
+41. Zhang, R., Isola, P., Efros, A.A., Shechtman, E., Wang, O.: The unreasonable
+effectiveness of deep features as a perceptual metric. In: Proceedings of the IEEE
+conference on computer vision and pattern recognition. pp. 586–595 (2018)
+42. Zhang, S., Wu, G., Xie, Z., Wang, X., Feng, B., Liu, W.: Dynamic 2d gaussians:
+Geometrically accurate radiance fields for dynamic objects. In: Proceedings of the
+33rd ACM International Conference on Multimedia. pp. 8144–8153 (2025)
+43. Zheng, C., Xue, L., Zarate, J., Song, J.: Gaustar: Gaussian surface tracking and
+reconstruction. In: Proceedings of the Computer Vision and Pattern Recognition
+Conference. pp. 16543–16553 (2025)

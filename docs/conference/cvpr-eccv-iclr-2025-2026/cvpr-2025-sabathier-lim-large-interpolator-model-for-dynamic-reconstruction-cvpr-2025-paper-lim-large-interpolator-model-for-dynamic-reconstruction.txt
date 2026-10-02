@@ -1,0 +1,346 @@
+Title: LIM: Large Interpolator Model for Dynamic Reconstruction
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2025/papers/Sabathier_LIM_Large_Interpolator_Model_for_Dynamic_Reconstruction_CVPR_2025_paper.pdf
+
+Published Time: Sun, 18 May 2025 22:21:51 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# LIM: Large Interpolator Model for Dynamic Reconstruction 
+
+# Remy Sabathier University College London Meta Niloy J. Mitra University College London David Novotny Meta 
+
+# Abstract 
+
+Reconstructing dynamic assets from video data is central to many in computer vision and graphics tasks. Existing 4D reconstruction approaches are limited by category-specific models or slow optimization-based methods. Inspired by the recent Large Reconstruction Model (LRM) [15], we present the Large Interpolation Model (LIM), a transformer-based feed-forward solution, guided by a novel causal consistency loss, for interpolating implicit 3D representations across time. Given implicit 3D representations at times t0 and 
+
+t1, LIM produces a deformed shape at any continuous time 
+
+t ∈ [t0, t 1] delivering high-quality interpolations in sec-onds (per frame). Furthermore, LIM allows explicit mesh tracking across time, producing a consistently uv-textured mesh sequence ready for integration into existing produc-tion pipelines. We also use LIM, in conjunction with a diffusion-based multiview generator, to produce dynamic 4D reconstructions from monocular videos. We evaluate LIM on various dynamic datasets, benchmarking against image-space interpolation methods (e.g., FiLM [41]) and direct triplane linear interpolation, and demonstrate clear advantages. In summary, LIM is the first feed-forward model capable of high-speed tracked 4D asset reconstruc-tion across diverse categories. 
+
+# 1. Introduction 
+
+Reconstructing dynamic 4D assets from video data is a fun-damental problem in computer vision and graphics, with many virtual and augmented reality applications. Existing 4D reconstructors follow two main paradigms: category-specific articulated reconstruction and image-or-text condi-tioned 4D distillation. Hence, they are either restricted to a specific class of objects such as humans [32] and pets [3, 44], or are optimization-based [42, 63] making them slow requiring minutes to hours per reconstruction. Recently, in the context of static reconstruction, the large reconstruction model (LRM) [16] has been proposed as an elegant feed-forward network that, starting from a fixed rig of multiview images, directly produces 3D implicit repre-depth        
+
+> mesh wireframe
+> RGB
+> Figure 1. Large Interpolator Model (LIM) outputs a 4D video reconstruction by interpolating 3D implicit representations be-tween two consecutive keyframes at times t= 0 and t= 1 .
+
+sentation, which can then be rendered for novel view gen-eration. In this work, in the context of dynamic recon-struction, we ask if a similar feed-forward approach can be developed to reconstruct a tracked explicit representation across time .Here, L4GM [43] proposed a feedforward 4D video re-constructor which, for each video keyframe, accepts few views of the reconstructed object and outputs a mixture of 3D Gaussian Splats [23]. However, this approach has limitations as it can only reconstruct the keyframes at their exact timesteps without the ability to interpolate the shape through time. Additionally, establishing correspondences between Gaussian mixtures from different timesteps is chal-lenging, which complicates tracing the deformation of the underlying object geometry through time. This limitation hinders many important downstream applications, such as gaming, where we require the 3D shape and texture of a single mesh to be defined in a static canonical pose while only its geometry (i.e., vertices) is allowed to be deformed arbitrarily. We thus present Large Interpolation Model (LIM) as a transformer-based feed-forward solution that accepts an im-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 6154 plicit representation of an object at two different keyframe times t0 and t1 of a video, and interpolates between the two at any continuous intermediate timestep t ∈ [t0, t 1]. We enable this with a novel self-supervised causal consistency loss that allows us to meaningfully interpolate continuously in time, even when supervised with keyframes from distinct time stamps. LIM is not only an efficient interpolator, but can also track a source mesh across time producing a func-tional deformable 3D asset with a shared uv texture map. Here, LIM tracks the mesh by means of an additional vol-umetric function that maps each time-specific 3D implicit-surface point to a unique coordinate on the intrinsic (time-invariant) surface of the object. This is unique – unlike any other competing dynamic reconstructor [43], LIM outputs a mesh with time-invariant texture and topology, and time-dependent vertex deformation. This renders LIM directly applicable in existing production setups. Our LIM module also enables dynamic reconstruction from monocular video. Specifically, given keyframes of a monocular video, a pretrained image diffusion model gen-erates additional object views which, using a multiview LRM, we convert to keyframe-specific implicit 3D repre-sentations. Then, LIM directly interpolates the 3D repre-sentations yielding a dynamic 4D asset. Our experiments demonstrate that LIM outperforms ex-isting alternatives in terms of the overall quality of the implicit-shape interpolations while being several times faster. Furthermore, we also evaluate the quality of the mesh tracing, where LIM records significant performance improvements. 
+
+# 2. Related Work 
+
+3D Reconstruction. Early work, introduced by Dream-Fusion [39] optimizes a 3D scene via score distillation sampling from a pretrained text-to-image diffusion model [35, 40, 48]. However, these methods are slow to opti-mize and suffer from inconsistencies (like the Janus prob-lem). Zero123 [45] learns to condition diffusion models on a single-view image and camera transformation, which allows novel view generation. Multiple novel views of a single object can then be used to optimize a NeRF re-construction which, however, is often impaired by view-inconsistencies of the novel-view generator. SyncDreamer [31] proposes an extension that improves the consistency of novel views and transitivelly of the generated 3D shapes. Due to the highly-challenging task of reconstructing any 3D asset from a single image, several works [13, 14, 19– 21, 25, 26, 28, 28, 29, 52, 55, 56, 60] learn 3D recon-structors of a specific category which simplifies learning of shape, deformation, and appearance priors. We also note some works on learning a generalizable dynamic radiance field from monocular videos [47, 49] which, however, are not designed for outputting a time-deforming 3D mesh. Re-cent methods [15, 53], trained on large 3D datasets such as Objaverse [9, 10], propose feed-forward reconstructors which directly predict 3D representation of an object, con-ditioning on a single or multiple views. These methods dra-matically reduce reconstruction speed as they don’t rely on any optimization loop. 
+
+4D Representations. Extending the popular research on representing static 3D scenes with implicit shapes, recent works proposed new time-deforming alternatives. Dynerf 
+
+[12] extends static neural radiance field [36] with an addi-tional compact latent code to represent time deformation. However, similar to the static implicit shape reconstruc-tors [36, 61], its optimization process is relatively slow. [4, 8, 11] factorize a dynamic representation into multiple low-rank components, which dramatically speeds up the op-timization. Notably, Hexplane [4] proposes a 6-plane repre-sentation which extends the spacial triplane representation [7] to a spatio-temporal one. With the emergence of 3D Gaussian Splatting [22] (3DGS), [34, 54] propose its ex-tension to dynamic scenes, relying either on a per-frame op-timization with dynamic constraints, or on a temporal net-work to deform the gaussians in time. 
+
+4D Generation and Reconstruction. Several works focus on text-to-4D generation: MAV3D [46] optimizes a Hex-plane [4] representation via score distillation sampling from a text-to-image and a text-to-video diffusion model. 4Dify [2] introduces a 3D-aware text-to-image diffusion model, and parameterizes the representation with a multi-resolution hash encoding [37]. However, these methods tend to pro-duce very limited and simple motions. TC4D [1] proposes an extension to decompose movement into local deforma-tion and global rigid motion. [30] applies same SDS super-vision with Gaussian splatting. Similar to us, recent work focused on video-to-4D re-construction. Consistent4D [18] generates 4D content from monocular video via SDS supervision, optimizing a Cas-cade DyNerf [12]. Simiarly, 4DGen [62] and DreamGaus-sian4D [42] encode the 4D asset as a set of static 3D gaus-sians and a regularized deformation field. [38, 64] leverages diffusion models to generate frames across views and times-tamps, and optimizes a dynamic gaussian splats based on these frames. [17, 57] decompose motion and appearance in gaussian splatting: instead of predicting a deformation for each gaussian in a canonical frame, they deform Gaus-sians by means of sparse control points. All above methods are relatively slow due to the 2nd reconstruction stage that optimizes each 4D asset from scratch. Furthermore, these methods cannot easily trace the resulting 4D asset through time, which prohibits their application in production setups. 6155 Figure 2. LIM framework . (Left) Given multi-view images on 2 timesteps k and k + 1 , LIM interpolates any intermediate 3D rep-resentation at k + α, α ∈ [0 , 1] . It achieves this notably via cross-attention with the latest intermediate features of LRM on keyframe 
+
+k. In practice, our LIM architecture has 6 blocks and LRM 12 blocks. (Right) Block structure of LRM and LIM . We include layer normalization before each module in blocks. 
+
+# 3. Method 
+
+In Sec. 3.1, we review the LRM [15] architecture which our method is based on; in Sec. 3.2, we introduce LIM ,our large interpolator model, for efficient 3D interpolation and; in Sec. 3.4, we show how LIM can be used for fast 4D reconstruction and mesh tracking. 
+
+3.1. Preliminaries 
+
+Our Large Interpolation Model ( LIM ) is built upon the multi-view version of Large Reconstruction Model ( LRM )[15]. We first review LRM and its multi-view version. 
+
+LRM. The LRM [15] is a single-view reconstructor. Given a source image Isrc and its camera πsrc , LRM reconstructs a triplane [7] representation T := LRM θ (I, π ) of the de-picted scene. The triplane may be rendered from any target view πtgt using Emission-Absorption raymarching yielding an RGB render R(πtgt , T ), depth render R(πtgt , T )D and alpha-mask render R(πtgt , T )α. In practice, we use the Lightplane renderer [5] to implement R.In a single-view setting, 3D reconstruction is highly am-biguous. Indeed, as depicted in Fig. 3, when applied to re-Single-view conditioning Multi-view conditioning 
+
+> time
+
+Figure 3. LRM conditioned on a single-view [50] is sensitive to small changes on the input image, which gives inconsistent result from one video frame to another. The multi-view LRM prevents this instability. For each model, left shows an input-view, right shows two target views. Each line is a different timestep. 
+
+construct monocular-video frames, LRM outputs triplanes with significantly time-inconsistent shape and texture. 
+
+Multi-view LRM setup. Hence, in order to minimize re-construction ambiguity, we leverage a few-view condi-tioned version of LRM . Formally, given a set Isrc := 
+
+{Ii
+
+> src
+
+}N src  
+
+> i=1
+
+of N src source images with corresponding cam-eras Πsrc := {πi
+
+> src
+
+}N src  
+
+> i=1
+
+we predict a triplane T := LRM θ (Isrc , Πsrc ), where we overload the same symbol for the multi-view and single-view versions for compactness. The architecture follows [27, 59] – the pixels of each source image Isrc are first concatenated with the Plucker ray coor-dinates encoding the corresponding camera pose πsrc and then fed to DinoV2 [6] yielding image tokens. Then, these tokens enter cross-attention layers inside a large 12-layer transformer that refines a set of fixed shape tokens into the final triplane representation T of the reconstructed scene. 
+
+Multi-view LRM training. We train LRM in a fully-supervised manner on a large dataset of artist-created meshes, similar to Objaverse [10]. We render each mesh from a set of pre-defined camera viewpoints Π. The lat-ter rendering, besides the RGB image I, also provides the ground-truth depth map D and the alpha mask M . For each training scene, we sample Nsrc = 4 random images as input views, and render into Ntgt = 4 randomly sampled held-out target views where losses are optimized. We optimize three losses. (i) The photometric loss 
+
+Lphoto := PNtgt  
+
+> i=1
+
+∥Ii − R(πi, T )∥2 + LPIPS( Ii, R (πi, T )) ;(ii) mask loss Lmask := PNtgt  
+
+> i=1
+
+BCE( M i, R (πi, T )α),where BCE is binary cross-entropy; and (iii) depth loss 
+
+Ldepth := PNtgt  
+
+> i=1
+
+∥Di − R(πi, T )D ∥. Recall that T := LRM θ (Isrc , Πsrc ) is the triplane output by LRM given the 4 source views. The total loss Lphoto + Ldepth + Lmask is mini-mized with the Adam optimizer [24] with a learning rate of 
+
+10 −4 until convergence. 6156 3.2. LIM : Large Interpolator Model 
+
+Given a monocular video, our aim is to predict the 3D repre-sentation of the scene at any continuous timestep. Further-more, we aim to achieve this in a feed-forward manner, and we require the ability to trace the 3D representation in time, which eventually yields a practically applicable animated mesh with a shared UV texture. 
+
+Multi-view LIM . As mentioned in Sec. 3.1, reconstructing monocular videos is a highly ambiguous task and, hence, we first focus on the simpler multi-view version with access to multiple views at each timestep. At the end of this sec-tion, we describe how to tackle the harder monocular task by converting it to the multi-view setting described here. Formally, we are given a multi-view RGB video 
+
+{I k}k∈(1 ,2,...,N f ) composed of Nf timesteps where, for each integer timestep k, we have a set Ik = {Iik}Nv 
+
+> i=1
+
+of 
+
+Nv view-points with cameras Πk = {πik}Nv
+
+> i=1
+
+. In order to 4D-reconstruct the latter we can, in principle, use LRM to predict a set {T k}k∈(1 ,2,...,N f ) containing a triplane for each keyframe in the video. However, the latter remains discrete 
+
+in time and, hence, we cannot obtain a 3D representation at any intermediate continuous timestep k + α, α ∈ [0 , 1] .Furthermore, such frame-specific triplanes encode implicit shapes disconnected across different timesteps. This pre-vents us from converting the time-series of reconstructions into a time-varying mesh. Thus, to achieve continuous reconstruction in time, and to enable surface tracking, we introduce our Large Interpo-lator Model ( LIM ). Given 2 keyframe sets Ik, Ik+1 at dis-crete timesteps k and k+1 , LIM predicts an interpolated tri-plane ˆTk+α at any continuous timestep t = k+α, α ∈ [0 , 1] :
+
+ˆTk+α := LIM ψ (Fk(Ik, Πk), Ik+1 , α ). (1) The architecture of LIM , illustrated in Fig. 2, takes advan-tage of the pretrained multiview LRM model from Sec. 3.1. More specifically, we begin by calculating the intermediate features Fk as predicted by LRM from the frame set Ik at the start timestep k. These features are extracted after each of the last L = 6 transformer blocks of LRM . Then, we broadcast and concatenate a positional encoding of the in-terpolation time α to Fk and feed the result to LIM . This input is then refined by series of cross-attentions with the image tokens of the next keyframes Ik+1 to predict the fi-nal interpolated triplane ˆTk+α.
+
+3.3. Training LIM 
+
+We train LIM on a large dataset of artist-created meshes an-imated with a range of motions. For each scene, we render the asset from several random viewpoints at each key-frame of the animation. In order to train LIM , for each scene, we first sample a pair of keyframe interpolation endpoints at timesteps ksrc 
+
+and ktgt such that ktgt − ksrc ∈ { 2, 3, 4}. Then, we ad-ditionally sample a middle keyframe km such that ksrc ≤
+
+km ≤ ktgt . We then task LIM to predict the interpolated triplane ˆTksrc +αm := LIM( Fksrc , Iktgt , α m) at an interme-diate keyframe km given the source and target condition-ing Fksrc , Iktgt and the interpolation time αm = km−ksrc  
+
+> ktgt −ksrc
+
+,which converts the discrete timestep km into a continuous interpolation time αm ∈ [0 , 1] . The interpolated triplane 
+
+ˆTksrc +αm is then compared to the pseudo-ground-truth tri-plane Tkm = LRM( Ikm , Πkm ) output by LRM at the in-terpolated keyframe km with the following MSE loss: 
+
+LT := ∥ ˆTksrc +αm − T km ∥2, α m = km − ksrc 
+
+ktgt − ksrc 
+
+. (2) 
+
+Causal consistency for continuous-time interpolation. 
+
+The loss LT provides a basic supervisory signal which, however, only supervises LIM at keyframe times km that are discrete. The latter prevents the model from becom-ing a truly temporally-smooth interpolator because, during training, it is never exposed to arbirary interpolation times 
+
+α spanning the whole continuous range of [0 , 1] .To address this, we introduce a causal consistency loss 
+
+Lcausal . In a nutshell, the loss enforces that a triplane inter-polated directly from time ksrc to ksrc + δ, δ ∈ [0 , 1] has to match a triplane that is first interpolated to an arbitrary in-termediate timestep ksrc + αrand , α rand ∈ U (0 , δ ) and then further interpolated to the target timestep ksrc + δ.More formally, we define the causal consistency loss as: 
+
+Lcausal := LIM 
+
+
+
+ˆFksrc +αrand , Iksrc +δ , δ − αrand 
+
+1 − αrand 
+
+
+
+− ˆTksrc +δ
+
+> 2
+
+,
+
+(3) where ˆFksrc +αrand stands for the intermediate features pre-dicted by LIM when interpolating from ksrc to ksrc + αrand .Note that we feed into the second LIM pass the interme-diate features ˆFksrc +αrand output by LIM as opposed to fea-tures F output by LRM as prescribed by the original LIM 
+
+formulation in (1). We empirically observed that this works as we can assume that the intermediate features of LIM fol-low approximately the same distribution as the intermediate features of LRM . Hence, LIM can, in a recurrent manner, accept its own intermediate features to ground the interpo-lation of the next timesteps. As demonstrated in Sec. 4.1 (Tab. 4), the causal loss Lcausal significantly improves the temporal consistency and the quality of the interpolations. Note that for LIM training, LRM model weights θ are already optimized and we keep them frozen. We minimize the total loss LT + Lcausal using the Adam optimizer [24] with a learning rate of 10 −4 until convergence. 
+
+Monocular 4D reconstruction. Given the trained LIM 
+
+and LRM models, we can now predict the 3D scene rep-resentation at any continuous timestep. However, as men-6157 tioned above, the LIM model relies on multiple views at each timestep, which are not always available in practice. Our method can, however, also be used in the monocular-video to 4D setting. Here, we leverage a pretrained diffu-sion model [58] to recover 3 videos at different viewpoints, consistent in shape and motion with the monocular source. We then reconstruct 3D per timestep with LRM , and add in-between timesteps (depending on the user frame-rate need), by interpolating with LIM . This replaces the optimization of a 4D representation from the multi-view videos [2, 46], which in practice takes minutes to hours for a single scene. 
+
+3.4. Tracing shapes with LIM 
+
+In Secs. 3.2 and 3.3, we have described how LIM , together with LRM , can be trained to predict a continuous-time 3D representation of a scene given a set of multi-view images at discrete timesteps. As mentioned before, a key goal of our model is to also trace the deformable shape through time. Next, we describe how to extend LIM and LRM to output canonical surface coordinates to enable surface tracing, and how to use these coordinates to output a time-deforming mesh with fixed topology and texture. 
+
+Interpolating canonical surface coordinates. To simplify the surface tracing task, we extend LIM and LRM to label the interpolated implicit surface with intrinsic coordinates defined in the canonical coordinate of the object to be in-terpolated. More specifically, aside from tasking the inter-polated triplanes T with representing the RGB color and geometry of the implicit shape, we also task them with sup-porting a volumetric function f : R3 → R3 that maps each point in the 3D space to its canonical surface coordinate. Without loss of generality, we set the canonical coordinates of time-deforming shape to the XYZ coordinates of the cor-responding surface points in the start timestep ksrc . Since we have a dataset of artist-created meshes with a known de-formation of each vertex in time, we can easily calculate the canonical coordinate function fksrc of each vertex at the start timestep ksrc and then transport those using the known an-imation to any other deformation time ktgt yielding a func-tion fktgt . Importantly, f can be rendered at any point in time from a viewpoint πi yielding a 3-channel canonical coordinate render Ci.Given the above, we train a second LRM , dubbed LRM ,which shares the same architecture, but predicts triplanes 
+
+T C := LRM( Csrc , Πsrc ) supporting the coordinate function 
+
+f , by accepting a set Csrc := {Ci
+
+> src
+
+}Nsrc  
+
+> i=1
+
+of multi-view source canonical renders Ci
+
+> src
+
+. This canonical-coordinate LRM is supervised with the following canonical loss: 
+
+Lcan := ∥Ci 
+
+> src
+
+− R(πi, T C 
+
+> src
+
+)∥2, (4) and with the same depth, and mask losses as the LRM 
+
+in Sec. 3.1. Similarly, we train LIM to interpolate the canonical-coordinate triplane as, 
+
+ˆT C 
+
+> src
+
+:= LIM( FCksrc , Iksrc , Iktgt , α ). (5) Note that this LIM , analogous to LIM , is conditioned on the features FCksrc of the canonical-coordinate LRM . How-ever, differently from LIM , LIM accepts target and source RGB frames Iksrc and Iktgt instead of the target-time canon-ical image Cktgt . This is because the canonical coordinates can only be carried forward in time and, as such, are not available for the target timestep ktgt . Hence, LIM instead learns how to propagate the coordinates by analyzing the RGB frames that are available in both timesteps. We super-vise LIM with the MSE loss LC 
+
+> T
+
+and the causal consistency loss LC 
+
+> causal
+
+that are defined analogously to (2) and (3) but with the canonical-coordinate triplanes T C and images C.
+
+Mesh tracing. Given the RGB and canonical-coordinate versions of LIM and LRM , we can trace a mesh multi-view frames Isrc and Itgt (recall that, using an image diffusion model, this is also possible for a monocular video). We start by extracting the color triplane Tksrc at timestep 
+
+ksrc with LRM . We then render Tksrc to obtain a depth map 
+
+Dksrc that we unproject to form 3D points yielding the multi-view canonical coordinates Cksrc . Given Cksrc , we can predict the canonical-coordinate triplane T Cksrc with LRM .Then, for a series of monotonic time offsets 
+
+α0, . . . , α N ; |αj+1 − αj | → 0 the canonical coordi-nate triplane T Cksrc , together with Isrc and Itgt , is fed to LIM 
+
+to interpolate the canonical-coordinate triplane ˆT Cksrc +αj at all continuous timesteps ksrc + αj .The series of resulting canonical-coordinate triplanes 
+
+ˆT Cksrc +αj provides a series of implicit shapes annotated with surface coordinates. To obtain a time deforming mesh, we first run Marching Cubes (MC) [33] on the first triplane 
+
+ˆT Cksrc +α0 resulting in a mesh Mksrc +α0 (Vksrc +α0 , F ) with time-dependent vertices Vksrc +α and time-invariant faces F .We then run MC on the next triplane ˆT Cksrc +α1 and match the vertices of the previous mesh to the surface on the next mesh using nearest neighbor search in the space of canonical coordinates defined by the triplanes ˆT Cksrc +α0 and 
+
+ˆT Cksrc +α1 , respectively. Afterwards, we replace the vertices 
+
+Vksrc +α0 with the corresponding nearest neighbors from the next time ksrc + α1, and repeat the process for all the re-maining timesteps α2, . . . , α N
+
+# 4. Experiments 
+
+4.1. Feed-forward Triplane Interpolation 
+
+In this section, we evaluate the ability of LIM to interpolate triplanes so that the renders of the latter match the ground-truth views extracted at the target interpolation timestep. More specifically, given a multi-view video of a deform-ing object, which contains the frame set {I k}Nf 
+
+> k=1
+
+at each 6158 Input video Linear FILM Our T0 T1 Figure 4. Interpolation results comparing (i) linear interpolation in triplane space, which fails on dynamic parts; (ii) image-based interpo-lator [41] (FILM), yielding view-consistent frame interpolations leading to defective reconstructions (ghosting around dynamic parts; for example, the tip of the elephant’s trunk or fish’s tail); and (iii) our LIM -based interpolation, which yields the most plausible results. 
+
+timestep k, we first split the frame sets into adjacent triplets 
+
+Ik, Ik+1 , Ik+2 for a k-th triplet. In each triplet, we then evaluate the ability of a method to interpolate the 3D repre-sentation ˆTk+1 at the mid-point k + 1 given the boundary frames Ik, Ik+2 . Note that, since the frames are sampled at uniform time intervals, the continuous interpolation index is α = 0 .5. For evaluation, we select 256 scenes from our heldout dataset of animated objects. Given the interpolant ˆTk+1 , we then evaluate its quality by rendering into the set of (novel) evaluation views, and re-porting three photometric errors measuring the discrepancy between the renders and the corresponding ground-truth im-ages: (i) peak signal-to-noise ratio PSNR ; (ii) perceptual loss LPIPS [65]; and (iii) PSNR FG calculating PSNR only over the foreground pixels. 
+
+Baselines. We compare our LIM interpolation with two baselines. The first baseline (Linear) is a simple linear in-terpolation, which defines the interpolated triplane ˆT linear  
+
+> k+1
+
+=(1 − α)Tk + αTk+2 as a linear combination of the two tri-
+
+Table 1. Interpolation results comparing LIM to a linear triplane interpolation, and to an image-based interpolation implemented with the FiLM image interpolator [41].                   
+
+> PSNR ↑PSNR FG ↑LPIPS ↓
+> Linear 20.96 11.04 0.093 FILM [41] 22.05 14.98 0.082
+> LIM (Our) 23.11 16.12 0.075 Oracle 24.43 17.51 0.064
+
+planes predicted by LRM for each set of boundary frames. The second baseline (FILM) is image-based. Specifically, we first interpolate in the image-space using a pre-trained deep image interpolator FILM [41] which, given the bound-ary views Iik, I ik+2 , generates the interpolant ˆIik+1 followed by multi-view LRM reconstruction yielding the interpo-lated triplane ˆT FILM  
+
+> k+1
+
+. We also report results from an Or-acle method, which has access to the ground-truth images 
+
+Ik+1 and reconstructs the corresponding triplane ˆT Oracle 
+
+> k+1
+
+with LRM . The latter provides an upper performance limit. 
+
+Results. Tab. 1 presents the results. We also provide Fig. 4 and a supplemental video for visual evaluation. LIM out-performs linear interpolation and image-based interpolation on all three metrics. Here, we notice that linear interpo-lation in the triplane space fails to correctly represent dy-namic elements, which often disappear after being interpo-lated. Furthermore, the image-based interpolation often re-sults in artifacts in the color and opacity fields, which is due to view-inconsistencies between the images interpolated at the same timestep. LIM scores closest to the Oracle bound. 
+
+Ablating causal consistency. Table 2 reports the perfor-mance of a LIM trained without the causal consistency loss Lcausal on the aforemention benchmark. The evalua-tion reveals a significant drop in performance, confirming the merit of the causal loss. See supplementary material. 
+
+4.2. Deformable Mesh Reconstruction 
+
+In this section, we evaluate the quality of the dynamic mesh reconstructions output by LIM ’s mesh-tracing method 6159 Input Deformed Mesh Figure 5. Mesh Tracking results. Given two implicit 3D representations, LIM can interpolate densely in time and hence can track a source mesh to produce a deforming mesh sequence. For each scene, we show (top to bottom) RGB rendering of the tracked mesh, depth and canonical-coordinate interpolation. See supplemental video on the project page. Table 2. Ablating Lcausal . Interpolation accuracy comparing our   
+
+> LIM with its ablation removing the causal consistency loss Lcausal .
+
+PSNR ↑ PSNR FG ↑ LPIPS ↓
+
+LIM - wo/ Lcausal 22.2 15.38 0.084 
+
+LIM 23.11 16.12 0.075 
+
+(Sec. 3.4). More specifically, we create a dataset of 8-step test sequences heldout from the train set. As before, the k-th timestep of the 8 timesteps contains a frame set     
+
+> Table 3. Evaluation of deformable mesh tracking comparing our LIM with Nearest-Neighbor tracing
+
+PSNR ↑ PSNR FG ↑ LPIPS ↓
+
+NN-tracing 20.33 16.09 0.122 LIM (Our) 21.56 17.11 0.096 
+
+Ik. First, we reconstruct a mesh in the canonical pose, defined as the shape at the first frame ( k = 1 ). We then use our mesh-tracing method to deform the vertices of the mesh so they follow the motion observed in the frame sets 
+
+Ik, k ∈ [2 , . . . , 8] . Note that we keep the topology of the first-frame mesh, as well as its texture shared across all 8 timesteps. After the mesh is traced, we render it at timesteps {4, 6, 8} to several heldout views and again eval-uate the PSNR, LPIPS, and PSNR FG . We compare our LIM 
+
+mesh tracing, described in Sec. 3.4, with a baseline (Nearest Matching) that iteratively deform the vertices of the mesh at timestep i to the nearest match on the surface of the mesh at timestep i + 1 , where the matching is performed over distance and RGB-features. 
+
+Results. Tab. 3 present the quantitative results. Our main observation is that LIM’s ability to densely and accurately interpolate RGB and XYZ values over time, allows one to avoid explicitly solving the challenging correspondence problem between keyframed poses, separated by non-trivial deformations. Our evaluations show that LIM works well 6160 Input video Consistent4D TripoSR Our Figure 6. Monocular 4D Reconstruction comparing LIM with Consistent4D and TripoSR applied to each input frame separately. Our method is the only one to output a time-deforming mesh with fixed topology and texture. For our method, we render the topology for the second view. 
+
+overall, although the results degrade around thin structures. Note that additional qualitative results are available in the project page. 
+
+4.3. 4D Reconstruction 
+
+Finally, we evaluate LIM on 4D reconstruction from a monocular video. For each evaluation scene, we extract a video sequence of 16 frames {I1 
+
+> k
+
+}16 
+
+> k=1
+
+. We then leverage an external diffusion-based model to generate 3 additional views of the scene { ˆIik}k∈[1 ,..., 16] ,i ∈{ 2,3,4} for each timestep. We then reconstruct the 3D representation on the odd frames with 
+
+LRM and interpolate with our LIM to predict the repre-sentation on the even frames. We evaluate on all the even frames, on a set of four random views, outside the training views. We report two metrics: the LPIPS error between the ground-truth images and the renders of the reconstructed tri-planes, and the FVD [51] measuring comparing generated new-view sequence against ground-truth temporal sequence of renders. 
+
+Baselines. We compare two baselines: (i) Consis-tent4D [18], an optimization-based model, conditioned on monocular video and supervised via SDS loss; (ii) Tri-poSR [50], an open-source LRM conditioned on a single image, i.e ., the model is at a disadvantage. 
+
+Results. Evaluation results are in Tab. 4. The combination of LIM with multi-view diffusion model outperforms the competing methods by a significant margin. 
+
+Table 4. Monocular video reconstruction results comparing our 
+
+LIM to Consistent4D [18] and to TripoSR [50] applied indepen-dently to each frame of the input video.                
+
+> Feed-fwd. Inf. Time LPIPS ↓FVD ↓
+> Consistent4D [18] ∼1.5hours 0.429 1136.3 TripoSR [50] ∼30secs 0.504 1427.2
+> LIM (Ours) ∼3min 0.142 811.1
+
+# 5. Conclusion 
+
+We have proposed LIM , a novel method paired with multi-view LRM to enable continuous and feed-forward render-ing in both space and time. As opposed to image-based interpolators or direct triplane baselines, we demonstrated that LIM results in high-quality and consistent 4D interpo-lations, realistically capturing deformations, and can sup-port different type of modalities. A key advantage of ours is that we can interpolate in RGB and (canonical) XYZ, which in turn allows to directly output consistently-textured dy-namic mesh assets that applicable in production workflows. A key limitation of our approach is it being trained on synthetic data. Since LIM learns to interpolate deforma-tion/motion, rather than appearance, we expect the results to carry over to real data. However, we would need an LRM model trained on real-world data to test this hypothe-sis. We leave this for later exploration. Also, in the future, we would like to extend our framework to handle extrapo-lation, instead of interpolation. The challenge would be to effectively use video data and video generators for training. 6161 References 
+
+[1] Sherwin Bahmani, Xian Liu, Yifan Wang, Ivan Sko-rokhodov, Victor Rong, Ziwei Liu, Xihui Liu, Jeong Joon Park, Sergey Tulyakov, Gordon Wetzstein, Andrea Tagliasacchi, and David B. Lindell. TC4d: Trajectory-conditioned text-to-4d generation, . 2 [2] Sherwin Bahmani, Ivan Skorokhodov, Victor Rong, Gordon Wetzstein, Leonidas Guibas, Peter Wonka, Sergey Tulyakov, Jeong Joon Park, Andrea Tagliasacchi, and David B. Lindell. 4d-fy: Text-to-4d generation using hybrid score distillation sampling, . 2, 5 [3] Benjamin Biggs, Thomas Roddick, Andrew W. Fitzgibbon, and Roberto Cipolla. Creatures great and SMAL: recovering the shape and motion of animals from video. In Proc. ECCV ,2018. 1 [4] Ang Cao and Justin Johnson. Hexplane: A fast represen-tation for dynamic scenes. arXiv.cs , abs/2301.09632, 2023. 2[5] Ang Cao, Justin Johnson, Andrea Vedaldi, and David Novotny. Lightplane: Highly-scalable components for neu-ral 3d fields. 3 [6] Mathilde Caron, Hugo Touvron, Ishan Misra, Herv´ e J´ egou, Julien Mairal, Piotr Bojanowski, and Armand Joulin. Emerg-ing properties in self-supervised vision transformers. In 
+
+Proc. ICCV , 2021. 3 [7] Eric R. Chan, Connor Z. Lin, Matthew A. Chan, Koki Nagano, Boxiao Pan, Shalini De Mello, Orazio Gallo, Leonidas J. Guibas, Jonathan Tremblay, Sameh Khamis, Tero Karras, and Gordon Wetzstein. Efficient geometry-aware 3D generative adversarial networks. In Proc. CVPR ,2022. 2, 3 [8] Anpei Chen, Zexiang Xu, Andreas Geiger, Jingyi Yu, and Hao Su. TensoRF: Tensorial radiance fields. In arXiv , 2022. 2[9] Matt Deitke, Ruoshi Liu, Matthew Wallingford, Huong Ngo, Oscar Michel, Aditya Kusupati, Alan Fan, Christian Laforte, Vikram Voleti, Samir Yitzhak Gadre, Eli VanderBilt, Anirud-dha Kembhavi, Carl Vondrick, Georgia Gkioxari, Kiana Ehsani, Ludwig Schmidt, and Ali Farhadi. Objaverse-XL: A universe of 10M+ 3D objects. CoRR , abs/2307.05663, 2023. 2[10] Matt Deitke, Dustin Schwenk, Jordi Salvador, Luca Weihs, Oscar Michel, Eli VanderBilt, Ludwig Schmidt, Kiana Ehsani, Aniruddha Kembhavi, and Ali Farhadi. Objaverse: A universe of annotated 3D objects. In Proc. CVPR , 2023. 2, 3 [11] Sara Fridovich-Keil, Giacomo Meanti, Frederik Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes: Explicit radiance fields in space, time, and appearance. arXiv.cs ,abs/2301.10241, 2023. 2 [12] Chen Gao, Ayush Saraf, Johannes Kopf, and Jia-Bin Huang. Dynamic view synthesis from dynamic monocular video. 2 [13] Shubham Goel, Angjoo Kanazawa, and Jitendra Malik. Shape and viewpoint without keypoints. 2 [14] Paul Henderson and Vittorio Ferrari. Learning single-image 3d reconstruction by generative modelling of shape, pose and shading. 2 [15] Yicong Hong, Kai Zhang, Jiuxiang Gu, Sai Bi, Yang Zhou, Difan Liu, Feng Liu, Kalyan Sunkavalli, Trung Bui, and Hao Tan. LRM: Large reconstruction model for single image to 3d. 1, 2, 3 [16] Yicong Hong, Kai Zhang, Jiuxiang Gu, Sai Bi, Yang Zhou, Difan Liu, Feng Liu, Kalyan Sunkavalli, Trung Bui, and Hao Tan. LRM: Large reconstruction model for single image to 3D. In Proc. ICLR , 2024. 1 [17] Yi-Hua Huang, Yang-Tian Sun, Ziyi Yang, Xiaoyang Lyu, Yan-Pei Cao, and Xiaojuan Qi. SC-GS: Sparse-controlled gaussian splatting for editable dynamic scenes. 2 [18] Yanqin Jiang, Li Zhang, Jin Gao, Weimin Hu, and Yao Yao. Consistent4d: Consistent 360 {\ deg } dynamic object gener-ation from monocular video. 2, 8 [19] Angjoo Kanazawa, Shubham Tulsiani, Alexei A. Efros, and Jitendra Malik. Learning category-specific mesh reconstruc-tion from image collections. 2 [20] Hiroharu Kato and Tatsuya Harada. Learning view priors for single-view 3d reconstruction. [21] Hiroharu Kato, Yoshitaka Ushiku, and Tatsuya Harada. Neu-ral 3d mesh renderer. 2 [22] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. 2 [23] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3D gaussian splatting for real-time radiance field rendering. Proc. SIGGRAPH , 42(4), 2023. 1 [24] Diederik Kingma and Jimmy Ba. Adam: A method for stochastic optimization. In International Conference on Learning Representations (ICLR) , San Diega, CA, USA, 2015. 3, 4 [25] Filippos Kokkinos and Iasonas Kokkinos. Learning monoc-ular 3d reconstruction of articulated categories from motion. 2[26] Filippos Kokkinos and Iasonas Kokkinos. To the point: Correspondence-driven monocular 3d category reconstruc-tion, 2021. 2 [27] Jiahao Li, Hao Tan, Kai Zhang, Zexiang Xu, Fujun Luan, Yinghao Xu, Yicong Hong, Kalyan Sunkavalli, Greg Shakhnarovich, and Sai Bi. Instant3D: Fast text-to-3D with sparse-view generation and large reconstruction model. 
+
+Proc. ICLR , 2024. 3 [28] Xueting Li, Sifei Liu, Shalini De Mello, Kihwan Kim, Xiao-long Wang, Ming-Hsuan Yang, and Jan Kautz. Online adap-tation for consistent mesh reconstruction in the wild. 2 [29] Xueting Li, Sifei Liu, Kihwan Kim, Shalini De Mello, Varun Jampani, Ming-Hsuan Yang, and Jan Kautz. Self-supervised single-view 3D reconstruction via semantic consistency. In 
+
+Proc. ECCV , 2020. 2 [30] Huan Ling, Seung Wook Kim, Antonio Torralba, Sanja Fi-dler, and Karsten Kreis. Align your gaussians: Text-to-4d with dynamic 3d gaussians and composed diffusion models. 2[31] Yuan Liu, Cheng Lin, Zijiao Zeng, Xiaoxiao Long, Lingjie Liu, Taku Komura, and Wenping Wang. SyncDreamer: Gen-erating multiview-consistent images from a single-view im-age. arXiv , (2309.03453), 2023. 2 6162 [32] Matthew Loper, Naureen Mahmood, Javier Romero, Gerard Pons-Moll, and Michael J. Black. SMPL: a skinned multi-person linear model. ACM Trans. on Graphics (TOG) , 2015. 1[33] W. Lorensen and H. Cline. Marching cubes: A high reso-lution 3D surface construction algorithm. ACM Computer Graphocs , 21(24), 1987. 5 [34] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. 2 [35] Luke Melas-Kyriazi, Christian Rupprecht, Iro Laina, and Andrea Vedaldi. RealFusion: 360 reconstruction of any ob-ject from a single image. In Proceedings of the IEEE Confer-ence on Computer Vision and Pattern Recognition (CVPR) ,2023. 2 [36] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. NeRF: Representing scenes as neural radiance fields for view syn-thesis. In Proc. ECCV , 2020. 2 [37] Thomas M¨ uller, Alex Evans, Christoph Schied, and Alexan-der Keller. Instant neural graphics primitives with a multires-olution hash encoding. In Proc. SIGGRAPH , 2022. 2 [38] Zijie Pan, Zeyu Yang, Xiatian Zhu, and Li Zhang. Fast dy-namic 3d object generation from a single-view video. 2 [39] Ben Poole, Ajay Jain, Jonathan T. Barron, and Ben Milden-hall. DreamFusion: Text-to-3D using 2D diffusion. In Proc. ICLR , 2023. 2 [40] Guocheng Qian, Jinjie Mai, Abdullah Hamdi, Jian Ren, Aliaksandr Siarohin, Bing Li, Hsin-Ying Lee, Ivan Sko-rokhodov, Peter Wonka, Sergey Tulyakov, and Bernard Ghanem. Magic123: One image to high-quality 3D object generation using both 2D and 3D diffusion priors. arXiv.cs ,abs/2306.17843, 2023. 2 [41] Fitsum Reda, Janne Kontkanen, Eric Tabellion, Deqing Sun, Caroline Pantofaru, and Brian Curless. Film: Frame interpo-lation for large motion, 2022. 1, 6 [42] Jiawei Ren, Liang Pan, Jiaxiang Tang, Chi Zhang, Ang Cao, Gang Zeng, and Ziwei Liu. DreamGaussian4d: Generative 4d gaussian splatting. 1, 2 [43] Jiawei Ren, Kevin Xie, Ashkan Mirzaei, Hanxue Liang, Xi-aohui Zeng, Karsten Kreis, Ziwei Liu, Antonio Torralba, Sanja Fidler, Seung Wook Kim, and Huan Ling. L4gm: Large 4d gaussian reconstruction model, 2024. 1, 2 [44] Remy Sabathier, Niloy J. Mitra, and David Novotny. Animal avatars: Reconstructing animatable 3d animals from casual videos. In Computer Vision – ECCV 2024 , pages 270–287, Cham, 2025. Springer Nature Switzerland. 1 [45] Ruoxi Shi, Hansheng Chen, Zhuoyang Zhang, Minghua Liu, Chao Xu, Xinyue Wei, Linghao Chen, Chong Zeng, and Hao Su. Zero123++: a single image to consistent multi-view dif-fusion base model. arXiv.cs , abs/2310.15110, 2023. 2 [46] Uriel Singer, Shelly Sheynin, Adam Polyak, Oron Ashual, Iurii Makarov, Filippos Kokkinos, Naman Goyal, Andrea Vedaldi, Devi Parikh, Justin Johnson, and Yaniv Taigman. Text-to-4d dynamic scene generation. 2, 5 [47] Samarth Sinha, Roman Shapovalov, Jeremy Reizenstein, Ig-nacio Rocco, Natalia Neverova, Andrea Vedaldi, and David Novotn´ y. Common pets in 3D: Dynamic new-view synthe-sis of real-life deformable categories. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recogni-tion (CVPR) , 2023. 2 [48] Junshu Tang, Tengfei Wang, Bo Zhang, Ting Zhang, Ran Yi, Lizhuang Ma, and Dong Chen. Make-It-3D: High-fidelity 3d creation from A single image with diffusion prior. arXiv.cs ,abs/2303.14184, 2023. 2 [49] Fengrui Tian, Shaoyi Du, and Yueqi Duan. MonoN-eRF: Learning a generalizable dynamic radiance field from monocular videos. 2 [50] Dmitry Tochilkin, David Pankratz, Zexiang Liu, Zixuan Huang, Adam Letts, Yangguang Li, Ding Liang, Christian Laforte, Varun Jampani, and Yan-Pei Cao. TripoSR: Fast 3d object reconstruction from a single image. 3, 8 [51] Thomas Unterthiner, Sjoerd van Steenkiste, Karol Kurach, Rapha¨ el Marinier, Marcin Michalski, and Sylvain Gelly. Fvd: A new metric for video generation. In ICLR , 2019. 8[52] Nanyang Wang, Yinda Zhang, Zhuwen Li, Yanwei Fu, Wei Liu, and Yu-Gang Jiang. Pixel2mesh: Generating 3d mesh models from single RGB images. 2 [53] Xinyue Wei, Kai Zhang, Sai Bi, Hao Tan, Fujun Luan, Valentin Deschaintre, Kalyan Sunkavalli, Hao Su, and Zex-iang Xu. MeshLRM: large reconstruction model for high-quality mesh. arXiv , 2404.12385, 2024. 2 [54] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering, . 2 [55] Shangzhe Wu, Tomas Jakab, Christian Rupprecht, and An-drea Vedaldi. DOVE: Learning deformable 3d objects by watching videos, . 2 [56] Shangzhe Wu, Ruining Li, Tomas Jakab, Christian Rup-precht, and Andrea Vedaldi. MagicPony: Learning articu-lated 3D animals in the wild. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2 [57] Zijie Wu, Chaohui Yu, Yanqin Jiang, Chenjie Cao, Fan Wang, and Xiang Bai. SC4d: Sparse-controlled video-to-4d generation and motion transfer, . 2 [58] Yiming Xie, Chun-Han Yao, Vikram Voleti, Huaizu Jiang, and Varun Jampani. Sv4d: Dynamic 3d content generation with multi-frame and multi-view consistency, 2024. 5 [59] Yinghao Xu, Hao Tan, Fujun Luan, Sai Bi, Peng Wang, Ji-ahao Li, Zifan Shi, Kalyan Sunkavalli, Gordon Wetzstein, Zexiang Xu, and Kai Zhang. DMV3D: Denoising multi-view diffusion using 3D large reconstruction model. In Proc. ICLR , 2024. 3 [60] Gengshan Yang, Minh Vo, Natalia Neverova, Deva Ra-manan, Andrea Vedaldi, and Hanbyul Joo. BANMo: Build-ing animatable 3d neural models from many casual videos. 2[61] Lior Yariv, Jiatao Gu, Yoni Kasten, and Yaron Lipman. Volume rendering of neural implicit surfaces. arXiv.cs ,abs/2106.12052, 2021. 2 6163 [62] Yuyang Yin, Dejia Xu, Zhangyang Wang, Yao Zhao, and Yunchao Wei. 4dgen: Grounded 4d content generation with spatial-temporal consistency. 2 [63] Yuyang Yin1, Dejia Xu2, Zhangyang Wang, Yao Zhao, and Yunchao Wei. 4DGen: Grounded 4D content generation with spatial-temporal consistency. arXiv.cs , 2023. 1 [64] Yifei Zeng, Yanqin Jiang, Siyu Zhu, Yuanxun Lu, Youtian Lin, Hao Zhu, Weiming Hu, Xun Cao, and Yao Yao. STAG4d: Spatial-temporal anchored generative 4d gaus-sians. 2 [65] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shechtman, and Oliver Wang. The unreasonable effectiveness of deep features as a perceptual metric. In CVPR , 2018. 6 6164

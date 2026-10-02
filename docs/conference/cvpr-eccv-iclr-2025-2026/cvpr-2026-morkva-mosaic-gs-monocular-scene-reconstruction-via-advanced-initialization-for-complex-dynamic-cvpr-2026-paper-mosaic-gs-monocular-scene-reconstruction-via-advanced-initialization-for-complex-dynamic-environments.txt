@@ -1,0 +1,248 @@
+Title: MOSAIC-GS: Monocular Scene Reconstruction via Advanced Initialization for Complex Dynamic Environments
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Morkva_MOSAIC-GS_Monocular_Scene_Reconstruction_via_Advanced_Initialization_for_Complex_Dynamic_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:46:15 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# MOSAIC-GS: Monocular Scene Reconstruction via Advanced Initialization for Complex Dynamic Environments 
+
+# Svitlana Morkva 1 Vaishakh Patil 1 Alessio Tonioni 2 Michael Oechsle 2
+
+# Maximum Wilder-Smith 1 Marco Hutter 11ETH Z¨ urich 2Google 
+
+{smorkva, patilv, mwilder, mahutter }@ethz.ch {alessiot, michaeloechsle }@google.com Ground Truth Zero-Cost Applications MOSAIC (Ours) MoSca Gaussian Flow Novel View <12min ~180 FPS ~1 hour ~37 FPS ~35min ~52 FPS Object Removal Segmentation Scene Editing 
+
+> Color Manipulation
+
+Figure 1. MOSAIC-GS produces high-quality reconstructions of dynamic scenes, capturing fine details in dynamic regions more accurately while significantly reducing training and rendering time compared to prior methods. Beyond reconstruction, our approach enables dynamic scene segmentation and editing, allowing objects to be removed, isolated, or manipulated without any additional computational cost. 
+
+# Abstract 
+
+We present MOSAIC-GS, a novel, fully explicit, and com-putationally efficient approach for high-fidelity dynamic scene reconstruction from monocular videos using Gaus-sian Splatting. Monocular reconstruction is inherently ill-posed due to the lack of sufficient multiview constraints, making accurate recovery of object geometry and tempo-ral coherence particularly challenging. To address this, we leverage multiple geometric cues, such as depth, opti-cal flow, dynamic object segmentation, and point tracking. Combined with rigidity-based motion constraints, these cues allow us to estimate preliminary 3D scene dynamics during an initialization stage. Recovering scene dynam-ics prior to the photometric optimization reduces reliance on motion inference from visual appearance alone, which is often ambiguous in monocular settings. To enable com-pact representations, fast training, and real-time rendering while supporting non-rigid deformations, the scene is de-composed into static and dynamic components. Each Gaus-sian in the dynamic part of the scene is assigned a trajec-tory represented as time-dependent Poly-Fourier curve for parameter-efficient motion encoding. We demonstrate that MOSAIC-GS achieves substantially faster optimization and rendering compared to existing methods, while maintain-ing reconstruction quality on par with state-of-the-art ap-proaches across standard monocular dynamic scene bench-marks. 
+
+# 1. Introduction 
+
+Recent advances in Neural Radiance Fields (NeRFs) [27] and 3D Gaussian Splatting [14] have This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 1167 revolutionized 3D scene reconstruction, enabling highly accurate and photorealistic modeling of complex en-vironments. However, these techniques are limited to static scenes, restricting their applicability in domains that involve dynamic environments, such as robotics, autonomous driving, or digital-twin generation for virtual and augmented reality (VR/AR) applications. Several recent methods extend these ideas to dynamic scenes [5,17,24,29,30,41], but the problem remains largely unsolved. Existing approaches often require extensive train-ing time, substantial memory and storage resources, and suffer from slow rendering, while still exhibiting noticeable artifacts in regions with complex motion. Many of these methods also prioritize visual realism over physical con-sistency, leading to distortions when observed from unseen viewpoints. This issue is particularly pronounced in set-tings with restricted camera viewpoints or monocular video acquisition, where the limited field of view further compli-cates physically consistent reconstruction. Such scenarios are common in robotics and embedded devices, where cam-eras typically provide only narrow or stereo views rather than wide multi-view coverage. Moreover, the limited com-putational and memory resources of these platforms make compact and efficient scene representations essential. To address these challenges, we present MOSAIC-GS, an explicit and computationally efficient framework for dynamic scene reconstruction from monocular videos. MOSAIC-GS leverages a 3D Gaussian Splatting represen-tation [14] constructed from different viewpoints of a dy-namic scene acquired over an interval of time. Each view is paired with a camera pose and a depth estimate, obtained ei-ther by dedicated sensors or learned models. A key insight of our work is that inferring scene dynamics from purely visual data during photometric optimization is both inef-ficient and unreliable. Instead, we emphasize the impor-tance of high-quality initialization, which has been shown to strongly influence reconstruction fidelity [14] and con-vergence speed [25]. Our pre-processing pipeline first focuses on robust iden-tification and tracking of dynamic regions, enabling decom-position of the scene into static and dynamic components. This separation improves parameter efficiency and simpli-fies the subsequent optimization. We then estimate prelim-inary Gaussian motions from all available geometric and physical cues in the video, leveraging recent advances in optical flow [36], object segmentation [31], and per-point tracking [3,4] to extract per-point trajectories and object as-sociations. We further incorporate rigidity constraints dur-ing this stage to enable refinement of these motions and ef-ficient inference even in unobserved regions of the scene. To compactly encode motion, we represent these trajec-tories using time-dependent Poly-Fourier curves, following Lin et al . [20], instead of the per-frame deformation models commonly used in prior monocular methods [16, 35, 39]. These trajectories are then used to initialize the dynamic Gaussians. Combined with disentanglement into static and dynamic components, this representation enables efficient modeling, fast training, real-time rendering, and robust han-dling of non-rigid deformations. The proposed MOSAIC-GS framework is particularly effective in monocular set-tings, where limited viewpoints make motion inference from visual cues alone unreliable. The main contributions of our work can be summarized as follows: • An advanced pre-processing framework for dynamic Gaussian Splatting that improves reconstruction quality and significantly accelerates training. • A robust pipeline for dynamic object detection and track-ing across monocular video sequences. • A novel trajectory refinement method that extracts and optimizes 3D motion using per-instance rigidity con-straints. • State-of-the-art training efficiency and inference speed, achieved through scene disentanglement, compact defor-mation representation, and accurate motion initialization. 
+
+# 2. Related Works 
+
+2.1. Novel-View Synthesis of Dynamic Scenes 
+
+Novel-view synthesis aims to generate realistic images of a scene from previously unseen viewpoints. A major breakthrough came with the introduction of Neural Radi-ance Fields (NeRFs) [27], which enabled high-fidelity 3D scene representations and have since been extended to cap-ture dynamic content [19, 28–30]. Despite their impressive quality, NeRF-based methods are computationally expen-sive and slow to render. To address this, hybrid approaches combine implicit neural fields with explicit 3D structures such as voxels or planes [1, 2, 7, 32, 34], which improve ef-ficiency but still struggle with real-time photorealistic ren-dering. This limitation has motivated the development of explicit point-based models such as 3D Gaussian Splatting [14], which enable fast and high-quality rendering. Building on this foundation, recent works have extended Gaussian Splatting to dynamic scenes by modeling temporal motion in two main ways. The first line of work applies per-frame deformations, storing Gaussian transformations for each frame, either for all Gaussians or a smaller skeletal subset [11,16,24,35,39]. These methods estimate per-point trajectories either during optimization or via point tracking, but they are memory-intensive and do not scale well to long sequences. The second direction adopts continuous motion modeling, where Gaussian trajectories are represented with learnable functions [18, 20, 41]. While more compact and efficient, these methods often struggle to capture complex 1168 or rapid motions, especially when relying solely on photo-metric cues. Significant progress has also been made in generalizable scene reconstruction models [43, 44] that leverage large-scale priors to infer 4D dynamics across diverse environ-ments. While promising, these feed-forward approaches currently exhibit lower reconstruction fidelity than per-scene optimization methods and, as they represent a fun-damentally different paradigm, are not further explored in this paper. 
+
+2.2. Monocular Dynamic 3D Scene Reconstruction 
+
+Monocular dynamic scene reconstruction is highly prac-tical in real-world applications, but inherently ambiguous due to partial visibility of scene geometry and motion. Several NeRF-based methods proposed to address this by incorporating object-specific priors such as human shape models [21, 40], shadow modeling [42], and facial expres-sions [8]. While effective, these methods generalize poorly beyond specific object categories. To improve generaliza-tion, geometric and physical priors such as depth, optical flow, and rigidity-based deformation constraints have been explored [5, 9, 38], but monocular NeRFs still suffer from long training times and slow rendering. Recent research has shifted toward explicit representa-tions using 3D Gaussian Splatting, which offers faster and more efficient reconstruction. The progress in this area be-gan with the work of Stearns et al . [35], who introduced isotropic Gaussian representations combined with motion trajectory blending from short sequences, guided by seg-mentation and depth priors. With advancements in point tracking, newer approaches propose to extract per-point tra-jectories from video and use them as motion bases shared across dynamic Gaussians [39]. The current state-of-the-art by Lei et al . [16] extends this idea with a Motion Scaf-fold Graph that connects trajectories into a spatio-temporal structure and refines them using rigidity and smoothness constraints. Although these approaches achieve high-quality results, they remain limited by per-frame deformation modeling, leading to long training times and high memory usage. In contrast, we propose a compact and efficient representation for monocular dynamic scene reconstruction that achieves comparable quality to state-of-the-art methods while being significantly faster in both training and rendering. 
+
+# 3. Method 
+
+Overview. Given a monocular video of a dynamic scene, along with camera intrinsics K, extrinsics [R | t]t, and per-frame depth maps Dt obtained from sensors or monocular depth estimation models [45], our pipeline accurately re-constructs dynamic 3D scenes while reducing training and rendering time. Preliminary experiments show that photometric opti-mization is highly sensitive to scene initialization: without accurate motion estimates, most dynamic-region points are initially pruned. This leads to longer training times and re-duced reconstruction quality, as the model must recover lost data over many iterations. Meuleman et al . [25] similarly highlight that proper initialization accelerates convergence and improves visual quality. To prevent this data loss, we ar-gue that the initialization should include richer information, rather than relying solely on Gaussian position and color as in most prior works [14, 20, 41]. To achieve this, we propose an advanced pre-processing pipeline with four main stages: (1) dynamic region detec-tion, (2) segmentation and tracking of dynamic instances, (3) scene flow estimation and per-instance refinement using rigidity constraints, and finally (4) initialization of static and dynamic regions. In the last stage, the extracted scene flow is encoded as time-dependent Poly-Fourier curves Fit for compact trajectory representation, and initialization points are sampled adaptively to match the density of detail in each region. The initialized Gaussians are then optimized and densi-fied during the photometric optimization phase, regularized by a depth-based supervision loss. A full overview of the framework is shown in Fig. 2, and each stage is described in detail below. 
+
+3.1. Dynamic Regions Detection 
+
+To identify dynamic objects in the scene, we leverage dense optical flow in combination with epipolar geometry constraints. Instead of relying on full 3D reconstruction er-rors, which can be unreliable due to noisy depth maps, we employ the Sampson epipolar error. Given two consecutive frames It and It+1, we first com-pute the dense optical flow ut : Ω → R2 using RAFT [36]. Following Liu et al . [23], we compute the Sampson epipo-lar error for each pixel correspondence x ∈ Ω using known camera extrinsics [R | t]t, [R | t]t+1 and intrinsics K,: 
+
+eepi (x) = (x′⊤ Fx )2
+
+(Fx )21 + ( Fx )22 + ( F⊤x′)21 + ( F⊤x′)22
+
+, (1) where F is the fundamental matrix derived from [R | t]t,
+
+[R | t]t+1 and K, and x′ is the corresponding pixel in the next frame. Pixels with high epipolar error correspond to regions that cannot be explained by camera motion alone, which may arise from true scene motion, inaccuracies in optical flow estimation, or errors in camera parameters. To filter out false positives, we consider dynamic only those regions where the epipolar error satisfies eepi (x) > τ epi .1169 Static Model ( (; ;) )Dynamic Model At Time [t] 
+
++Sampson Epipolar Error RAFT Optical Flow 
+
+## Scene Disentanglement Dynamic Regions Segmentation Kabsch &
+RANSAC 
+
+Lifted TAP Trajectories Per Instance Rigid Deformation Scene Flow Refinement LoG Norm Rasterization & Densification Pearson Correlation Depth Loss 
+
+## Initialization SAM2 tracker + +
+
+> translation + rotation
+
+Polyfourier Trajectories
+Encoding 
+
+# Photometric Optimization Selective Per-Frame Prompts ++ corr Figure 2. Overview of the MOSAIC-GS framework. The pipeline begins with four pre-processing steps: (1) dynamic region detection using optical flow and epipolar error, (2) segmentation and tracking of dynamic instances, (3) scene flow estimation with per-instance rigidity refinement, and (4) initialization of static and dynamic Gaussians with Poly-Fourier encoded trajectories. The extracted parameters serve as initialization for the main photometric optimization phase, where separate Gaussian models are created for static and dynamic regions to improve parameter efficiency, while being jointly rasterized for rendering. A depth-based Pearson correlation loss further enhances geometric consistency and reconstruction fidelity. 
+
+3.2. Segmentation and Tracking of Dynamic In-stances 
+
+Relying solely on epipolar error thresholding can be in-sufficient in certain scenarios. To improve the detection, tracking, and segmentation of dynamic regions across all frames, we incorporate the prompt-based semantic segmen-tation and tracking model SAM2 [31]. For each frame, we first extract bounding boxes around dynamic regions detected in the previous step. If no dy-namic objects have been detected in earlier frames, these boxes are used directly as prompts for the segmentation model [31]. Otherwise, masks of previously detected and tracked instances are first subtracted from the dynamic regions to prevent duplicate instance tracking. Bound-ing boxes around the remaining regions are then used as prompts to generate accurate instance masks Mjt for each new dynamic object j. Masks with low confidence scores 
+
+pconf (Mjt) < τ mask , are filtered out to remove unreliable de-tections. High-confidence masks are added to the tracker and propagated forward at fixed intervals, reducing the compu-tational overhead of re-tracking frames when new dynamic objects appear. After processing all frames, we obtain a set of tracked dynamic object masks {Mjt}Tt=1 for the en-tire video. To account for objects that were static in earlier frames, we perform a reverse propagation pass, extending -Dynamic Regions Tracked Masks Finding New Dynamic Instances Frame [t] Tracked Masks With SAM2 Objects Backtracking Frame t Frame t-1 Frame t+1 New Dynamic Regions New Instance SAM2 =
+
+Figure 3. Dynamic object detection and tracking. Masks of pre-viously detected objects are subtracted from dynamic regions to identify new instances. The remaining regions are used as prompts for SAM2 [31] to generate segmentation masks, which are tracked forward through all frames. A reverse propagation pass extends object masks to earlier frames where the object was initially static. 
+
+object masks to previous frames. A visualization of this process is shown in Fig. 3. 
+
+3.3. Scene Flow Estimation and Refinement 
+
+To extract scene flow for dynamic regions, we leverage recent advances in point tracking [3, 13], following prior works [16, 39]. We randomly sample Np = 10 , 000 query points qit within dynamic regions across all T frames and 1170 track them through the video, where i denotes the point in-dex and t the index of a frame where the point has been queried. Each trajectory {pit}Tt=1 is assigned to a dynamic ob-ject j based on majority overlap with segmentation masks 
+
+Mjt, producing per-object 3D point sets {P j }Jj=1 . Trajec-tories primarily associated with the static background are discarded. Combining segmentation and tracking resolves ambiguities from occlusions and imperfect masks, produc-ing more temporally consistent instance identifiers. The 2D trajectories are then lifted to 3D using depth maps Dt, camera intrinsics K, and extrinsics [R | t]t to produce scene flow {Pit | i = 1 , . . . , N p; t = 1 , . . . , T }.To reduce noise and fill unobserved regions, we refine the flow of each dynamic object using rigid transforma-tions. For object j, we consider points {(Pit, Pit+1) | i ∈Pj , vit = 1 , vit+1 = 1 }, where vit indicates visibility at frame t, and estimate the rigid transformation (Rjt, tjt)
+
+that best aligns them using the Kabsch algorithm [12] with RANSAC [6]. Refined positions at t + 1 are then computed as: 
+
+Pit+1 := Rjt Pit + tjt , vit+1 := 1 vit = 1  (2) After processing all frames forward, we apply the same re-finement backward to update points that were not observed in earlier frames but whose corresponding objects were vis-ible at those frames. Remaining points with vit = 0 are interpolated using the nearest frames t′ < t and t′′ > t ,where vit′ = 1 and vit′′ = 1 .
+
+3.4. Initialization of Static and Dynamic Regions 
+
+To provide a compact representation of the scene we pro-pose representing scene dynamics as time-dependent Poly-Fourier curves, following Lin et al . [20]. However, instead of learning these curves’ coefficients during the photomet-ric optimization phase, we propose initializing them directly from the refined scene flow obtained in the previous step. To achieve this, we are solving this system of linear equations for each trajectory {Pit}Tt=1 :
+
+Ax = y (3) 
+
+where: 
+
+A = ϕ(t1) ϕ(t2) · · · ϕ(tT )⊤ ,ϕ(t) = [ 1 , t, t 2, sin( ωt ), cos( ωt ) ] ⊤,y = [ Pi(t1), P i(t2), . . . , P i(tT ) ] ⊤,x = [ a0, a 1, a 2, . . . , b 1, c 1, . . . ]⊤.
+
+The resulting coefficients x then compactly encode each trajectory over time and are used to initialize the deforma-tion parameters of dynamic Gaussians. In addition to mo-tion, we initialize each Gaussian’s color and scale to match the local appearance and level of details. Specifically, for each trajectory query point qit, we extract its color from the corresponding pixel in the RGB frame It. To estimate the Gaussian scale, we evaluate the Laplacian of Gaussian (LoG) norm on It and incorporate its depth map Dt as pro-posed by Meuleman et al . [25]. The extracted Poly-Fourier coefficients, colors, and scales together initialize the mean position, deformation parameters, color, and scale of each dynamic Gaussian. For static regions, we adopt the sampling strategy of Meuleman et al . [25]. To ensure broad scene coverage while avoiding oversampling of flat areas, sampling is performed only on a subset of temporally spaced training frames. 
+
+3.5. Photometric Optimization 
+
+The proposed MOSAIC-GS framework represents the scene using two distinct sets of 3D Gaussians: a static com-ponent Gs and a dynamic component Gd. Each component is initialized separately and follows a distinct densification strategy to account for their differing parameter complex-ity. Formally, the full scene representation is defined as 
+
+G = Gs ∪ G d.Each Gaussian in the static set Gs is parameterized by its mean position μ ∈ R3, rotation quaternion q ∈ H,scale s ∈ R3, opacity α ∈ [0 , 1] , and color coefficients 
+
+c ∈ R3×(B+1) 2
+
+, where B denotes the degree of spherical harmonics. Dynamic Gaussians in Gd share the same canonical pa-rameters but additionally store time-dependent deformation parameters encoded as Poly-Fourier coefficients {ak}dpol 
+
+> k=1
+
+,
+
+{bk, ck}dFourier  
+
+> k=1
+
+representing offsets to the Gaussian mean and rotation. Position and rotation deformations are mod-eled separately, with positional parameters initialized from the Poly-Fourier coefficients estimated during the pre-processing stage. The position offset at time t is given by: 
+
+∆μ(t) = 
+
+> dp
+
+X
+
+> k=1
+
+aktk +
+
+> dF
+
+X
+
+> k=1
+
+
+
+bk cos( kωt ) + ck sin( kωt )
+
+
+
+,
+
+(4) and the mean position becomes μ(t) = μ0 + ∆ μ(t).For rotation, instead of directly adding time-dependent offsets to the base quaternion as in Gaussian Flow [20], we convert the Poly-Fourier output into a valid rotation by adding the identity quaternion and normalizing it to form a unit quaternion ∆q(t). The final rotation is then obtained as: 
+
+q(t) = ∆ q(t) ⊗ q0, (5) where q0 denotes the canonical rotation and ⊗ indicates quaternion multiplication. This design enforces consistent 1171 PSNR ↑ / LPIPS ↓ Apple Block Spin Paper Windmill Space-Out Teddy Wheel Mean Dyn. Gaussians [24] 7.65 / 0.766 7.55 / 0.684 8.08 / 0.651 6.24 / 0.729 6.79 / 0.733 7.41 / 0.690 7.28 / 0.593 7.29 / 0.692 4D Gaussians [41] 15.41 / 0.450 11.28 / 0.633 14.42 / 0.339 15.60 / 0.297 14.60 / 0.372 12.36 / 0.466 11.79 / 0.436 13.64 / 0.428 Marbles [35] 17.70 / 0.492 17.42 / 0.384 18.88 / 0.428 17.04 / 0.394 15.94 / 0.435 13.95 / 0.442 16.14 / 0.351 16.72 / 0.418 Gaussian Flow [20] 18.37 / 0.322 15.62 / 0.352 16.66 / 0.302 18.14 / 0.217 17.12 / 0.286 13.48 / 0.376 14.18 / 0.323 16.22 / 0.311 Shape of Motion [39] 18.57 / 0.341 17.41 / 0.323 19.35 / 0.247 18.14 / 0.225 16.85 / 0.324 13.69 / 0.38 17.21 / 0.23 17.32 / 0.295 MoSca [16] 19.4 / 0.34 18.06 / 0.33 21.31 / 0.19 22.34 / 0.15 20.48 / 0.26 15.47 / 0.35 18.17 / 0.23 19.32 / 0.264 Ours 18.92 / 0.328 17.5 / 0.29 20.28 / 0.233 20.31 / 0.15 19.96 / 0.239 14.42 / 0.343 17.40 / 0.204 18.4 / 0.255 
+
+Table 1. Per-scene quantitative results on the DyCheck [10] dataset. Best results are in bold , second best are underlined. MOSAIC-GS achieves comparable performance to the state-of-the-art MoSca [16] method, while being significantly faster in both training and rendering and achieves a new state-of-the-art in terms of LPIPS for this dataset. 
+
+rotation parameterization and avoids artifacts from invalid quaternion updates. Unlike Gaussian Flow [20], we do not model time-varying color deformations, which improves compactness and prevents the model from compensating motion inaccu-racies through artificial color changes. The overall loss function is defined as: 
+
+L = (1 − λssim ) LL1 + λssim LSSIM + λdepth Ldepth , (6) where LL1 and LSSIM denote photometric losses, and Ldepth 
+
+enforces geometric consistency with reference depth maps. To handle temporally inconsistent depth scales, Ldepth is im-plemented as a Pearson correlation loss [22, 46], which pre-serves relative geometry while remaining invariant to ab-solute scale variations. Further implementation details are provided in supplementary materials. 
+
+# 4. Experiments 
+
+Datasets. We evaluate MOSAIC-GS on standard monocular dynamic scene reconstruction benchmarks, in-cluding the iPhone DyCheck [10] and NVIDIA Dynamic Scene dataset [33]. The iPhone DyCheck dataset con-tains seven casually captured dynamic scenes recorded with a moving monocular camera, each with up to 500 frames [10]. Each scene provides RGB images, camera in-trinsics/extrinsics, noisy LiDAR depth maps, and ground-truth covisibility masks, along with one or two static cam-eras for novel-view evaluation. Two distinct versions of the NVIDIA Dynamic Scene 
+
+dataset exist: (1) the original release by Yoon et al. [33], and (2) the modified Gaussian Marbles variant introduced by Stearns et al. [35]. The original dataset [33] includes seven dynamic sequences captured by twelve static cam-eras. Monocular input is simulated by selecting one frame from each consecutive camera, yielding twelve spatially and temporally sparse frames. Evaluation uses images from the first camera as reference views. The Gaussian Marbles 
+
+version [35] contains seven scenes with 100–200 frames each, captured by four static cameras. One camera provides monocular input, while the others serve as evaluation views. This distinction has been overlooked in prior works [16], leading to inconsistent comparisons. To ensure fairness, we report results on both versions and compare with methods evaluated under the corresponding settings. 
+
+4.1. Novel-View Synthesis 
+
+DyCheck [10]. Following MoSca [16], we employ the BootsTAPIR tracker [3] to extract dense point trajectories across frames. MOSAIC-GS focuses exclusively on novel-view synthesis and does not include a camera pose refine-ment stage. In contrast, prior works often perform addi-tional pose optimization to compensate for noisy ground-truth poses [16, 39]. For fair comparison, we adopt the re-fined poses extracted by MoSca [16]. Table 1 reports quantitative results comparing MOSAIC-GS with state-of-the-art monocular dynamic scene re-construction methods, evaluated using PSNR and LPIPS. MOSAIC-GS achieves competitive performance, outper-forming all prior methods except MoSca [16] in PSNR, while setting a new state-of-the-art in LPIPS across most scenes and on average. Notably, these results are obtained with substantially lower training and rendering times as shown in Table 2, enabled by our compact scene represen-tation, static–dynamic scene disentanglement, and accurate motion initialization, which reduce the number of optimiza-tion steps required for reconstruction. Qualitative compar-isons are shown in Fig. 4. Results for Gaussian Marbles are omitted due to the unavailability of their preprocessed dataset. MOSAIC-GS reconstructs finer details and pro-duces sharper renderings in dynamic regions, resulting in noticeably better perceptual quality. While this level of de-tail may slightly reduce PSNR, the improvement is better reflected by perceptual metrics such as LPIPS, which align more closely with visual quality. 
+
+NVIDIA Dynamic Scene Dataset [33]. Table 3 presents PSNR and LPIPS scores averaged across all scenes. Sim-ilarly to DyCheck, MOSAIC-GS achieves second-best PSNR after MoSca [16] and attains the best LPIPS among all compared methods. As illustrated in Fig. 5, MOSAIC-GS more faithfully captures motion and preserves object ge-ometry when observed from novel viewpoints, resulting in 1172 GT Ours MoSca Gaussian Flow Figure 4. Qualitative comparison of novel view synthesis on the DyCheck [10] dataset. Our method produces sharper details in dynamic regions compared to prior approaches resulting in higher perceptual similarity with the ground truth evaluation view. 
+
+visually more coherent reconstructions. 
+
+NVIDIA Dynamic Scene Dataset (modified [35]). 
+
+Since this dataset does not provide reliable covisibility masks, prior works evaluated reconstruction quality on the entire image, often applying post-processing to fill unob-served regions [35]. We argue that this approach is less ac-curate than restricting evaluation to covisible regions. Ac-cordingly, we generate covisibility masks analytically from depth maps and camera parameters and limit quantitative evaluation to these areas. Table 4 presents results using this covisibility-based pro-tocol, re-evaluating all prior approaches using the same pro-cedure. On this dataset MOSAIC-GS achieves state-of-the-art performance in both PSNR and LPIPS. Additional qual-itative comparisons are provided in the supplementary ma-terials. 
+
+4.2. Ablation Study 
+
+We conduct an ablation study on the DyCheck dataset [10] to evaluate the impact of key components of the MOSAIC-GS framework. Specifically, we investigate the effects of: (1) initialization of mean deformation co-efficients for dynamic Gaussians, (2) scene flow refine-ment using rigid transformations, (3) scene disentanglement into static and dynamic Gaussians, (4) different degrees of Fourier encoding for motion representation, compared to 
+
+Methods Training Time ↓ Rendering Speed ↑
+
+Gaussian Marbles* 5-9h 200 FPS 
+
+Gaussian Flow 23 min 52 FPS MoSca 50 min 38 FPS Ours 10.5 min 180 FPS 
+
+Table 2. Comparison of training time and rendering speed aver-aged across the DyCheck [10] dataset. *: The values for Gaussian Marbles are taken from the original paper [35]. All other methods were benchmarked on one NVIDIA RTX 4090 GPU. The training time reports the total time including pre-processing, the photomet-ric optimization takes approximately 5 minutes. Gaussian Flow MoSca Ours GT 
+
+Figure 5. Qualitative comparison of novel view synthesis on the NVIDIA Dynamic Scene (original) dataset. The proposed method better captures motion and preserves objects’ geometry when ob-served from different viewpoints.               
+
+> Method PSNR ↑LPIPS ↓
+> Casual-FVS [15] 24.57 0.081 MonoNeRF [37] 25.62 0.106 CTNeRF [26] 26.13 0.082 RoDynRF [23] 25.89 0.067 MoSca [16] 26.72 0.070
+> Ours 26.26 0.060
+
+Table 3. Comparison on NVIDIA Dataset (original) [33], averaged over all scenes.             
+
+> Method PSNR ↑LPIPS ↓Training Time
+> Gaussian Flow [20] 21.89 0.095 18 min Gaussian Marbles [35] 23.68 0.069 3.5-8 h Ours 23.79 0.069 7 min
+
+Table 4. Results averaged over all scenes on the Gaussian Marbles variant of the NVIDIA dataset [35]. Our method achieves state-of-the-art quality with a fraction of the training time of Dynamic Gaussian Marbles [35]. 
+
+the default degree of 32, and (5) depth supervision during photometric optimization. As shown in Table 5, each component of our approach improves the reconstruction quality. The largest drop oc-curs when the scene disentanglement module is removed, 1173 Components mPSNR ↑ mSSIM ↑ mLPIPS ↓ Time ↓                            
+
+> Full model 18.40 0.668 0.255 5.06 No deformations initialization 16.99 0.641 0.298 5.41 No flow refinement 18.11 0.663 0.265 4.83 No scene disentanglement 14.65 0.521 0.456 8.26 Fourier degree 24 18.37 0.667 0.261 4.91 Fourier degree 16 18.29 0.665 0.265 4.68
+> No depth supervision 18.13 0.665 0.264 4.87
+
+Table 5. Ablation study on different components of the system on the DyCheck dataset [10]. The Time column reports the training duration of the photometric optimization stage (in minutes). 32 degrees 24 degrees 16 degrees 
+
+Figure 6. Effect of Fourier degree on the reconstruction of fine details in dynamic regions. 
+
+leading to poor initialization of static regions and incor-rect scene flow refinement. This also significantly increases computational cost, as every Gaussian must store deforma-tion parameters. Removing the initialization of deforma-tion parameters for dynamic Gaussians also substantially reduces visual quality, highlighting the importance of accu-rate motion priors. Additional scene flow refinement further improves results, especially in scenes with complex motion. The choice of Fourier degree has a relatively small over-all effect, though higher degrees better capture complex mo-tion in detailed, fast-moving scenes like Wheel (Fig. 6). Fourier degrees higher than 32 may offer marginal gains in certain cases, but they sacrifice compactness and were therefore not explored further. Lower degrees, on the other hand, provide a more compact motion representation, which can be beneficial in resource-constrained settings. Finally, adding the depth supervision term further improves recon-struction quality by enhancing both photometric accuracy and geometric consistency. 
+
+4.3. Additional Applications 
+
+MOSAIC-GS also allows for temporally consistent scene segmentation and editing without any extra computa-tional cost. During pre-processing, temporal refinement of mask identifiers with point tracking ensures consistent seg-mentation of dynamic objects over time, avoiding identity swaps that occur with simple 3D reprojection of masks. By assigning segmentation IDs to dynamic Gaussians during initialization, the densification and optimization steps nat-Reconstruction Scene Segmentation Scene Editing 
+
+Figure 7. Examples of scene segmentation and editing enabled by the instance IDs stored in dynamic Gaussians. In the top image, the gray cube has been removed from the scene, while in the bot-tom image, the truck has been removed. 
+
+urally produce temporally consistent segmentation of dy-namic regions as a by-product of the reconstruction process. This allows us to not only remove all dynamic objects from the scene, or, conversely render the dynamic objects on a blank background, but also perform several editing op-erations, such as changing object color, adjusting motion or position, or simply isolating them from the rest of the scene during rendering. Examples of these editing results are shown in Fig. 7 
+
+# 5. Limitations 
+
+While MOSAIC-GS achieves efficient and accurate monocular dynamic scene reconstruction, it has several lim-itations. First, the approach relies heavily on the quality of initial segmentation masks and scene flow, which may in-herit errors from the external models. Second, the scene flow refinement may be insufficient, particularly when an entire dynamic object is invisible from the training view-point. Further discussion of limitations and future research directions is provided in the supplementary materials. 
+
+# 6. Conclusion 
+
+In this work, we presented MOSAIC-GS, a framework for efficient and accurate monocular dynamic scene re-construction using 3D Gaussian Splatting. Experiments on standard benchmarks show that our method achieves the state-of-the-art training and rendering efficiency, along with superior perceptual quality (LPIPS) in novel-view syn-thesis. These improvements stem from an efficient pre-processing stage, including scene disentanglement, scene flow refinement, and compact motion encoding using Poly-Fourier curves. We believe this work takes a meaningful step toward fast dynamic scene reconstruction with high vi-sual fidelity, opening up new possibilities for applications in AR/VR, robotics, and 3D content creation. 
+
+Acknowledgment. This work was partially supported as a part of NCCR Automation, a National Centre of Com-petence in Research, funded by the Swiss National Science 1174 Foundation (grant number 51NF40 225155). This work is also supported by Swiss Federal Railways (SBB) through the ETH Mobility Initiative and ETHAR, the ETH Aug-mented Reality Research Hub. 
+
+# References 
+
+[1] Benjamin Attal, Jia-Bin Huang, Christian Richardt, Michael Zollhoefer, Johannes Kopf, Matthew O’Toole, and Changil Kim. HyperReel: High-fidelity 6-DoF video with ray-conditioned sampling. In Conference on Computer Vision and Pattern Recognition (CVPR) , 2023. 2 [2] Ang Cao and Justin Johnson. Hexplane: A fast represen-tation for dynamic scenes. In 2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 130–141, 2023. 2 [3] Carl Doersch, Pauline Luc, Yi Yang, Dilara Gokay, Skanda Koppula, Ankush Gupta, Joseph Heyward, Ignacio Rocco, Ross Goroshin, Jo˜ ao Carreira, and Andrew Zisserman. Boot-sTAP: Bootstrapped training for tracking-any-point. Asian Conference on Computer Vision , 2024. 2, 4, 6 [4] Carl Doersch, Yi Yang, Mel Vecerik, Dilara Gokay, Ankush Gupta, Yusuf Aytar, Joao Carreira, and Andrew Zisserman. Tapir: Tracking any point with per-frame initialization and temporal refinement. In 2023 IEEE/CVF International Con-ference on Computer Vision (ICCV) , pages 10027–10038, 2023. 2 [5] Yilun Du, Yinan Zhang, Hong-Xing Yu, Joshua B. Tenen-baum, and Jiajun Wu. Neural radiance flow for 4d view synthesis and video processing. In 2021 IEEE/CVF In-ternational Conference on Computer Vision (ICCV) , pages 14304–14314, 2021. 2, 3 [6] Martin A Fischler and Robert C Bolles. Random sample consensus: a paradigm for model fitting with applications to image analysis and automated cartography. Communications of the ACM , 24(6):381–395, 1981. 5 [7] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes: Explicit radiance fields in space, time, and appearance. In 
+
+2023 IEEE/CVF Conference on Computer Vision and Pat-tern Recognition (CVPR) , pages 12479–12488, 2023. 2 [8] Guy Gafni, Justus Thies, Michael Zollh¨ ofer, and Matthias Nießner. Dynamic neural radiance fields for monocular 4d facial avatar reconstruction. In 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 8645–8654, 2021. 3 [9] Chen Gao, Ayush Saraf, Johannes Kopf, and Jia-Bin Huang. Dynamic view synthesis from dynamic monocular video. In 
+
+Proceedings of the IEEE International Conference on Com-puter Vision , 2021. 3 [10] Hang Gao, Ruilong Li, Shubham Tulsiani, Bryan Russell, and Angjoo Kanazawa. Dynamic novel-view synthesis: A reality check. In Advances in Neural Information Processing Systems (NeurIPS) , 2022. 6, 7, 8 [11] Yi-Hua Huang, Yang-Tian Sun, Ziyi Yang, Xiaoyang Lyu, Yan-Pei Cao, and Xiaojuan Qi. Sc-gs: Sparse-controlled gaussian splatting for editable dynamic scenes. In 2024 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 4220–4230, 2024. 2 [12] Wolfgang Kabsch. A solution for the best rotation to re-late two sets of vectors. Acta Crystallographica Section A: Crystal Physics, Diffraction, Theoretical and General Crys-tallography , 32(5):922–923, 1976. 5 [13] Nikita Karaev, Ignacio Rocco, Benjamin Graham, Natalia Neverova, Andrea Vedaldi, and Christian Rupprecht. Co-tracker: It is better to track together. In Proceedings of the European Conference on Computer Vision (ECCV) , pages 18–35, Berlin, Heidelberg, 2024. Springer-Verlag. 4 [14] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time radiance field rendering. ACM Transactions on Graphics ,42(4), July 2023. 1, 2, 3 [15] Yao-Chih Lee, Zhoutong Zhang, Kevin Blackburn-Matzen, Simon Niklaus, Jianming Zhang, Jia-Bin Huang, and Feng Liu. Fast view synthesis of casual videos with soup-of-planes. In European Conference on Computer Vision (ECCV) , 2024. 7 [16] Jiahui Lei, Yijia Weng, Adam W. Harley, Leonidas Guibas, and Kostas Daniilidis. Mosca: Dynamic gaussian fu-sion from casual videos via 4d motion scaffolds. In 2025 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 6165–6177, 2025. 2, 3, 4, 6, 7[17] Tianye Li, Mira Slavcheva, Michael Zollhoefer, Simon Green, Christoph Lassner, Changil Kim, Tanner Schmidt, Steven Lovegrove, Michael Goesele, Richard Newcombe, and Zhaoyang Lv. Neural 3d video synthesis from multi-view video. In 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 5511–5521, 2022. 2 [18] Zhan Li, Zhang Chen, Zhong Li, and Yi Xu. Spacetime gaus-sian feature splatting for real-time dynamic view synthesis. In 2024 IEEE/CVF Conference on Computer Vision and Pat-tern Recognition (CVPR) , pages 8508–8520, 2024. 2 [19] Zhengqi Li, Simon Niklaus, Noah Snavely, and Oliver Wang. Neural scene flow fields for space-time view synthesis of dy-namic scenes. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2021. 2[20] Youtian Lin, Zuozhuo Dai, Siyu Zhu, and Yao Yao. Gaussian-flow: 4d reconstruction with dynamic 3d gaussian particle. In 2024 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 21136–21145, 2024. 2, 3, 5, 6, 7 [21] Lingjie Liu, Marc Habermann, Viktor Rudnev, Kripasindhu Sarkar, Jiatao Gu, and Christian Theobalt. Neural actor: Neural free-view synthesis of human actors with pose con-trol. ACM Trans. Graph.(ACM SIGGRAPH Asia) , 2021. 3 [22] Qingming LIU, Yuan Liu, Jiepeng Wang, Xianqiang Lyu, Peng Wang, Wenping Wang, and Junhui Hou. MoDGS: Dy-namic gaussian splatting from casually-captured monocular videos with depth priors. In The Thirteenth International Conference on Learning Representations , 2025. 6 [23] Yu-Lun Liu, Chen Gao, Andreas Meuleman, Hung-Yu Tseng, Ayush Saraf, Changil Kim, Yung-Yu Chuang, Jo-1175 hannes Kopf, and Jia-Bin Huang. Robust dynamic radiance fields. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition , 2023. 3, 7 [24] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. In 2024 International Con-ference on 3D Vision (3DV) , pages 800–809, 2024. 2, 6 [25] Andreas Meuleman, Ishaan Shah, Alexandre Lanvin, Bern-hard Kerbl, and George Drettakis. On-the-fly reconstruction for large-scale novel view synthesis from unposed images. 
+
+ACM Transactions on Graphics , 44(4), 2025. 2, 3, 5 [26] Xingyu Miao, Yang Bai, Haoran Duan, Fan Wan, Yawen Huang, Yang Long, and Yefeng Zheng. Ctnerf: Cross-time transformer for dynamic neural radiance field from monocu-lar video. Pattern Recogn. , 156(C), Dec. 2024. 7 [27] Ben Mildenhall, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng. Nerf: Representing scenes as neural radiance fields for view syn-thesis. In Computer Vision – ECCV 2020 , pages 405–421. Springer International Publishing, 2020. 1, 2 [28] Keunhong Park, Utkarsh Sinha, Jonathan T. Barron, Sofien Bouaziz, Dan B Goldman, Steven M. Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable neural radiance fields. In 2021 IEEE/CVF International Conference on Computer Vision (ICCV) , pages 5845–5854, 2021. 2 [29] Keunhong Park, Utkarsh Sinha, Peter Hedman, Jonathan T. Barron, Sofien Bouaziz, Dan B Goldman, Ricardo Martin-Brualla, and Steven M. Seitz. Hypernerf: A higher-dimensional representation for topologically varying neural radiance fields. ACM Trans. Graph. , 40(6), dec 2021. 2 [30] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-NeRF: Neural Radiance Fields for Dynamic Scenes. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , 2020. 2[31] Nikhila Ravi, Valentin Gabeur, Yuan-Ting Hu, Ronghang Hu, Chaitanya Ryali, Tengyu Ma, Haitham Khedr, Roman R¨ adle, Chloe Rolland, Laura Gustafson, Eric Mintun, Junt-ing Pan, Kalyan Vasudev Alwala, Nicolas Carion, Chao-Yuan Wu, Ross Girshick, Piotr Doll´ ar, and Christoph Feicht-enhofer. Sam 2: Segment anything in images and videos. 
+
+arXiv preprint arXiv:2408.00714 , 2024. 2, 4 [32] Ruizhi Shao, Zerong Zheng, Hanzhang Tu, Boning Liu, Hongwen Zhang, and Yebin Liu. Tensor4d: Efficient neu-ral 4d decomposition for high-fidelity dynamic reconstruc-tion and rendering. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition , 2023. 2 [33] Jae Shin Yoon, Kihwan Kim, Orazio Gallo, Hyun Soo Park, and Jan Kautz. Novel view synthesis of dynamic scenes with globally coherent depths from a monocular camera. In 
+
+2020 IEEE/CVF Conference on Computer Vision and Pat-tern Recognition (CVPR) , pages 5335–5344, 2020. 6, 7 [34] Liangchen Song, Anpei Chen, Zhong Li, Zhang Chen, Lele Chen, Junsong Yuan, Yi Xu, and Andreas Geiger. Nerf-player: A streamable dynamic scene representation with de-composed neural radiance fields. IEEE Transactions on Visu-alization and Computer Graphics , 29(5):2732–2742, 2023. 2[35] Colton Stearns, Adam W Harley, Mikaela Uy, Florian Du-bost, Federico Tombari, Gordon Wetzstein, and Leonidas Guibas. Dynamic gaussian marbles for novel view synthe-sis of casual monocular videos. In SIGGRAPH Asia 2024 Conference Papers , pages 1–11, 2024. 2, 3, 6, 7 [36] Zachary Teed and Jia Deng. Raft: Recurrent all-pairs field transforms for optical flow. In Andrea Vedaldi, Horst Bischof, Thomas Brox, and Jan-Michael Frahm, editors, 
+
+Computer Vision – ECCV 2020 , pages 402–419, Cham, 2020. Springer International Publishing. 2, 3 [37] Fengrui Tian, Shaoyi Du, and Yueqi Duan. MonoN-eRF: Learning a generalizable dynamic radiance field from monocular videos. In Proceedings of the International Con-ference on Computer Vision (ICCV) , October 2023. 7 [38] Edgar Tretschk, Ayush Tewari, Vladislav Golyanik, Michael Zollh¨ ofer, Christoph Lassner, and Christian Theobalt. Non-rigid neural radiance fields: Reconstruction and novel view synthesis of a dynamic scene from monocular video, 2020. 3 [39] Qianqian Wang, Vickie Ye, Hang Gao, Weijia Zeng, Jake Austin, Zhengqi Li, and Angjoo Kanazawa. Shape of mo-tion: 4d reconstruction from a single video. In International Conference on Computer Vision (ICCV) , 2025. 2, 3, 4, 6 [40] Chung–Yi Weng, Brian Curless, Pratul P. Srinivasan, Jonathan T. Barron, and Ira Kemelmacher-Shlizerman. Hu-mannerf: Free-viewpoint rendering of moving people from monocular video. In 2022 IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 16189– 16199, 2022. 3 [41] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene render-ing. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 20310– 20320, June 2024. 2, 3, 6 [42] Tianhao Wu, Fangcheng Zhong, Andrea Tagliasacchi, For-rester Cole, and Cengiz Oztireli. D2nerf: self-supervised decoupling of dynamic and static objects from a monocular video. In Proceedings of the 36th International Conference on Neural Information Processing Systems , NIPS ’22, Red Hook, NY, USA, 2022. Curran Associates Inc. 3 [43] Zhen Xu, Zhengqin Li, Zhao Dong, Xiaowei Zhou, Richard Newcombe, and Zhaoyang Lv. 4dgt: Learning a 4d gaussian transformer using real-world monocular videos. 2025. 3 [44] Jinbo Yan, Rui Peng, Zhiyan Wang, Luyang Tang, Jiayu Yang, Jie Liang, Jiahao Wu, and Ronggang Wang. Instant gaussian stream: Fast and generalizable streaming of dy-namic scene reconstruction via gaussian splatting, 2025. 3 [45] Lihe Yang, Bingyi Kang, Zilong Huang, Xiaogang Xu, Jiashi Feng, and Hengshuang Zhao. Depth anything: Unleashing the power of large-scale unlabeled data. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , 2024. 3 [46] Zehao Zhu, Zhiwen Fan, Yifan Jiang, and Zhangyang Wang. Fsgs: Real-time few-shot view synthesis using gaussian splatting. In Computer Vision – ECCV 2024: 18th Eu-ropean Conference, Milan, Italy, September 29–October 4, 2024, Proceedings, Part XXXIX , page 145–163, Berlin, Hei-delberg, 2024. Springer-Verlag. 6 1176

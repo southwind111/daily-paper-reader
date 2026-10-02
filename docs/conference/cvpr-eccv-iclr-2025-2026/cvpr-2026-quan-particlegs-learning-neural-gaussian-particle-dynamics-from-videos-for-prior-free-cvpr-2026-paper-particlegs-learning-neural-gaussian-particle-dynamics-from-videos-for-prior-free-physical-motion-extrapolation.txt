@@ -1,0 +1,350 @@
+Title: ParticleGS: Learning Neural Gaussian Particle Dynamics from Videos for Prior-free Physical Motion Extrapolation
+
+URL Source: https://openaccess.thecvf.com/content/CVPR2026/papers/Quan_ParticleGS_Learning_Neural_Gaussian_Particle_Dynamics_from_Videos_for_Prior-free_CVPR_2026_paper.pdf
+
+Published Time: Sat, 16 May 2026 16:47:12 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# ParticleGS: Learning Neural Gaussian Particle Dynamics from Videos for Prior-free Physical Motion Extrapolation 
+
+## Jinsheng Quan 1,∗, Qiaowei Miao 1,∗, Yichao Xu 1, Zizhuo Lin 1, Ying Li 2, Wei Yang 3, Zhihui Li 4, Yawei Luo 1 B
+
+> 1
+
+## Zhejiang University 2North China University of Technology 
+
+> 3
+
+## Huazhong University of Science and Technology 4University of Science and Technology of China Physics-Based Model Time-Conditioned Model 
+
+> Observation time
+
+. . .     
+
+> 𝒕 = 0.6
+> Future time  𝒕  = 1
+> 𝒕 = 0.1
+> 𝒕 = 0
+> Ground Truth ParticleGS (Ours)
+
+Real Motion         
+
+> Future: Physical implausibility predictions
+> DeformGS
+> Future: Predict by following learned physical laws
+> Observation & Future: Real motion is
+> governed by the physical laws
+> Observation: Remember motion Observation: Learn physical laws of motion
+
+Figure 1. Typical reconstruction and our method for extrapolation . ParticleGS can learn latent physical dynamics to extrapolate future Gaussians with physically consistent motion and appearance, while existing time-conditioned methods fail to predict plausible motion. 
+
+## Abstract 
+
+The ability to extrapolate dynamic 3D scenes beyond the observed timeframe is fundamental to advancing physical world understanding and predictive modeling. Existing dynamic 3D reconstruction methods have achieved high-fidelity rendering of temporal interpolation, but typically lack physical consistency in predicting the future. To over-come this issue, we propose ParticleGS, a physics-based framework that reformulates dynamic 3D scenes as phys-ically grounded systems. ParticleGS comprises three key components: 1) an encoder that decomposes the scene into static properties and initial dynamic physical fields; 2) an evolver based on Neural Ordinary Differential Equations (Neural ODEs) that learns continuous-time dynamics for motion extrapolation; and 3) a decoder that reconstructs 3D Gaussians from evolved particle states for rendering. Through this design, ParticleGS integrates physical reason-ing into dynamic 3D representations, enabling accurate and consistent prediction of the future. Experiments show that ParticleGS achieves state-of-the-art performance in extrap-olation while maintaining rendering quality.    
+
+> ∗Equal contribution. BCorresponding author.
+
+## 1. Introduction 
+
+Learning the physical dynamics from multi-view videos and inferring the subsequent motion is crucial for applications like gaming, autonomous driving, and robotics [53, 60]. Recent methods [3, 12, 38, 43, 54, 58, 59] have demon-strated impressive results in reconstructing and rendering vivid dynamic 3D scenes. Nevertheless, these methods typ-ically predict deformation as a function of time. While this formulation suffices for interpolating motion within the ob-served temporal range, it fails to learn the underlying phys-ical laws. This results in unsatisfactory performance when extrapolating to unseen future states, as shown in Fig. 1. To overcome these limitations, incorporating physical laws into dynamic 3D scene modeling has emerged as a promising direction [4, 9, 15, 50]. Existing approaches can be broadly categorized into two types. The first explicitly injects physics priors through simulation frameworks [13, 16, 33, 56], physics-informed neural networks [7, 8, 25, 45], or architectures with built-in physical constraints [25, 61]. While enhancing physical plausibility, such methods often depend on manually specified external forces or restrictive assumptions, limiting their flexibility and generalization. The second line of work inherently relies on geometric pri-This CVPR paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. 8331 ors , such as pre-processed point clouds or meshes, to infer physical information [20, 36, 41, 63]. However, these meth-ods cannot directly capture dynamics from raw observations and typically require multi-stage optimization. More recent works have modeled Gaussian rigid motion using velocity and acceleration fields [26, 27]. Nevertheless, such low-order dynamics are insufficient to accurately capture com-plex deformations, making it still challenging to learn phys-ical dynamics directly from raw observations. In this paper, we propose ParticleGS, a dynamic 3D rep-resentation framework based on 3DGS [22] from the per-spective of physical particle dynamics. Our key insight is to treat each Gaussian as a particle, whose temporal evolu-tion is driven by physical state vector governed by the un-derlying physical laws. To this end, ParticleGS comprises three key components: 1) A Dynamics Latent Space En-coder that maps each Gaussian to an initial latent physical state vector, which is factorized into static properties ( e.g. ,mass, material) and initial time-varying dynamic proper-ties ( e.g. , velocity, acceleration). 2) A Neural ODE-based Dynamics Evolver, the core of our approach, which learns a continuous Markov state transition function in the la-tent space to approximate the underlying physical dynamics (e.g. , Newtonian or Navier–Stokes) governing the particles, rather than merely memorizing temporal deformations. 3) A Gaussian Space Decoder that translates the evolved latent states back into the deformation of each Gaussian for ren-dering. By focusing on learning the underlying dynamics rather than memorizing temporal deformation, ParticleGS achieves extrapolation beyond observations. Our neural dynamics modeling distinguishes ParticleGS from existing approaches. Compared with time-conditioned reconstruction methods [54, 58, 59], ParticleGS learns neu-ral dynamics directly from videos, enabling physically con-sistent extrapolation beyond observed frames. Unlike meth-ods that rely on physical or geometric priors [25, 56], it re-quires no predefined physical laws or structured geometric inputs, achieving prior-free dynamic learning. In contrast to approaches that model specific low-order physical quan-tities, such as velocity fields [26, 27], ParticleGS learns a generalized formulation of higher-order particle dynamics through neural ordinary differential equations. The main contributions are summarized as follows: • From a physical perspective, we reformulate time-conditioned deformation using neural ordinary differen-tial equations, enabling a physics-grounded representa-tion of the driving dynamics. • We propose ParticleGS, an Encoder–Evolver–Decoder framework that represents the scene as a physical particle system with static properties and initial dynamic fields, where a Neural ODE-based evolver learns and extrapo-lates the latent physical laws directly from observations. • Numerical experiments show that our method achieves the best performance in future Gaussian extrapolation on multiple datasets. 
+
+## 2. Related Work 
+
+Time-Conditioned Dynamic 3D Reconstruction. Novel view synthesis for dynamic scenes has been significantly advanced by Neural Radiance Fields (NeRF) [39] and 3D Gaussian Splatting (3DGS) [22]. To model temporal vari-ations, a common strategy is to learn a deformation field that maps a canonical representation to the scene’s state at any given time [42, 43, 59]. For NeRF-based meth-ods, significant research has focused on improving repre-sentation efficiency and quality. This includes decomposing the 4D spacetime into lower-dimensional components like planes [3, 14, 49] and employing compact yet expressive features such as hash encodings [12, 40]. Following a sim-ilar trajectory, dynamic 3DGS methods [1, 18, 21, 23, 32, 35, 37, 52, 55] extend static Gaussian clouds with learned motion, enabling high-fidelity, real-time rendering. 
+
+Injecting Physical Priors into Dynamic 3D. To en-dow 3D representations with predictive power, integrating physical principles is a promising direction. One line of work follows the Physics-Informed Neural Network (PINN) paradigm [45], embedding governing equations like the Navier-Stokes equations directly into the learning objective to constrain motion [7, 17, 19, 25]. While effective, this ap-proach is often confined to systems with well-defined physi-cal laws and may not generalize to complex scenes. Another strategy involves integrating differentiable physics simula-tors [10, 11, 29, 30], which provide strong physical priors. In addition, some methods embed rigid-body constraints, springs, or incorporate Graph Neural Networks [34] to em-bed neighborhood constraints [5, 47, 61, 62]. 
+
+Learning Physical Information from Vision. Inferring physical laws and properties directly from visual observa-tions has attracted increasing interest. One line of work fo-cuses on recovering object-level physical attributes, such as material properties [2, 13, 28, 33], physically plausible ge-ometry [16, 57], and velocity fields for motion extrapola-tion [26, 27]. Another line aims to learn underlying physi-cal equations, including neural constitutive models [36] and neural dynamics equations [4, 15, 31]. However, existing Neural ODE-based methods [20, 36, 41] struggle to learn particle-level dynamics purely from RGB videos. 
+
+Neural Ordinary Differential Equations. Unlike tra-ditional discrete-layer architectures, Neural ODEs [6] inte-grate continuous-time dynamical systems with neural net-works. Specifically, they use a neural network f to learn the derivative of the system’s state. By employing an adap-tive ODE solver to integrate this learned function over time, these models enable the learning of state evolution. This makes them well-suited for modeling physical processes. 8332 Dynamics Latent Space Encoder           
+
+> 𝑃 𝑁×𝐾
+> Linear Neighborhood Gaussian Patch
+> 𝑇 𝐹 0×𝑆 𝐿 𝑁×𝑆
+> Learnable Query Cross-Attention Add & Norm
+> 𝑄 𝐹 𝑖 ×𝐺
+> 𝐾 𝐹 𝑖−1 ×𝐺
+> 𝑉 𝐹 𝑖−1 ×𝐺
+> Self-Attention Add & Norm 𝑉 𝐹 𝑖 ×𝐺
+> 𝐾 𝐹 𝑖 ×𝐺
+> 𝑄 𝐹 𝑖 ×𝐺
+> 𝑇 𝐹 𝑖 ×𝐺 𝑇 𝐹 𝑖 ×𝐺
+> Hierarchical query of system-level initial dynamic fields 𝒈 𝟎
+> × 𝐷 Encode particle-level
+> static features 𝑳
+> Concat
+> 𝑍 0
+> 𝑁×(𝑆+𝐹∙𝐺)
+> 𝑔 0
+> 𝑁×(𝐹∙𝐺)
+> Flatten & Broadcast
+> 𝑍 𝑡
+> 𝑁×(𝑆+𝐹∙𝐺) 𝑔 𝑡
+> 𝐹×𝐺 𝑔 𝑡+𝛿𝑡 𝐹×𝐺
+> 𝐿 𝑁×𝑆
+> 𝑍 𝑡+𝛿𝑡 𝑁×(𝑆+𝐹∙𝐺)
+> Linear Linear
+> Only evolve dynamic fields 𝒈 𝒕
+> Learnable positional encoding
+> 𝑇 𝑁×𝐻 Tensor of shape (N, H) Linear Network layer
+> Element-wise add
+> Broadcast to particle-level
+> physical states 𝒁 𝟎
+> 𝑔 0𝐹×𝐺
+> Gaussian kernels
+
+⋯  
+
+> 𝑡 1
+> 𝑡 2
+> (a) Existing time-conditioned dynamic 3DGS methods (c) Network architecture of Dynamics Latent Space Encoder (d) Network architecture of ODEs Evolver
+> Deformation Model Deformation Model
+> 𝑡
+> Neural ODEs
+> Dynamics Evolver
+> Gaussian kernels Rendering at Future Time
+> ODEs Evolver
+> 𝑍 0
+
+⋯    
+
+> 𝑍 𝑡
+> ODEs
+> Evolver
+> 𝑍 𝑇 ′
+> ODEs
+> Evolver
+> (b) Our physics-based method ParticleGS
+> 𝑥
+> 𝑠ℎ
+> 𝑟 𝑠 𝛼 𝑃 =
+> 𝑥 𝑡
+> 𝑠ℎ 𝑟 𝑡
+> 𝑠 𝑡
+> 𝛼
+> 𝑃 =
+> Dynamics Latent
+> Space Encoder
+> Gaussian Kernel Space Decoder
+> 0𝑡 𝑇′
+> ODE Solver
+
+⋯Figure 2. Overview of ParticleGS . (a) Existing time-conditioned methods learn a deformation model for each independent discrete time. (b) Our physics-based framework, ParticleGS, uses latent physical states to drive 3D Gaussian deformation, enabling motion extrapolation. (c) The Dynamics Latent Space Encoder maps Gaussians to an initial physical state, factorized into static properties and dynamic fields. (d) The Neural ODEs Evolver learns the underlying physical laws by modeling the continuous-time evolution of the dynamic fields. 
+
+## 3. Methodology 
+
+We begin by formulating the dynamic scene representation and positioning our physics-based approach against exist-ing methods in Sec. 3.1. We then detail the architecture of our framework, ParticleGS, in Sec. 3.2 and describe its op-timization strategy in Sec. 3.3. 
+
+3.1. Problem Formulation and Overview 
+
+3D Gaussian Splatting for Static Scenes. 3D Gaussian Splatting [22] aims to learn a set of Gaussian kernels P =
+
+{pi}Ni=1 from a set of images taken from corresponding camera viewpoints. Given a differentiable renderer R and a viewpoint v, an image ˆIv is rendered as: 
+
+R(P, v ) = ˆIv . (1) Here, each Gaussian kernel p is defined by a set of optimiz-able parameters {x, sh, r, s, α }, with x as position, sh as Spherical Harmonics coefficients, r as rotation, s as scaling, and α as opacity. The Gaussian set is typically initialized from an SfM reconstruction [48] or a random point cloud. 
+
+Time-Conditioned Dynamic Scene Representation. 
+
+To model dynamic scenes, existing methods extend the static 3DGS framework. For a set of videos captured from corresponding viewpoints over T discrete time steps, the primary goal is to learn a representation that can render the scene. These methods [54, 58, 59] typically learn a canoni-cal set of 3D Gaussians P and a time-conditioned deforma-tion model D(P, t ) = Pt, which deforms P into the Gaus-sian set Pt at time t, as shown in Fig. 2(a). The image at time t ∈ [0 , T ] and a viewpoint v is rendered by: 
+
+R(D(P, t ), v ) = ˆIvt . (2) However, these methods lack the modeling of underlying physical laws, which limits their ability to extrapolate. To address this, we propose to model the dynamic 3D scene as a system of particles governed by neural physical dynamics. 
+
+Physical Dynamics-Based Representation (Ours). For the same input, we employ the physical state set Zt to drive the Gaussian particles at time t. Under this definition, an image at time t ∈ [0 , T ′] (where T ′ may extend beyond the observed time T ) and a viewpoint v is rendered as: 
+
+R(D(P, Z t), v ) = ˆIvt . (3) Here, D is a decoder that deforms the canonical Gaussians. The state set Zt is evolved from an initial state Z0, which is encoded from the canonical Gaussians P .Comparing Eq. 3 with Eq. 2, our method drives the 3D Gaussians by the physical state rather than merely the times-tamp t. This brings advantages: 1) Spatiotemporal aware-ness: Zt implicitly encodes the entire system history from 
+
+0 to t, while t encodes temporal order only; 2) Physical plausibility: Conditioning on a state Zt is more consistent with physical particle systems; 3) Markov property: The evolution from Zt is Markovian, as Zt contains all neces-sary information to predict the next state. Time-conditioned models lack this, as timestamps t1 and t2 are independent. The framework of ParticleGS is shown in Fig. 2(b). Par-ticleGS consists of three components: 1) a Dynamics Latent Space Encoder that maps Gaussians P to their initial phys-ical states Z0; 2) a Neural ODE-based Dynamics Evolver that models continuous dynamics to evolve Z0 to Zt using a Neural ODE solver; and 3) a Gaussian Kernel Space De-coder that maps the evolved physical states Zt to the defor-mation of canonical Gaussian P to form Pt for rendering. 8333 3.2. ParticleGS 
+
+Dynamics Latent Space Encoder. Unlike existing meth-ods that encode each Gaussian independently, we propose a Dynamics Latent Space Encoder to reduce the evolution complexity of the physical states via shared dynamic fields. For a scene containing N Gaussians, if the state of each Gaussian is represented by a G-dimensional vector, directly evolving all N × G parameters independently is computa-tionally prohibitive for large N . We observe that in physi-cal particle systems such as the Material Point Method [51], each particle retains static properties ( e.g. , mass, material), while its temporal evolution is driven by shared dynamic fields ( e.g. , gravitational fields) across particles. Following this idea, we factorize the state of the Gaus-sians into two components: 1) a set of N particle-level static features L ∈ RN ×S , and 2) a set of F system-level dynamic fields gt ∈ RF ×G that are shared across all Gaussians. The 
+
+physical state set Zt for all Gaussians is defined as: 
+
+Zt = concat[ L, 1N ⊗ gflat  
+
+> t
+
+], Z t ∈ RN ×(S+F ·G). (4) Here, gflat  
+
+> t
+
+∈ R1×(F ·G) is the flattened dynamic fields, 
+
+1N ∈ RN ×1 is a vector of ones, and the Kronecker prod-uct 1N ⊗ gflat  
+
+> t
+
+broadcasts the global field to all N particles. By evolving only F dynamic fields rather than all N par-ticle states, we reduce the computational complexity of the dynamics evolver from O(N G ) to O(F G ), where F ≪ N .To obtain the initial physical state Z0, we design a Dy-namics Latent Space Encoder fencoder as shown in Fig. 2(c). Gaussian features are first transformed into static features L
+
+via linear layers. To handle different numbers of Gaussian particles, neighborhood Gaussian patches are constructed by farthest point sampling and k-nearest neighbors within a Mini-PointNet++ module [44]. Finally, we employ cross-attention blocks with F learnable queries and self-attention to hierarchically aggregate F initial dynamic fields g0.Thus, the initial physical state set for the Gaussians Z0 is encoded by fencoder according to Eq. 4 as: 
+
+fencoder (P ) = Z0. (5) Here P is the canonical Gaussian set, and each p ∈ P is a Gaussian kernel with its parameters {x, sh, r, s, α }.The F dynamic fields can be interpreted as a basis de-composition of the dynamics, where each field captures a distinct motion mode. To further analyze the role of physi-cal states, we visualize them in RGB as shown in Fig. 3. It shows that: 1) Dynamic Coherence: The physical states Zt
+
+are not arbitrary but are strongly correlated with the motion patterns of the scene; 2) Temporal Stability: These stable and smooth physical states reflect a continuous and consis-tent physical evolution learned by the model. 
+
+Neural ODEs Dynamics Evolver. Once the 3D Gaus-sians are encoded into the initial physical states, the core 𝑡 1 𝑡 2 𝑡 3 (Future) Physical states  𝑧 𝑡 Rendering 
+
+> Stationary Lower left  Lower right Upward
+> Figure 3. Rendering and visualization of physical states. Motion-similar Gaussians exhibit comparable features, and their physical states change stably over time.
+
+problem becomes evolving this state in a physically plau-sible manner. Rather than relying on low-order dynamics methods such as a velocity field, we propose a Neural ODEs Dynamics Evolver that models higher-order dynamics. Although the factorized encoding balances efficiency and representational capacity, a key challenge remains: in real motion, physical fields are often governed by high-order differential equations ( e.g. , Newton’s laws). Discrete-step models such as RNNs or MLPs, which model discrete updates, may struggle to capture continuous-time, high-order dynamics without careful design [6]. To model such dynamics, we recall that any n-th order differential equation 
+
+dnxdt n = f
+
+(
+
+x, dx dt , . . . , dn−1xdt n−1 , t 
+
+)
+
+(6) can be equivalently written as a first-order system F by aug-menting the state with its successive derivatives: 
+
+X = (x, dx dt , . . . , dn−1xdt n−1
+
+), dX dt = F (X, t ). (7) This formulation shows that a first-order system defined on an augmented latent space is expressive enough to represent any high-order dynamics. Based on this principle, we use our dynamic fields gt
+
+to represent this augmented state and use a Neural ODE-based network fevolver to model the high-order dynamics as visualized in Fig. 2(d): 
+
+dg t
+
+dt = fevolver (gt, t ). (8) The dynamic fields at any future time t + δt are then ob-tained by integrating fevolver using a numerical ODE solver: 
+
+gt+δt = gt +
+
+∫ t+δt t
+
+fevolver (gτ , τ )dτ 
+
+= ODESolver( fevolver , g t, t, t + δt ).
+
+(9) 8334 Here, we use the common Runge–Kutta (RK4) [24] method as the numerical ODE solver. Instead of memorizing a trajectory, our fevolver learns to model the local high-order derivatives governing the dy-namic fields. As a result, the learned physical laws can be explicitly followed by integrating fevolver , enabling stable and physically consistent extrapolation. 
+
+Gaussian Kernel Space Decoder. Following existing methods [26], we decompose each Gaussian kernel’s mo-tion into translation and rotation by Rodrigues’ rotation for-mula [46]. Specifically, the decoder predicts a translation vector T , a motion rotation vector R, and deformation terms 
+
+{δr, δs }, which are used to update the parameters of Gaus-sian kernels {x, r, s } as: 
+
+xt = Rod( R)x + T, r t = r ◦ δr, s t = s + δs. (10) Here Rod( R) is the rotation matrix generated from R via Rodrigues’ formula [46], and ◦ is the quaternion product. We implement the decoder using a multi-head MLP 
+
+fdecoder , which maps each particle’s physical state zt ∈ Zt
+
+to its corresponding deformation parameters: 
+
+fdecoder (zt) = {T, R, δr, δs }. (11) The final Gaussian parameters pt are obtained by applying these deformations to the original parameters p by Eq. 10. This motion factorization enables the model to learn meaningful physical components of motion. 
+
+3.3. Optimization 
+
+Following [59], we jointly optimize the Gaussian kernels and the ParticleGS network using L1 loss and D-SSIM loss: 
+
+L = L1 + LD-SSIM . (12) 
+
+Progressive Training. Directly optimizing both geom-etry and the Neural ODE-based deformation model from video supervision can lead to unstable training, as the ODE solver may propagate errors in early steps. To mitigate this, we adopt a progressive training schedule that gradually in-troduces complexity: 1) Geometry warm-up: freeze Parti-cleGS and optimize the Gaussian kernels at t = 0 ; 2) Dy-namics warm-up: freeze the Gaussian kernels and gradually expand the temporal window, allowing ParticleGS to learn deformation trends; 3) Joint optimization: optimize both the Gaussian kernels and ParticleGS. 
+
+Dynamic Gaussian Optimization. Following stan-dard 3DGS [22] and the existing dynamic 3DGS meth-ods [27, 54, 59], we periodically apply densification and pruning, meaning the total Gaussian count N changes dur-ing training. For static feature L, the Encoder and De-coder MLPs treat the N particles as a batch, operating on each independently as in existing methods. For initial dy-namic fields g0, we use a Mini-PointNet++ module to form a fixed number of neighborhood patches and use the Cross-Attention module to aggregate F dynamic fields, thus it maps a variable-sized input N to a fixed-size output F .
+
+Neighborhood Regularization. To ensure the encoder is robust to different local particle structures resulting from densification, we propose an online neighborhood regular-ization. Instead of computing the neighborhood graph using Mini-PointNet++ only once, we periodically regenerate the neighborhood patches during training. This acts as a data augmentation, enhancing the robustness of the encoder for extracting the initial dynamic fields g0.See Appendix for more implementation details. 
+
+## 4. Experiments 
+
+4.1. Experimental Setup 
+
+Datasets. This work’s primary focus is temporal motion extrapolation , rather than only spatial novel view synthe-sis of observed frames. To this end, we follow the experi-mental setup of the most closely related works, NVFi [25] and FreeGave [27], and conduct our primary evaluations on the Dynamic Object Dataset and Dynamic Indoor Scene Dataset, which are specifically designed for extrapolation tasks [25]. Furthermore, we evaluate on Dynamic Multi-part [26] and the challenging real-world dataset FreeGave-GoPro [27]. A brief description of the datasets is as fol-lows: 1) Dynamic Object Dataset : Contains 6 objects ex-hibiting a wide range of motions, including complex non-linear motions of deformable animals such as flying and swimming; 2) Dynamic Indoor Scene Dataset : Consists of 4 scenes with multiple objects undergoing compositional motions; 3) Dynamic Multipart : Includes four objects with distinct multi-part motions. 4) FreeGave-GoPro : Covers 6 human interactions with objects in the real world. Fol-lowing [25, 27], all datasets are divided into subsets for re-construction and extrapolation tasks by training on the first 75% of video frames and test on the remaining 25%. 
+
+Baselines. The key distinction of ParticleGS lies in its physics-based modeling and its ability to learn high-order dynamics by Neural ODEs. To evaluate the distinc-tions of ParticleGS over baselines, we select three cate-gories of baselines: 1) Representative methods based on time-deformation modeling: HexPlane [3], TiNeuVox [12], DeformGS [59], and Grid4D [58] are representative re-construction methods; 2) Methods that embed physical information for motion extrapolation: NVFi [25] is a PINN-based method that embeds the Navier-Stokes equa-tions, GaussianPrediction [61] is a GCN-based method that embeds time-invariant rigid neighborhood relations; 3) State-of-the-art velocity field-based method for extrapola-tion: FreeGave [27] and TRACE [26] learn motion via divergence-free velocity fields. All methods are run on a single RTX 4090 with 24GB GPU memory, except for an ablation study run on an A6000 with 48GB. 8335 Table 1. Quantitative results on the Dynamic Objects and Dynamic Indoor Scene dataset, rendered at the source resolution. Bold and underline indicate the best and second best performance.                                                                                                                            
+
+> Method Dynamic Object Dataset (Synthetic) Dynamic Indoor Scene Dataset (Synthetic) Reconstruction Extrapolation Reconstruction Extrapolation PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> HexPlane [3] 21.585 0.910 0.125 22.418 0.934 0.078 17.978 0.482 0.626 23.192 0.671 0.474 TiNeuVox [12] 20.278 0.927 0.104 19.513 0.935 0.080 23.706 0.681 0.373 21.111 0.714 0.333 DeformGS [59] 37.376 0.964 0.034 26.163 0.946 0.038 20.020 0.595 0.445 21.982 0.769 0.233 Grid4D [58] 37.583 0.961 0.034 27.674 0.949 0.080 20.548 0.590 0.442 20.633 0.736 0.284 NVFi [25] 29.390 0.969 0.047 26.821 0.968 0.047 17.117 0.494 0.669 23.716 0.672 0.502 GSPrediction [61] 36.408 0.978 0.033 23.154 0.932 0.081 16.154 0.585 0.600 20.017 0.689 0.343 TRACE [26] 38.006 0.991 0.011 33.356 0.983 0.013 22.846 0.642 0.377 29.476 0.849 0.205 FreeGave [27] 38.637 0.992 0.011 33.632 0.983 0.012 19.681 0.589 0.453 28.983 0.854 0.212
+> ParticleGS 39.782 0.992 0.009 36.471 0.984 0.012 25.504 0.748 0.291 31.103 0.892 0.133
+
+Table 2. Quantitative results on the Dynamic Multipart dataset and FreeGave-GoPro dataset, rendered at the source resolution. Bold and underline indicate the best and second best performance.                                                                
+
+> Method Dynamic Multipart Dataset (Synthetic) FreeGave-GoPro Dataset (Real World) Reconstruction Extrapolation Reconstruction Extrapolation PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> DeformGS [59] 38.430 0.988 0.019 27.989 0.942 0.045 20.106 0.832 0.212 21.665 0.858 0.195 TRACE [26] 36.269 0.990 0.021 33.458 0.984 0.015 20.103 0.838 0.205 25.915 0.892 0.163 FreeGave [27] 36.142 0.990 0.020 33.526 0.981 0.019 19.953 0.838 0.206 26.510 0.896 0.160
+> ParticleGS 38.608 0.990 0.019 36.136 0.985 0.014 20.116 0.839 0.205 26.789 0.903 0.150
+
+Table 3. Quantitative results of FPS ↑. Bold and underline indicate the best and second best performance.         
+
+> Method Dynamic Object Dataset Dynamic Indoor Scene Dataset TRACE [26] 51.041 39.590
+> FreeGave [27] 32.303 32.129
+> ParticleGS 44.293 37.109
+
+Metrics. We follow existing dynamic 3D extrapolation works [25–27] and use the standard PSNR , SSIM , LPIPS ,and FPS metrics to evaluate the dynamic 3D reconstruction and future frame extrapolation tasks. 
+
+4.2. Comparisons with Prior Work 
+
+We first compare all the methods on the Dynamic Object Dataset and the Dynamic Indoor Scene Dataset. Then, we compare 3 representative methods on the Dynamic Multi-part and the challenging GoPro Dataset. 
+
+Quantitative results of performance & Analysis. Ta-bles 1 and 2 show that our method achieves the best perfor-mance in both reconstruction and extrapolation tasks. On the extrapolation task, our method exhibits signifi-cant advantages: 1) Compared to existing time-conditioned methods and approaches that inject physical priors, our method achieves a substantial PSNR improvement of over 5 dB across all datasets. This result suggests that our model successfully learns the underlying physical laws from ob-servational data and follows them during extrapolation. 2) Furthermore, ParticleGS outperforms velocity field-based extrapolation methods, such as TRACE and FreeGave, by an average PSNR margin of nearly 2.5 dB on synthetic datasets. This performance advantage extends to the chal-lenging real-world FreeGave-GoPro Dataset. This indicates that our method can capture complex high-order dynamics more accurately than such low-order velocity field-based methods, leading to superior predictive accuracy. For the reconstruction task, our method also achieves the best performance across all datasets. This demonstrates that our modeling framework is superior to or comparable to ex-isting reconstruction methods. 
+
+Quantitative results of speed & Analysis. Tab. 3 shows that our method achieves a rendering speed comparable to velocity field–based approaches. Although we incorporate Neural ODEs, our physical state formulation requires only a single forward evaluation of the F dynamic fields, rather than computing the velocity of all N Gaussians. This vali-dates the efficiency of our physical state design. 
+
+Qualitative comparisons of visualization results. As shown in Fig. 4 and Fig. 5, our method demonstrates superior visual fidelity and physical consistency compared to existing approaches: 1) For the representative time-conditioned methods TiNeuVox and DeformGS, the pre-dicted results highlighted by red boxes exhibit clear spatial misalignments, whereas our method accurately aligns with the ground-truth locations. This demonstrates that our ap-8336 Bat Factory 
+
+FreeGave TiNeuVox DeformGS TRACE ParticleGS (Ours) Ground Truth Figure 4. Qualitative results of extrapolation at a novel view and a future time on the Dynamic Object Dataset (Bat) and the Dynamic Indoor Scene Dataset (Factory). Red boxes indicate ground truth locations, and blue boxes highlight details. FreeGave 
+
+> Folding Chair Box
+
+DeformGS TRACE ParticleGS (Ours) Ground Truth 
+
+Figure 5. Qualitative results of extrapolation at a novel view and a future time on the Dynamic Multipart Dataset (Folding Chair) and the FreeGave-GoPro Dataset (Box). Red boxes indicate ground truth locations, and blue boxes highlight details. 8337 Table 4. Results of extrapolation ablation studies. The method marked * indicates it is run on an A6000 with 48GB.                                                                                                               
+
+> Dynamic Object Dataset Dynamic Indoor Scene Dataset Method Encoder Evolver Decoder Optimize FPSNR ↑SSIM ↑LPIPS ↓PSNR ↑SSIM ↑LPIPS ↓
+> (1) * w/o FE full full full 36.391 0.982 0.012 ---(2.1) full full full full 135.206 0.982 0.012 28.026 0.883 0.174 (2.2) full full full full 436.236 0.983 0.012 30.977 0.890 0.135 (2.3) full full full full 16 36.552 0.984 0.012 31.065 0.892 0.133
+> (3) full w/o ODEs full full 834.551 0.981 0.015 27.455 0.861 0.179 (4) full full w/o PD full 835.343 0.982 0.014 28.653 0.879 0.198 (5) full full full w/o PT 835.438 0.979 0.015 29.168 0.883 0.218 (6) full full full w/o NR 835.986 0.981 0.015 30.232 0.890 0.161
+> ParticleGS full full full full 836.471 0.984 0.012 31.103 0.892 0.133
+
+proach can extrapolate more physically consistent Gaussian deformations. 2) In the Factory and Folding Chair datasets, velocity field-based TRACE and FreeGave yield blurrier re-sults than ParticleGS, and in the Box real-world dataset, their motion predictions appear noticeably misaligned. In contrast, ParticleGS delivers clearer and more physically plausible results, validating the effectiveness of our high-order dynamic modeling enabled by Neural ODEs. 
+
+4.3. Ablation Studies and Analysis 
+
+To investigate the impact of different components of our framework, we conducted the following ablation studies. 
+
+(1) Effect of Factorized Encoding (FE) in Eq. 4. In-stead of decomposing the latent state into static properties 
+
+l and dynamic fields gt, we encode each Gaussian with a feature of the same dimensionality. This tests whether the encoding strategy is essential for balancing representational capacity and computational efficiency. 
+
+(2) Number of Dynamic Fields F in Eq. 4. We vary 
+
+F ∈ { 1, 4, 8, 16 } and use F = 8 in the comparative experi-ment. This ablation validates our claim that F fields suffice to capture diverse yet structured dynamics. 
+
+(3) Neural ODEs Dynamics Evolver. We replace Neu-ral ODEs with MLPs with the same number of parameters. This aims to validate the benefits of dynamics modeling in learning physical dynamics. 
+
+(4) Effect of Physical Decoding (PD) in Eq. 10. We remove Rodrigues’ rotation formula [46] to update the mo-tion. This tests whether physically meaningful transforma-tions help maintain physically plausible motion. 
+
+(5) Removing Progressive Training (PT). We disable the deformation warm-up to align with existing methods. This evaluates the importance of progressive training in dis-entangling geometry and dynamics. 
+
+(6) Removing Neighborhood Regularization (NR). 
+
+We compute the neighborhood graph once and cache it throughout training. This tests whether online updating neighborhood partitions enhances model robustness. 
+
+Results & Analysis: Tab. 4 shows that: (1) Removing the factorized encoding significantly increases GPU mem-ory consumption even on object-level 3D scenes, while bringing no performance improvement. Since motion ex-hibits correlation, assigning an independent dynamic state to each particle not only greatly increases computational complexity but also slightly degrades performance. This demonstrates that our factorized encoding is crucial for striking a balance between computational efficiency and representational capacity. (2) Using too few dynamic fea-ture fields ( F = 1 ) leads to a noticeable performance drop, while increasing F beyond a moderate number ( F = 16 )yields limited gains. This suggests that a sufficient yet com-pact set of dynamic feature fields is sufficient to capture the regular motion patterns. (3) Replacing Neural ODE-based Dynamics Evolver with MLPs causes the largest per-formance degradation. Since the dynamics typically follow high-order, continuous differential equations, Neural ODEs are inherently more suitable for modeling such dynamics. This confirms the necessity of introducing Neural ODEs into our framework. (4) Removing the physically meaning-ful decoding formulation noticeably reduces extrapolation accuracy, indicating that the physically consistent decoding process helps the model learn realistic dynamic behaviors. 
+
+(5–6) Excluding either the progressive training or the neigh-borhood regularization leads to lower performance, verify-ing that these strategies improve the robustness of the pro-posed ParticleGS model. 
+
+## 5. Conclusion 
+
+We introduce ParticleGS, a dynamic 3DGS method that learns neural dynamics directly from video observations. By modeling physical states and learning state transition laws, ParticleGS ensures stable extrapolation. Experimen-tal results demonstrate that ParticleGS outperforms existing baselines across multiple benchmarks. 
+
+Limitations. Similar to other methods, ParticleGS cur-rently cannot predict motions that deviate from the physi-cal dynamics observed during training (e.g., sudden object breakage), as it has not learned to model such behaviors. 8338 Acknowledgements 
+
+This work was supported by National Natural Science Foundation of China (62293554, U2336212), National Sci-ence and Technology Major Project (2023ZD0121300), “Pioneer” and “Leading Goose” R&D Program of Zhe-jiang (2025C02022), Zhejiang Provincial Natural Science Foundation of China (LZ24F020002), Zhejiang Provin-cial Natural Science Foundation of China under Grant No. LDT23F02023F02, Ningbo Innovation “Yongjiang 2035” Key Research and Development Programme (2024Z292), and Young Elite Scientists Sponsorship Program by CAST(2023QNRC001). The authors gratefully acknowl-edges the support of Zhejiang University Education Foun-dation Qizhen Scholar Foundation. 
+
+## References 
+
+[1] Jeongmin Bae, Seoha Kim, Youngsik Yun, Hahyun Lee, Gun Bang, and Youngjung Uh. Per-gaussian embedding-based deformation for deformable 3d gaussian splatting. In 
+
+European Conference on Computer Vision , pages 321–335. Springer, 2024. 2 [2] Junhao Cai, Yuji Yang, Weihao Yuan, Yisheng He, Zilong Dong, Liefeng Bo, Hui Cheng, and Qifeng Chen. Gic: Gaussian-informed continuum for physical property identi-fication and simulation. In Advances in Neural Information Processing Systems , pages 75035–75063, 2024. 2 [3] Ang Cao and Justin Johnson. Hexplane: A fast representa-tion for dynamic scenes. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,pages 130–141, 2023. 1, 2, 5, 6 [4] Junyi Cao, Shanyan Guan, Yanhao Ge, Wei Li, Xiaokang Yang, and Chao Ma. Neuma: Neural material adaptor for visual grounding of intrinsic dynamics. Advances in Neural Information Processing Systems , 37:65643–65669, 2024. 1, 2[5] Yadi Cao, Menglei Chai, Minchen Li, and Chenfanfu Jiang. Efficient learning of mesh-based physical simulation with bi-stride multi-scale graph neural network. In International conference on machine learning , pages 3541–3558. PMLR, 2023. 2 [6] Ricky TQ Chen, Yulia Rubanova, Jesse Bettencourt, and David K Duvenaud. Neural ordinary differential equations. 
+
+Advances in Neural Information Processing Systems , 31, 2018. 2, 4 [7] Mengyu Chu, Lingjie Liu, Quan Zheng, Erik Franz, Hans-Peter Seidel, Christian Theobalt, and Rhaleb Zayer. Physics informed neural fields for smoke reconstruction with sparse data. ACM Transactions on Graphics , 41(4):1–14, 2022. 1, 2[8] Salvatore Cuomo, Vincenzo Schiano Di Cola, Fabio Gi-ampaolo, Gianluigi Rozza, Maziar Raissi, and Francesco Piccialli. Scientific machine learning through physics– informed neural networks: Where we are and what’s next. 
+
+Journal of Scientific Computing , 92(3):88, 2022. 1 [9] Gilles Daviet, Tianchang Shen, Nicholas Sharp, and David IW Levin. Neurally integrated finite elements for dif-ferentiable elasticity on evolving domains. ACM Transac-tions on Graphics , 2024. 1 [10] Filipe de Avila Belbute-Peres, Kevin Smith, Kelsey Allen, Josh Tenenbaum, and J Zico Kolter. End-to-end differen-tiable physics for learning and control. Advances in Neural Information Processing Systems , 31, 2018. 2 [11] Tao Du, Kui Wu, Pingchuan Ma, Sebastien Wah, Andrew Spielberg, Daniela Rus, and Wojciech Matusik. Diffpd: Differentiable projective dynamics. ACM Transactions on Graphics , 41(2):1–21, 2021. 2 [12] Jiemin Fang, Taoran Yi, Xinggang Wang, Lingxi Xie, Xi-aopeng Zhang, Wenyu Liu, Matthias Nießner, and Qi Tian. Fast dynamic radiance fields with time-aware neural vox-els. In SIGGRAPH Asia 2022 Conference Papers , pages 1–9, 2022. 1, 2, 5, 6 [13] Yutao Feng, Yintong Shang, Xuan Li, Tianjia Shao, Chen-fanfu Jiang, and Yin Yang. Pie-nerf: Physics-based in-teractive elastodynamics with nerf. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4450–4461, 2024. 1, 2 [14] Sara Fridovich-Keil, Giacomo Meanti, Frederik Rahbæk Warburg, Benjamin Recht, and Angjoo Kanazawa. K-planes: Explicit radiance fields in space, time, and appearance. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition , pages 12479–12488, 2023. 2 [15] Shanyan Guan, Huayu Deng, Yunbo Wang, and Xiaokang Yang. Neurofluid: Fluid dynamics grounding with particle-driven neural radiance fields. In International Conference on Machine Learning , pages 7919–7929, 2022. 1, 2 [16] Minghao Guo, Bohan Wang, Pingchuan Ma, Tianyuan Zhang, Crystal Owens, Chuang Gan, Josh Tenenbaum, Kaiming He, and Wojciech Matusik. Physically compatible 3d object modeling from a single image. Advances in Neural Information Processing Systems , 37:119260–119282, 2024. 1, 2 [17] Zhongkai Hao, Chengyang Ying, Hang Su, Jun Zhu, Jian Song, and Ze Cheng. Bi-level physics-informed neural net-works for pde constrained optimization using broyden’s hy-pergradients. In International Conference on Learning Rep-resentations , 2023. 2 [18] Yi-Hua Huang, Yang-Tian Sun, Ziyi Yang, Xiaoyang Lyu, Yan-Pei Cao, and Xiaojuan Qi. Sc-gs: Sparse-controlled gaussian splatting for editable dynamic scenes. In Proceed-ings of the IEEE/CVF Conference on computer Vision and Pattern Recognition , pages 4220–4230, 2024. 2 [19] Woobin Im, Geonho Cha, Sebin Lee, Jumin Lee, Juhyeong Seon, Dongyoon Wee, and Sung-Eui Yoon. Regularizing dynamic radiance fields with kinematic fields. In European Conference on Computer Vision , pages 312–328. Springer, 2024. 2 [20] Boyan Jiang, Yinda Zhang, Xingkui Wei, Xiangyang Xue, and Yanwei Fu. Learning compositional representation for 4d captures with neural ode. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 5340–5350, 2021. 2 8339 [21] Kai Katsumata, Duc Minh Vo, and Hideki Nakayama. Acompact dynamic 3d gaussian representation for real-time dynamic view synthesis. In European Conference on Com-puter Vision , pages 394–412. Springer, 2024. 2 [22] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨ uhler, and George Drettakis. 3d gaussian splatting for real-time ra-diance field rendering. ACM TRANSACTIONS ON GRAPH-ICS , 42(4):139–1, 2023. 2, 3, 5 [23] Agelos Kratimenos, Jiahui Lei, and Kostas Daniilidis. Dynmf: Neural motion factorization for real-time dynamic view synthesis with 3d gaussian splatting. In European Con-ference on Computer Vision , pages 252–269. Springer, 2024. 2[24] Wilhelm Kutta. Beitrag zur n¨ aherungsweisen Integration to-taler Differentialgleichungen . Teubner, 1901. 5 [25] Jinxi Li, Ziyang Song, and Bo Yang. Nvfi: Neural ve-locity fields for 3d physics learning from dynamic videos. 
+
+Advances in Neural Information Processing Systems , 36: 34723–34751, 2023. 1, 2, 5, 6 [26] Jinxi Li, Ziyang Song, and Bo Yang. Trace: Learn-ing 3d gaussian physical dynamics from multi-view videos. 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision , 2025. 2, 5, 6 [27] Jinxi Li, Ziyang Song, Siyuan Zhou, and Bo Yang. Free-gave: 3d physics learning from dynamic videos by gaussian velocity. In Proceedings of the Computer Vision and Pattern Recognition Conference , pages 12433–12443, 2025. 2, 5, 6 [28] Xuan Li, Yi-Ling Qiao, Peter Yichen Chen, Krishna Murthy Jatavallabhula, Ming Lin, Chenfanfu Jiang, and Chuang Gan. Pac-nerf: Physics augmented continuum neural ra-diance fields for geometry-agnostic system identification. In International Conference on Learning Representations ,2023. 2 [29] Yifei Li, Hsiao-yu Chen, Egor Larionov, Nikolaos Sarafi-anos, Wojciech Matusik, and Tuur Stuyck. Diffavatar: Simulation-ready garment optimization with differentiable simulation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4368– 4378, 2024. 2 [30] Junbang Liang and Ming C Lin. Differentiable physics simu-lation. In ICLR 2020 Workshop on Integration of Deep Neu-ral Models and Differential Equations , 2020. 2 [31] Jiajing Lin, Shu Jiang, Qingyuan Zeng, Zhenzhong Wang, and Min Jiang. Visionlaw: Inferring interpretable intrinsic dynamics from visual observations via bilevel optimization. 
+
+ArXiv:2508.13792 , 2025. 2 [32] Youtian Lin, Zuozhuo Dai, Siyu Zhu, and Yao Yao. Gaussian-flow: 4d reconstruction with dynamic 3d gaus-sian particle. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 21136– 21145, 2024. 2 [33] Yuchen Lin, Chenguo Lin, Jianjin Xu, and Yadong MU. OmniphysGS: 3d constitutive gaussians for general physics-based dynamics generation. In International Conference on Learning Representations , 2025. 1, 2 [34] Shaowei Liu, Zhongzheng Ren, Saurabh Gupta, and Shen-long Wang. Physgen: Rigid-body physics-grounded image-to-video generation. In European Conference on Computer Vision , pages 360–378. Springer, 2024. 2 [35] Jonathon Luiten, Georgios Kopanas, Bastian Leibe, and Deva Ramanan. Dynamic 3d gaussians: Tracking by per-sistent dynamic view synthesis. In International Conference on 3D Vision , pages 800–809. IEEE, 2024. 2 [36] Pingchuan Ma, Peter Yichen Chen, Bolei Deng, Joshua B Tenenbaum, Tao Du, Chuang Gan, and Wojciech Matusik. Learning neural constitutive laws from motion observations for generalizable pde dynamics. In International Conference on Machine Learning , pages 23279–23300. PMLR, 2023. 2 [37] Shaojie Ma, Yawei Luo, and Yi Yang. Reconstructing and simulating dynamic 3d objects with mesh-adsorbed gaussian splatting. ArXiv:2406.01593 , 2024. 2 [38] Qiaowei Miao, Kehan Li, Jinsheng Quan, Zhiyuan Min, Shaojie Ma, Yichao Xu, Yi Yang, and Yawei Luo. Advances in 4d generation: A survey. ArXiv:2503.14501 , 2025. 1 [39] Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik, Jonathan T Barron, Ravi Ramamoorthi, and Ren Ng. Nerf: Representing scenes as neural radiance fields for view syn-thesis. Communications of the ACM , 65(1):99–106, 2021. 2[40] Thomas M¨ uller, Alex Evans, Christoph Schied, and Alexan-der Keller. Instant neural graphics primitives with a mul-tiresolution hash encoding. ACM transactions on graphics ,41(4):1–15, 2022. 2 [41] Michael Niemeyer, Lars Mescheder, Michael Oechsle, and Andreas Geiger. Occupancy flow: 4d reconstruction by learning particle dynamics. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 5379– 5389, 2019. 2 [42] Keunhong Park, Utkarsh Sinha, Jonathan T Barron, Sofien Bouaziz, Dan B Goldman, Steven M Seitz, and Ricardo Martin-Brualla. Nerfies: Deformable neural radiance fields. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 5865–5874, 2021. 2 [43] Albert Pumarola, Enric Corona, Gerard Pons-Moll, and Francesc Moreno-Noguer. D-nerf: Neural radiance fields for dynamic scenes. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 10318–10327, 2021. 1, 2 [44] Charles Ruizhongtai Qi, Li Yi, Hao Su, and Leonidas J Guibas. Pointnet++: Deep hierarchical feature learning on point sets in a metric space. Advances in Neural Information Processing Systems , 30, 2017. 4 [45] Maziar Raissi, Paris Perdikaris, and George E Karniadakis. Physics-informed neural networks: A deep learning frame-work for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computa-tional physics , 378:686–707, 2019. 1, 2 [46] Olinde Rodrigues. Des lois g´ eom´ etriques qui r´ egissent les d´ eplacements d’un syst` eme solide dans l’espace, et de la variation des coordonn´ ees provenant de ces d´ eplacements consid´ er´ es ind´ ependants des causes qui peuvent les produire. 
+
+Journal de Math´ ematiques Pures et Appliqu´ ees , 1840. 5, 8 [47] Alvaro Sanchez-Gonzalez, Jonathan Godwin, Tobias Pfaff, Rex Ying, Jure Leskovec, and Peter Battaglia. Learning to 8340 simulate complex physics with graph networks. In Interna-tional conference on machine learning , pages 8459–8468. PMLR, 2020. 2 [48] Johannes L Schonberger and Jan-Michael Frahm. Structure-from-motion revisited. In Proceedings of the IEEE con-ference on computer vision and pattern recognition , pages 4104–4113, 2016. 3 [49] Ruizhi Shao, Zerong Zheng, Hanzhang Tu, Boning Liu, Hongwen Zhang, and Yebin Liu. Tensor4d: Efficient neural 4d decomposition for high-fidelity dynamic reconstruction and rendering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 16632– 16642, 2023. 2 [50] Ramansh Sharma and Varun Shankar. Accelerated training of physics-informed neural networks (pinns) using meshless discretizations. Advances in Neural Information Processing Systems , 35:1034–1046, 2022. 1 [51] Alexey Stomakhin, Craig Schroeder, Lawrence Chai, Joseph Teran, and Andrew Selle. A material point method for snow simulation. ACM Transactions on Graphics , 32(4):1–10, 2013. 4 [52] Jiakai Sun, Han Jiao, Guangyuan Li, Zhanjie Zhang, Lei Zhao, and Wei Xing. 3dgstream: On-the-fly training of 3d gaussians for efficient streaming of photo-realistic free-viewpoint videos. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 20675–20685, 2024. 2 [53] Yuqi Wang, Jiawei He, Lue Fan, Hongxin Li, Yuntao Chen, and Zhaoxiang Zhang. Driving into the future: Multiview visual forecasting and planning with world model for au-tonomous driving. In Proceedings of the IEEE/CVF Con-ference on Computer Vision and Pattern Recognition , pages 14749–14759, 2024. 1 [54] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu, Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 20310–20320, 2024. 1, 2, 3, 5 [55] Jiahao Wu, Rui Peng, Zhiyan Wang, Lu Xiao, Luyang Tang, Jinbo Yan, Kaiqiang Xiong, and Ronggang Wang. Swift4d: Adaptive divide-and-conquer gaussian splatting for compact and efficient reconstruction of dynamic scene. In Interna-tional Conference on Learning Representations , 2025. 2 [56] Tianyi Xie, Zeshun Zong, Yuxing Qiu, Xuan Li, Yutao Feng, Yin Yang, and Chenfanfu Jiang. Physgaussian: Physics-integrated 3d gaussians for generative dynamics. In Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 4389–4398, 2024. 1, 2 [57] Xiaoyu Xiong, Changyu Hu, Chunru Lin, Pingchuan Ma, Chuang Gan, and Tao Du. Topogaussian: Inferring internal topology structures from visual clues. International Confer-ence on Learning Representations , 2025. 2 [58] Jiawei Xu, Zexin Fan, Jian Yang, and Jin Xie. Grid4d: 4d decomposed hash encoding for high-fidelity dynamic gaus-sian splatting. Advances in Neural Information Processing Systems , 37:123787–123811, 2024. 1, 2, 3, 5, 6 [59] Ziyi Yang, Xinyu Gao, Wen Zhou, Shaohui Jiao, Yuqing Zhang, and Xiaogang Jin. Deformable 3d gaussians for high-fidelity monocular dynamic scene reconstruction. In Pro-ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 20331–20341, 2024. 1, 2, 3, 5, 6 [60] Hang Yin, Anastasia Varava, and Danica Kragic. Modeling, learning, perception, and control methods for deformable ob-ject manipulation. Science Robotics , 6(54):eabd8803, 2021. 1[61] Boming Zhao, Yuan Li, Ziyu Sun, Lin Zeng, Yujun Shen, Rui Ma, Yinda Zhang, Hujun Bao, and Zhaopeng Cui. Gaus-sianprediction: Dynamic 3d gaussian prediction for motion extrapolation and free view synthesis. In ACM SIGGRAPH 2024 Conference Papers , pages 1–12, 2024. 1, 2, 5, 6 [62] Licheng Zhong, Hong-Xing Yu, Jiajun Wu, and Yunzhu Li. Reconstruction and simulation of elastic objects with spring-mass 3d gaussians. In European Conference on Computer Vision , pages 407–423. Springer, 2024. 2 [63] Yaofeng Desmond Zhong, Biswadip Dey, and Amit Chakraborty. Symplectic ode-net: Learning hamiltonian dy-namics with control. In International Conference on Learn-ing Representations , 2020. 2 8341
