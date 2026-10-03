@@ -1,0 +1,2532 @@
+SphMind: Towards Robust, Training-Free VLM-based
+Spatial Reasoning with a 360 Camera
+Shriram Damodaran
+EmPACT LAb @ NTU Singapore
+shriram003@e.ntu.edu.sg
+Soumyaratna Debnath
+EmPACT LAb @ NTU Singapore
+soumyara004@e.ntu.edu.sg
+Cheston Tan
+IHPC, A*STAR, Singapore
+cheston_tan@a-star.edu.sg
+Addison Lin Wang ∗
+EmPACT LAb @ NTU Singapore
+linwang@ntu.edu.sg
+(b)
+What is to the right of the chair in the 
+center of the room?
+Current VLMs
+Spherical 
+Harmonic
+Encoding
+Respects Rotational  
+Equivariance; Non-
+Euclidean Distortions 
+and Cross-Seam 
+Discontinuity
+There is 
+another chair
+SphMind (Ours) for 360 Spatial Reasoning
+(a)
+Perceive 360 Image as a 2D 
+pinhole Image
+There is a table 
+There is a light bulb
+Figure 1: (a) Given ‘in-the-wild’ real-world 360 capture, existing VLMs fail at spherical reasoning,
+leading to incorrect spatial predictions. Our SphMind can enable VLMs to generalize to non-
+Euclidean 3D spaces without retraining. (b) Accuracy comparison of VLMs vs. SphMind across four
+categories; bars show per-category gains, shaded line shows min–max range across models.
+Project Page: https://empactlab.github.io/SphMind-NeurIPS-2026/.
+Abstract
+Omnidirectional or 360 cameras provide embodied AI agents, with a holistic,
+wide field-of-view (FoV) sensing of 3D structures of their surroundings. This
+advantage has sparked significant interest in leveraging emerging Multi-modal
+Large Language Models (MLLMs) for omnidirectional spatial reasoning. However,
+as MLLMs are predominantly trained on 2D perspective images, they struggle
+with the severe distortions and wrap-around discontinuity inherent to spherical
+geometry. Consequently, enabling MLLMs to generalize to non-Euclidean 3D
+spaces without retraining remains a significant open challenge. In this paper, we
+propose SPHMIND, a novel, training-free, and plug-and-play framework that
+explicitly bridges this gap. Our key idea is to decouple semantic perception from
+geometric reasoning: rather than forcing MLLMs to internalize complex spherical
+laws, we preserve their strong semantic priors and handle the geometry externally.
+To achieve this, we introduce a Spherical Harmonics-based Spatial Graph (SHSG)
+to map spatial relationships using equivariant transformations. We then couple this
+with Inference-Time Geometric Grounding (IGG), a model-agnostic, closed-loop
+optimization process that aligns the MLLM’s internal representations with these
+∗Corresponding Author
+Preprint.
+arXiv:2609.33462v2  [cs.CV]  29 Sep 2026
+
+
+spherical constraints during inference. Extensive experiments across three bench-
+mark datasets demonstrate the effectiveness of SPHMIND. Without requiring any
+additional training, our framework achieves over 21.4% average gain in directional
+reasoning on MP3D and Stanford2D-3D, outperforms all prompt-engineering
+strategies by +8.7% on real-world ODI-Bench, and achieves ×5.9 full rotational
+invariance over baselines under panorama rotation all without any dataset-specific
+tuning. We further validate on an in-the-wild capture, where SPHMIND correctly
+resolves directional queries that baseline VLMs fail.
+1
+Introduction
+Omnidirectional images (ODIs)2 have gained attention due to their holistic 180 × 360 field-of-
+view (FOV) [29, 46]. ODIs provide global spatial awareness beyond the restricted front-facing
+view of conventional inputs [39] important for embodied robotic systems operating in complex 3D
+environments [15, 18]. While 360 cameras provide the context required for 3D scene understanding,
+interpreting ODIs remains highly challenging. Despite advances in Multi-modal Large Language
+Models (MLLMs) on perspective 2D images [31, 8, 6, 17], these models suffer severe degradation on
+ODIs. The core issue is a spatial-semantic gap [43, 48]: MLLMs are essentially “flat” world models
+trained on rectilinear images in R2. Their architectures rely on 2D Euclidean mechanisms such as
+translation-invariant convolutions and grid-based attention [42, 13, 24]. In contrast, ERP projection
+introduces non linear distortions and spherical periodicity creates cross-seam boundaries. [42, 13, 24].
+Thus, omnidirectional reasoning requires overcoming two coupled challenges: 1) modeling con-
+tinuous non-Euclidean spherical geometry,and 2) injecting these constraints into MLLMs without
+overriding semantic priors. Recent approaches adapt to ODIs via specialized fine-tuning or spherical-
+to-2D patch decomposition [12, 36, 28]. However, fine-tuning is data-intensive and generalizes poorly,
+while patch decomposition breaks spherical topology and weakens global spatial relationships.
+To address the challenges, our key idea is to decouple semantic perception from geometric reasoning.
+Instead of imposing rigid Euclidean assumptions encoded into MLLM backbones [23], we delegate
+complex spatial transformations and constraints to geometric operations. This frees the MLLM to
+focus on what it does best: semantic understanding. while treating geometric grounding as continuous
+constrained optimization rather than a discrete post-processing heuristic. As shown in Fig. 1(a),
+current VLMs ambiguously assign any object to the right of an anchor as “right”, whereas grounding
+on the sphere via SH yields a distinct peak at the correct answer with lower scores for distractors.
+We propose SPHMIND, a training-free framework with two key components.. First, to understand
+non-Euclidean geometry, we introduce the Spherical Harmonics-based Spatial Graph (SHSG) to
+enable reasoning directly on spherical surfaces. Within SHSG, spatial relations are formulated as
+continuous directional tensor fields rather than discrete pairwise links. By encoding object nodes
+using spherical harmonics (SH), we preserve directional asymmetry (i.e., A →B̸ = B →A) and
+achieve rotational equivariance [22]. Second, to dynamically bridge the semantic-geometric gap,
+we develop Inference-Time Geometric Grounding (IGG) (Sec. 3.2). IGG optimizes the MLLM’s
+final-token hidden state to minimize a differentiable geometric violation energy, steering the latent
+representation toward geometric consistency while preserving pretrained visual priors enabling
+geometrically-grounded, zero-shot decoding without weight updates.
+We evaluate SPHMIND on a 360 spatial VQA benchmark of ∼12K question-answer pairs derived
+analytically from Matterport3D [37] and Stanford2D3D [7]. Across three MLLM backbones,
+without any training (Fig. 1b), SPHMIND achieves a mean gain of +21.4% overall, +20.5% on
+directional reasoning, and +18% on distance understanding over the MLLM baselines. Under
+azimuthal rotations of the panorama origin, SPHMIND achieves ×5.9 full rotational consistency
+over the ERP-pixel baseline, confirming that spherical harmonic scoring produces stable predictions
+regardless of spherical orientation. We further evaluate zero-shot on ODI-Bench [44], which provides
+human-annotated directional queries on real-world 360 data, and OpenView-VQA [10], showing
+that our framework is a generalized spherical understanding mechanism and adapts to similar spatial
+reasoning tasks without any dataset-specific tuning. Finally, Fig. 1(a) shows a qualitative real-world
+example on an in-the-wild 360 image, where SPHMIND correctly resolves a directional query that the
+2Often represented in Equirectangular Projection (ERP) format.
+2
+
+
+baseline VLM fails to demonstrate that spherical geometric grounding transfers beyond controlled
+benchmarks to unconstrained panoramic scenes.
+In summary, our key contributions are: (I) A training-free framework that decouples MLLM semantic
+perception from geometric reasoning. (II) SHSG: a spherical harmonics scene graph capturing non-
+Euclidean topology via continuous SH fields and rotational equivariance. (III) IGG: a model-agnostic
+latent optimization that enforces geometric constraints on the MLLM’s internal representations at
+inference time. (IV) State-of-the-art gains over MLLM baselines with strong transferability to similar
+tasks and real-world panoramic settings.
+2
+Related works
+Omnidirectional Scene Understanding. Modern VLMs [31, 8, 6] excel at narrow FoV images,
+their performance degrades significantly on ODIs. The standard ERP introduces latitude-dependent
+distortions that violate the Euclidean assumptions inherent in common 2D architectures [42, 13,
+24, 3, 4]. Consequently, rotation-invariant spatial concepts (e.g., left/right, near/far) become highly
+distorted and difficult to represent reliably on a planar grid. To address these geometric challenges,
+SoTA methods typically rely on extensive fine-tuning or specialized architectural designs. Sphere-
+aware models, such as SphereUFormer [9] and Distortion-Aware Transformers [47, 2, 52, 51, 50],
+modify internal attention operators to respect spherical topology. Other holistic 3D pipelines leverage
+frequency-domain representations; for instance, HUSH [30] demonstrates that spherical harmonics
+provide a robust, geometry-aligned basis for panoramic scene understanding directly on S2 rather than
+on distorted planar parameterizations [19]. However, these existing approaches demand expensive
+fine-tuning and specialized backbone modifications to adapt. Figs. 9 and 2 show that models trained
+on perspective images apply the same assumptions to ERP inputs, leading to inconsistencies with the
+true spherical geometry and misinterpretation of directional relations and distances.
+Omnidirectional Spatial Reasoning and Benchmarking. Early omnidirectional reasoning methods,
+such as VQA 360◦[12], adapted planar pipelines by projecting ODIs into cubemap faces to handle
+ERP distortion and provide a attention fusion mechanism. While practical, this discrete decompo-
+sition fragments the continuous spherical manifold, severely degrading global spatial relationships
+that depend on uninterrupted 360◦context. With the rise of MLLMs, benchmarks including Om-
+niVQA [49] and Pano-AVQA [45] introduced sphere-aware embeddings to enhance local recognition.
+Nevertheless, performance drops remain substantial for complex spatial tasks such as relative direc-
+tion and distance estimation. Recent diagnostic studies [20, 33] confirm these persistent weaknesses,
+revealing a critical spatial-semantic gap: MLLMs excel at semantic encoding yet fail to preserve
+geometry under non-Euclidean topology. In contrast, our SPHMIND introduces a fundamentally
+different paradigm. Rather than forcing a MLLM to implicitly learn spherical geometry through
+exhaustive retraining, we explicitly decouple semantic perception from geometry.
+What’s closer to monitor?
+Current VLMs
+Chair is closer than board
+VLM + SphMind (Ours)
+Board is closer than chair
+Figure 2: Geodesic distances resolve ERP distortion.
+VLMs misjudge depth from pixel size and wrap-around,
+ranking the chair closer than the monitor. SPHMIND uses
+geodesic priors on S2 to correctly identify the board as nearer.
+Spherical Harmonics and Scene
+Graphs. To bridge this gap, struc-
+tured intermediate representations,
+such
+as
+scene
+graphs,
+are
+em-
+ployed [41, 5].
+However, conven-
+tional scene graphs are inherently Eu-
+clidean and coordinate-dependent. In
+omnidirectional data, global rotations
+invalidate discrete directional pred-
+icates ( “left of”), and planar dis-
+tances become unreliable near projec-
+tion seams. Works like OSR-Bench [20] map the 360◦image into a 2D “Cognitive Map” (an
+orthographic bird’s-eye view) to anchor the MLLM. However, this discretization irreversibly col-
+lapses the Z-axis, rendering height-based spatial queries unanswerable. More recently, architectures
+such as Pano-Env [33] and OmniVQA [49] attempt to force spatial awareness via Group Relative Pol-
+icy Optimization (GRPO), a reinforcement learning paradigm that rewards correct Chain-of-Thought
+(CoT) reasoning. While effective, training based alignment is computationally expensive and treats
+spatial laws as stochastic linguistic probabilities rather than immutable physical constants. Motivated
+by spherical harmonics as a rotation-aware basis, recent works, such as Equiformer [30, 32, 1], have
+tried to enhance panoramic understanding and spatial relationships in omnidirectional images through
+3
+
+
+Inference Time
+Geometric
+Grounding
+(IGG) [Fig. 4]
+Spatial Graph G=
+Frozen VLM
+Detector
+What is in-front
+of the sofa?
+Question
+Wigner-D 
+Rotation(Da)
+Parsed Query
+Anchor - Na
+Direction - d
+Final Answer
+(y*)
+Spherical Harmonics based Scene Graph(SHSG)
+SH Features fk
+SH Directional Score SSH 
+h1
+h2
+h3
+...
+hN
+Initial Hidden State (h0)
+Rotated Anchor SH Field
+Evidence Set Sd
+[Eq. 3]
+Eq.1
+Input ERP Image (I)
+(Q)
+Cubemap Projection
+Dafa
+fk1
+fk2
+(Dafa)T
+  Eq.2
+Candidate Objects (Gk) SH Field
+Anchor (Ga) SH Field fa
+Figure 3: Overview of SPHMIND. Given an ERP image and query, SHSG lifts detections to S2 and
+builds an SH-encoded scene graph. Wigner-D scoring produces a candidate answer set Y. IGG then
+steers the frozen VLM hidden state to the final grounded answer y∗.
+equivariant geometric learning. This raises a natural question: given a rotation-consistent spatial
+state, how can we enforce geometric constraints and correct a frozen MLLM at inference time?
+Adapting to Frozen MLLMs. Training-free approaches often rely on post-hoc heuristics such as
+confidence filtering, re-ranking, or localization-based de-hallucination [11], but MLLMs can remain
+overconfident in physically impossible layouts [26, 27], and late-stage filtering cannot repair an
+internally inconsistent spatial state [38, 21]. Our approach instead aligns with controlled generation
+and inference-time steering: plug-and-play methods such as PPLM [16] show that frozen models
+can be guided by optimizing latent activations. GrAInS [34] aims to enable interpretable, token-
+level control over VLMs via Integrated Gradients to shift from undesirable hallucinations toward
+truthful responses. Subsequent works show that latent intervention can improve faithfulness and
+control [40, 25]. Crucially, SPHMIND extends this paradigm from latent steering to explicit geometric
+control to realize two advantages.Unlike prior methods that either fragment the visual space through
+geometric decompositions or require costly geometry-specific fine-tuning , SPHMIND bridges this
+gap in a training-free manner by reasoning directly on the spherical manifold.
+3
+Methodology
+Overview. Our central idea is to decouple semantic understanding from geometric reasoning. Put
+simply, rather than forcing VLMs to internalize spherical geometry, we preserve their semantic
+priors and externalize geometry. Intuitively, we propose a novel SphMind approach, as shown in
+Fig. 3. Given an ERP image I and a spatial reasoning question Q, we seek an answer y∗that is
+both semantically meaningful and geometrically consistent with the 360 scene. Our framework
+achieves this via two tightly coupled novel components. Specifically, Spherical Harmonics-based
+Spatial Graph (SHSG) (Sec. 3.1) builds a rotation-consistent scene representation directly on S2
+by encoding objects and their spatial relations as spherical harmonic features, producing Y , a set
+of geometrically plausible VQA answers for y∗. However, a pretrained VLM operating on I and Q
+remains unaware of how to understand this geometric signal and correct its internal representation.
+Inference Time Geometric Grounding (IGG) (Sec. 3.2) bridges this gap by injecting the SHSG
+geometric constraints directly into the VLM’s final hidden state h0. Thereby, IGG steers this h0
+towards geometrically grounded distribution while preserving the semantic priors. In short, the VLM
+answers what is present; SHSG and IGG enforce the VLM on where and how the objects relate on
+the sphere. Now we describe these two technical components in details.
+3.1
+Spherical Harmonics-based Spatial Graph (SHSG) Module
+As depicted in Fig. 3, given an ERP image I and a spatial query Q, we localize objects by projecting
+I into cubemap faces and lifting each raw detection outputs ˜Gk obtained from object detectors [35]
+to spherical coordinates (θk, ϕk) via the corresponding face rotation matrix Ri ∈SO(3). Here,
+each node Gk = (ck, θk, ϕk, ˆck) carries the object’s semantic category ck, viewer-centric spherical
+coordinates (θk, ϕk), and detector confidence ˆck ∈[0, 1]. Note that cross-face duplicates are removed
+via geodesic non-maximum suppression (GNMS; Appendix A.2), yielding a duplicate-free spatial
+graph G = {Gk}K
+k=1 where K is the total number of nodes. The spatial graph G and query Q,
+specifying an anchor object node Ga and a target direction d, together form the inputs to SHSG.
+4
+
+
+Consequently, a fundamental requirement for omnidirectional reasoning is rotational consistency:
+spatial relations between objects must transform predictably when the observer rotates. Standard
+Euclidean representations break under such rotations because translation-invariant mechanisms
+cannot model the periodicity or distortions of the sphere. We address this by representing each
+detected object node Gk directly on the sphere using real spherical harmonic (SH) node encoding
+[14]. Spherical harmonics Y m
+ℓ(θ, ϕ) form a complete orthonormal basis on the sphere and transform
+linearly and exactly under SO(3) rotations. The SH feature of object node Gk is written as:
+fk =
+
+Y m
+ℓ(θk, ϕk)
+
+ℓ=0,...,Lmax
+m=−ℓ,...,ℓ
+∈R(Lmax+1)2.
+(1)
+For Lmax=7, this yields a 64-dimensional rotation-equivariant encoding of the object’s angular
+position, sufficient to resolve spatial features at ≈20◦resolution (see Appendix A.1). As shown in Fig.
+3, we consider any two object nodes, G1 and G2 and their SH-encoded feature as fk,1 and fk,2 while
+the anchor object node’s feature is represented as fa. This contains all geometric information about
+the angular position of object Gk that is relevant for directional reasoning from a fixed viewpoint.
+Directional Reasoning Given anchor object node Ga and query direction d, SHSG answers “which
+object lies in direction d from Ga?” directly on the sphere S2, without reference to the distorted
+ERP pixel space. In spherical geometry, this question is equivalent to rotating the anchor object’s
+coordinate frame by the rotation Rd ∈SO(3) that maps the canonical forward direction to d, then
+identifying which candidate object Gk aligns most strongly with the rotated anchor. Because each
+object is encoded as an SH feature fk, and SH features transform linearly under SO(3) via the
+Wigner-D matrix, this rotation is exact and closed-form. The SH directional score SSH measuring
+how well candidate object Gk satisfies the directional constraint relative to anchor Ga is:
+SSH(a, k, d) =
+ReLU
+ (Dd fa)⊤fk
+γ
+X
+k′
+ReLU
+ (Dd fa)⊤fk′γ + ε
+,
+(2)
+where Dd is the Wigner-D operator and ε=10−8 ensures numerical stability. The rotated anchor
+feature Dd fa encodes what direction d from Ga looks like in SH space. The inner product (Dd fa)⊤fk
+is positive when Gk aligns with direction d from Ga, and negative for antipodal directions. A
+ReLU enforces this sign structure, suppressing antipodal candidates in a parameter-free manner.
+What is to the left of window?
+Chair
+SphMind
+(a) ERP Image
+(b) Spherical Harmonics Superimposed Image
+Board
+Door
+VLM
+Figure 4: SHSG directional reasoning on MP3D. Query: “What is
+to the left of the window?” (a) ERP image with candidates: • door,
+• board, • chair, + window anchor. (b) SH spherical views: RGB
+scene on S2 (left); SH field centred at anchor (center); after Wigner-D
+rotation the peak shifts left, aligning with • chair (right).
+Further,
+SSH
+is a query-
+conditioned operator on the
+sphere, where the Wigner-
+Dd rotation encodes direc-
+tion d and produces distinct
+scores for different directional
+queries over the same can-
+didates. It is equivariant to
+global rotations R ∈SO(3),
+ensuring that scores transform
+consistently and the correct
+answer is preserved regard-
+less of panorama orientation
+(refer to Appendix A.1).
+The candidate object nodes N are geometrically consistent with direction d from anchor object Ga
+are collected as the directional evidence set:
+Sd =
+ Gk, SSH(a, k, d)
+
+: SSH(a, k, d) > 0
+	
+,
+(3)
+written compactly as Sd = Ψ(G; Na, d), and illustrated on a real Matterport3D scene in Fig. 4.
+Then, Sd is passed to IGG, which lifts the SH scores into a geometric violation cost and steers the
+frozen VLM’s hidden state toward the geometrically correct answer. We now describe the details.
+Distance queries. For distance queries, SHSG derives a different scoring mechanism using camera-
+frame depth score sk for each candidate from S2-native signals and defines C(yA)=sB/(sA+sB),
+C(yB)=sA/(sA+sB), rewarding the closer candidate with lower cost.
+The depth estimation pipeline slightly differs from directional scoring and not the main focus. (Further
+details in Appendix E.)
+5
+
+
+3.2
+Inference-Time Geometric Grounding (IGG)
+SHSG is a purely geometric module: it operates entirely on the sphere and produces a directional
+evidence set Sd with SH-based geometric scores with no semantic knowledge. However, the frozen
+VLM’s hidden state h0 encodes rich semantic priors but carries no spherical understanding. Therefore,
+our IGG bridges this gap by propagating SHSG’s geometric evidence directly into h0 via energy
+minimisation, as shown in Fig.5. That is, IGG aims to ground the VLM’s output distribution in the
+spherical geometry of the scene prior to decoding without updating any model weights.
+Geometric Violation Cost. Given the directional evidence set Sd with SH directional scores
+SSH(a, k, d) for each candidate object node Gk, where a higher score reflects stronger directional
+alignment, we define the geometric violation cost as the complement of the SH score:
+C(yk) = 1 −SSH(a, k, d),
+yk ∈Sd.
+(4)
+This assigns each candidate in Sd a geometric violation cost inversely proportional to its directional
+alignment, providing the structured geometric signal for IGG. While the cost C(yk) provides a
+geometric penalty for each candidate token in Sd, the VLM’s likelihood over these tokens is governed
+entirely by its continuous latent representation h0 ∈Rd , the final hidden state after processing image
+I and query Q. Since h0 is shaped by pretrained backbones with no awareness of spherical geometry,
+we inject the geometric signal from SHSG directly into this latent space via energy minimisation.
+(Sd)
+Cloned Hidden State
+(h_steered)
+VLM
+ Decoder
+VLM 
+Decoder
+C(yk)
+Geometric Cost  
+Eq.4
+Total Energy
+Eq. 6
+Backward Pass
+30%
+50%
+Initial Prob  (Porig)
+KL Divergence
+DKL*(Porig||Ph)
+n=1
+Steered Prob (Ph)
+n>1
+80%
+5%
+15%
+Answer
+y*
+Exact Gradient Descent
+Riemannian Update
+ [Eq. 7]
+Converged State (hf)
+VLM
+Decoder
+h0
+∑
+P(yk+|h)
+×
+×
+P(yk-|h)
+Contrastive 
+Geometric
+Energy (Egeo) 
+20%
+Eq.5
+h0
+Sd
+SHSG
+Outputs
+Figure 5: IGG pipeline. Given the VLM hidden state h0, ranked
+evidence Sd, IGG performs T norm-preserving Riemannian updates to
+steer h toward the geometrically consistent answer y∗
+A pointwise expected vi-
+olation P
+k P(yk|h) C(yk)
+produces a gradient propor-
+tional to P(yk|h) , weak
+precisely when the VLM as-
+signs low probability to the
+geometrically correct an-
+swer and high probability to
+wrong candidates, i.e. when
+correction is most needed.
+We instead define the Con-
+trastive geometric energy
+Egeo as a pairwise ranking
+objective over all geometri-
+cally ordered pairs in Sd:
+Egeo(h) =
+1
+|P|
+X
+(k+, k−)∈P
+
+C(yk−) −C(yk+)
+
+log P(yk−| h)
+P(yk+ | h),
+(5)
+where P = {(k+, k−) : C(yk−) > C(yk+), k± ∈Sd} is the set of all geometrically ordered pairs,
+k+ the more directionally consistent candidate and k−the less consistent. The total energy is:
+E(h) = βgeo Egeo(h) + βKL DKL
+ Porig ∥Ph
+
+,
+(6)
+where Porig = P(y | h0) is the original VLM distribution. Egeo penalises every pair where the VLM
+assigns higher probability to the geometrically wrong candidate than the correct one, with the penalty
+scaled by both how geometrically discriminative the pair is [C(yk−)−C(yk+)] and how severely
+the probability ordering is violated [log P(yk−|h)/P(yk+|h)] — producing the strongest corrective
+gradient precisely when it is most needed. The KL term prevents the steered distribution from
+collapsing onto a single token by anchoring it to the VLM’s pretrained semantic prior. Together they
+realise a geometrically-ordered semantic optimisation: which aligns the VLM’s probability ordering
+with the geometric ranking from SHSG while remaining close to the pretrained prior. Egeo reaches
+zero when Ph is monotonically decreasing in C(yk) meaning the VLM’s distribution perfectly reflects
+the geometric ranking (refer to Appendix B.2).
+Riemannian Update. The gradient g = ∇hE(h), obtained by differentiating through the frozen
+LM head Wlm, is a weighted sum of differences of LM head rows corresponding to geometrically
+ordered pairs , propagating the geometric ranking through the VLM’s own inter-token semantic
+structure without any weight update (refer to Appendix B.1). Since h lies on the ℓ2-norm hypersphere
+6
+
+
+A. Token Space directions PCA
+Wchair Wtele
+Wcab
+Wshelf
+h0
+h'
+-∇E
+C. Cosine Similarity
+B. Candidate Probabilities On Paranoma
+PC1(36.5% var) 
+chair
+h0(before)
+h'(after)
+PC2(25% var)
+What is below the board ?
+Figure 6: (A) Token-space PCA: IGG shifts h0 →h′ toward the correct token (chair) while preserving
+semantic structure. (B) Panorama candidates: ⋆marks the board; • indicates the correctly localized
+chair below it on S2. (C) Cosine similarity: confirms semantic consistency, valid tangent update, and
+correct gradient alignment, showing correction of the initial model bias through geometric grounding.
+M = {h : ∥h∥= r}, a naive Euclidean step would change ∥h∥and alter the decoding temperature
+via LayerNorm. We therefore project g onto the tangent space ThM and retract back onto M:
+ht+1 = r ·
+ht −η
+
+gt −g⊤
+t ht
+∥ht∥2 ht
+
+ht −η
+
+gt −g⊤
+t ht
+∥ht∥2 ht
+
+,
+(7)
+where r = ∥h0∥is preserved exactly at every step, isolating the geometric correction as a pure
+directional intervention (refer to Appendix B.3). The contrastive gradient is self-scaling with the
+degree of geometric ordering violation , strong when the VLM is most miscalibrated, vanishing when
+the probability ordering already matches the geometric ranking making a single Riemannian step
+sufficient for the majority of cases without requiring empirical step-count tuning.
+Final Prediction. After a single Riemannian step with early stopping when ∥∆E∥< δ (refer to
+Appendix B.4), we obtain the geometrically grounded hidden state h′. The final answer is decoded by
+restricting to the directionally consistent candidate set: y∗= arg maxyk∈Sd P(yk | h′). The VLM
+focuses on what objects are semantically present; SHSG and IGG together enforce where they are
+geometrically on the sphere S2.
+4
+Experiments
+4.1
+Experimental Setup
+Datasets. We evaluate SPHMIND on three benchmarks: (I) Matterport3D (MP3D) and Stanford
+2D-3D-S: ∼12k synthetic QA pairs derived from 3D annotations provided across six MP3D scenes
+and four 2D-3D-S areas. (II) ODI-Bench: ∼1k human-annotated QA pairs on real-world Flickr ODIs;
+we test zero-shot on Relative Direction and Egocentric View Orientation. (III) OpenView-VQA: ∼1k
+human-annotated camera-rotation reasoning QA pairs from restricted FoV crops.
+Benchmark Construction. For MP3D and 2D-3D-S, ground-truth answers of VQA are derived from
+the provided annotations i.e 3D object centroids, semantic labels, and camera poses, projected to
+viewer-centric spherical coordinates (θ, ϕ, r) (refer to Appendix C). ODI-Bench and OpenView-VQA
+provide human-annotated QA pairs with raw panoramic images and camera poses.
+Baselines. We compare SPHMIND across three open-source VLM backbones spanning different
+architectures and scales: Qwen2.5-VL (3B, 7B) and LLaVA-1.6 (7B). Each backbone is evaluated
+under two settings: Vanilla, where the frozen VLM receives the raw ERP panorama and question,
+and +SphMind, where the same frozen VLM is augmented with SHSG+IGG. Presence and counting
+are evaluated without external detections to measure the raw ERP perception gap; direction and
+distance use identical YOLO detections and graph G for both settings, isolating SHSG+IGG as the
+sole variable (see Appendix C.1 for full protocol details).
+4.2
+Results and Discussion
+We structure our evaluation around the following experimental questions (EQs):
+7
+
+
+Table 1: Performance across datasets and scenes.
+Model
+Type
+Category
+Matterport3D
+Stanford2D
+Scene 1 Scene 2 Scene 3 Scene 4 Scene 5 Scene 6 Scene 1 Scene 2 Scene 3 Scene 4
+Qwen2.5-7B
+Baseline
+Overall
+40
+42.9
+36.2
+24.3
+41.7
+38.6
+35.7
+39.8
+31.5
+37.2
+Presence
+62.5
+67.8
+62.5
+53.5
+72.2
+64.5
+100
+70.3
+58.4
+66.9
+Counting
+20
+10
+14.2
+13
+11.1
+20
+8.3
+17.6
+9.8
+15.2
+Distance
+40
+40
+27
+42.2
+44.8
+41.7
+50
+45.6
+34.9
+43.8
+Direction
+35.3
+41.2
+28.6
+22.5
+32.1
+20.7
+14.3
+32.8
+24.7
+30.4
+Ours
+Overall
+65
+63.3
+56.8
+50.8
+52.4
+59.6
+62.5
+60.7
+54.1
+58.9
+Presence
+80
+75
+65.7
+59.8
+66.7
+72.4
+93.3
+78.6
+63.2
+74.9
+Counting
+50.6
+47.5
+33.6
+24.5
+26.1
+38.7
+25
+36.4
+27.3
+34.8
+Distance
+83.3
+71.6
+72.5
+53.3
+60
+61.2
+55.7
+51.5
+62.4
+69.8
+Direction
+58.3
+55.2
+54.3
+52.6
+51.1
+53.8
+50
+54.7
+48.9
+52.1
+LLaVA-1.5-7B
+Baseline
+Overall
+38.3
+35.7
+34.1
+36.5
+33.8
+37.2
+32.1
+45.6
+28.9
+36.7
+Presence
+68.8
+64.2
+66.1
+65.7
+63.9
+67.4
+67.2
+69.4
+68.1
+70.5
+Counting
+20.0
+18.7
+19.5
+17.9
+16.8
+21.4
+18.5
+22.3
+19.8
+21.0
+Distance
+40.0
+42.6
+38.4
+39.7
+31.3
+33.5
+35.4
+48.7
+42.1
+49.5
+Direction
+35.3
+30.4
+32.1
+29.6
+31.7
+34.2
+28.5
+35.9
+26.8
+33.1
+Ours
+Overall
+60.9
+57.8
+58.6
+59.2
+56.7
+60.1
+58.2
+63.4
+60.1
+61.6
+Presence
+90.0
+88.7
+89.3
+87.9
+88.5
+90.6
+89.2
+90.8
+89.7
+91.2
+Counting
+23.5
+22.8
+24.1
+21.9
+22.6
+24.3
+22.1
+24.9
+23.8
+24.2
+Distance
+69.6
+73.4
+67.1
+74.2
+66.3
+68.5
+70.3
+71.9
+72.8
+77.4
+Direction
+48.8
+45.6
+47.2
+44.9
+46.8
+49.4
+46.4
+51.2
+47.9
+50.5
+Qwen2.5-3B
+Baseline
+Overall
+35.8
+38.6
+33.4
+29.7
+31.2
+34.1
+42.7
+37.9
+30.5
+36.4
+Presence
+85.0
+88.4
+84.2
+81.3
+87.1
+89.6
+93.0
+86.7
+82.5
+88.9
+Counting
+14.0
+12.5
+15.2
+13.8
+10.9
+18.3
+16.7
+14.6
+12.8
+15.1
+Distance
+41.2
+44.7
+38.6
+35.9
+39.4
+46.8
+50.0
+43.5
+37.8
+45.2
+Direction
+9.5
+12.3
+14.8
+11.7
+11.4
+13.2
+17.5
+11.1
+10.2
+12.0
+Ours
+Overall
+54.6
+56.3
+52.8
+49.1
+50.7
+53.2
+58.9
+55.4
+51.6
+57.2
+Presence
+93.8
+95.1
+92.4
+91.3
+94.2
+96.0
+96.3
+94.5
+92.1
+95.8
+Counting
+22.4
+23.6
+24.8
+21.7
+20.9
+26.4
+25.0
+23.1
+21.5
+24.3
+Distance
+68.9
+71.5
+69.7
+65.2
+67.4
+72.1
+74.0
+70.6
+66.3
+72.8
+Direction
+36.2
+38.4
+39.5
+35.8
+37.6
+41.3
+40.5
+38.9
+36.7
+41.0
+EQ-1: Can explicit spherical geometric grounding enable frozen VLMs to reason about
+panoramic spatial relationships that they fundamentally cannot understand in ERP images?
+EQ-2: Does the geometric prior in SPHMIND generalize zero-shot across structurally distinct
+benchmarks, invariant to rotations and coordinate conventions without any task-specific training?
+EQ-3: Which components of SPHMIND are necessary for the observed gains in spatial reasoning,
+and is the S2 spherical representation necessary for panoramic understanding
+360° Panoramic VQA. Table 1 reveals that direction baselines expose the most severe failure:
+Qwen2.5-3B reaches only 9.5–17.5% across scenes, confirming misinterpretation of directions in
+pixel space. Distance baselines cluster at 35–50%, revealing that VLMs actively misread ERP-
+distortions. Presence and counting baselines are substantially higher, showing the failure is specific
+to geometry-intensive queries rather than general VLM weakness. Gains are consistent across
+architectures and scale, ruling out model-specific adaptation.
+[A-1] SPHMIND raises overall accuracy from 35.9% to 56.4% (+20.5%). Direction gains are
+largest for weakest model (Qwen2.5-3B: ∼12%→∼39%) and smallest for strongest (LLaVA-
+1.5-7B: ∼31%→∼48%) proving increased geometric understanding rather than a semantic bias
+being corrected. Distance is consistently around 60% for all models and scenes.
+Zero-Shot Transfer to ODI-Bench. Table 2 (a) compares SPHMIND against four prompt-engineering
+strategies on real-world Flickr ODIs. All methods remain within ±1.5% of the 46.1% RD base-
+line, with crop grounding actually degrading to 44.2%, confirming that linguistic or input-space
+interventions cannot substitute for incorrect geometric understanding.
+Rotation Angle Grounding on OpenView-VQA. Table 2(b) tests whether exact spherical conversion
+of camera rotation angles outperforms language based rotation interpretation. OpenView-VQA
+expresses spatial targets via rotation angles from restricted FoV crops; a frozen VLM associates these
+with candidates via language statistics rather than geometric conversion. SHSG converts the rotation
+angle directly to (θtgt, ϕtgt) = (θcam + ∆ψ, ϕcam + ∆ρ) and substitutes it as the anchor, with all
+other operations unchanged. (refer to Appendix G).
+8
+
+
+Strategy
+RD
+EVO
+Baseline
+46.13
+45.71
++ Viewpoint Guidance
+45.80
+45.10
++ Crop Grounding
+44.18
+44.15
++ Response Refinement
+47.65
+45.76
++ CoT
+46.33
+43.20
++ SphMind
+56.35
+52.60
+(a)
+Category Base Ours Train
+Overall
+21.0
+39.7
+46.0
+Pitch
+22.5
+36.2
+44.3
+Yaw
+25.0
+45.6
+48.7
+P+Y
+23.1
+42.1
+45.0
+(b)
+Method
+Full
+90◦
+180◦
+270◦
+ERP-Pixel 0.043
+0.437
+0.212
+0.451
+SphMind
+0.253
+0.653
+0.595
+0.648
+Gain
+×5.9
++0.216 +0.383 +0.197
+(c)
+Table 2: Comparison across panoramic reasoning benchmarks. SphMind consistently improves
+performance across diverse settings, including (a) object-directional inference (ODI-Bench), (b)
+viewpoint generalization (OpenView), and (c) rotation-consistent spatial grounding (RCS).
+Invariance across Rotated Panorama. Table 2(c) measures whether SPHMIND gives the same
+answer under 90◦, 180◦, and 270◦azimuthal rotations of the ERP origin. ERP based baseline
+reasoning achieves only 4.3% full RCS and degrades most severely at 180◦(RCS = 0.212), where
+front↔behind swaps scatter the relevant scene region across the seam. SPHMIND achieves 59.5% at
+180◦as compared to 21.2% for the baseline.
+[A-2] SPHMIND reaches 56.35% RD and 52.60% EVO on ODI-Bench, outperforming all prompt-
+engineering strategies by at least +8.7% on RD. On OpenView-VQA, it achieves 39.7% 21.0%
+against the zero-shot baseline, and comparable to method (46.0%) without any task-specific
+training. Full RCS reaches 25.3% against 4.3% for ERP-pixel reasoning (×5.9), with the largest
+gain at 180◦(+0.383) where pixel reasoning is most structurally broken.
+4.3
+Ablation Study
+Component Analysis. Table 3 ablates each component on MP3D (Qwen2.5-7B); per-category drops
+reveal which components are critical for which reasoning type.
+Config
+Ov.
+Dir.
+Dist.
+∆
+Full
+58.4
+53.1
+64.1
+—
+Component removal
+No grad
+50.5
+46.6
+54.9
+−7.9
+w/o C(yk)
+49.8
+45.6
+54.0
+−8.6
+SHSG only
+45.1
+42.5
+48.5
+−13.3
+Rand C(yk)
+37.7
+34.0
+43.3
+−20.7
+Encoding
+Cartesian (x, y, z)
+47.3
+43.1
+52.6
+−11.1
+ERP centroid
+43.6
+38.9
+49.8
+−14.8
+γ=1 (no sharpening)
+51.2
+47.0
+56.1
+−7.2
+Rand IGG
+46.8
+43.0
+51.9
+−11.6
+Table 3: Ablation on MP3D (Qwen2.5-7B).
+∆= change vs Full.
+1) IGG and geometric cost. SHSG alone (45.1%)
+grounds candidates but cannot correct the VLM.
+Adding C(yk) without gradients (No grad: 50.5%)
+contributes +5.4% via geometric selection; the con-
+trastive Riemannian update recovers a further +7.9%
+for a total IGG gain of +13.3%. Distance is more
+sensitive than direction (−9.2% vs −6.5% no grad;
+−10.1% vs −7.5% no cost) since direction retains
+partial SHSG signal through Sd filtering while dis-
+tance relies entirely on C(yk). Random costs col-
+lapse performance to 37.7% below SHSG-only con-
+firming the gradient amplifies the geometric signal:
+uninformative costs actively misdirect h, making ran-
+dom costs with gradients worse than no gradients at
+all. SHSG and IGG are jointly necessary.
+2) Spherical encoding.
+ERP centroids (−14.2%,
+−14.3%) discard spherical structure entirely; Cartesian coordinates (−10.0%, −11.5%) retain partial
+3D information but break rotational equivariance, confirming the SH basis is not interchangeable
+with Euclidean representations. Removing γ sharpening (γ=1; −6.1%, −8.0%) reduces cost dis-
+criminability in contrastive pairs P, with distance more affected as it depends entirely on C(yk)
+quality.
+3) Gradient direction.
+A random IGG step degrades performance (−10.1% direction, −12.2% distance), confirming that the
+gradient direction encodes meaningful geometric structure beyond SHSG filtering. IGG correction
+vectors achieve cosine alignment GA= 0.27 vs. 0.01 for unmatched queries, ruling out geometric
+reranking as the sole mechanism (Appendix I.1).
+Evidence for SHSG. Figure 7 shows a t-SNE projection of SH score vectors evaluated at N=450
+uniformly sampled points on S2, coloured by directional category. Six clearly separated clusters
+confirm that SHSG produces directionally discriminative representations: Left/Right form distinct
+arcs, Front/Behind occupy separate regions, and Above/Below appear as isolated peripheral clusters
+9
+
+
+orthogonal to the azimuthal directions. A silhouette score of 0.532 confirms that the separation
+visible in Fig. 7 reflects genuine inter-class distance.
+Weight sensitivity and hyperparameter generalization. Hyperparameter sensitivity analysis and
+full parameter definitions are reported in Appendix I.2.
+[A-3] The SH based representation and IGG updates are both necessary. ERP bbox centroids and
+Cartesian coordinates degrade performance despite retaining spatial cues, indicating that rotational
+equivariance, not mere 3D awareness, is critical. Replacing C(yk) with an uninformative cost
+reduces performance close to the VLM baseline. Thus, neither alone is sufficient.
+5
+Conclusion and Future Work
+Figure 7: t-SNE embedding of the SHSG
+spherical field at 450 samples on the sphere
+colored by direction.
+In this work, we introduced SPHMIND, a training-
+free and plug-and-play framework for spatial reason-
+ing in 360◦images. Our central observation is that
+existing VLMs are designed for reasoning on pla-
+nar images, and therefore struggle to reason reliably
+over spherical scene geometry. SPHMIND addresses
+this mismatch by externalizing geometric reason-
+ing through a Spherical Harmonics-based Spatial
+Graph (SHSG) Module and Inference-Time Geo-
+metric Grounding (IGG), enabling frozen VLMs
+to produce geometry-consistent predictions without
+retraining or architectural modification.
+Future Work: Looking forward, we aim to extend
+SPHMIND to dynamic and multi-view settings for
+embodied navigation, incorporate complementary
+modalities such as depth for richer 3D reasoning.
+We hope this work motivates further research on
+geometry-grounded panoramic reasoning.
+References
+[1] Hao Ai, Zidong Cao, Haonan Lu, Chen Chen, Jian Ma, Pengyuan Zhou, Tae-Kyun Kim, Pan
+Hui, and Lin Wang. Dream360: Diverse and immersive outdoor virtual scene creation via
+transformer-based 360 image outpainting. IEEE transactions on visualization and computer
+graphics, 30(5):2734–2744, 2024.
+[2] Hao Ai, Zidong Cao, and Lin Wang. A survey of representation learning, optimization strategies,
+and applications for omnidirectional vision: H. ai et al. International Journal of Computer
+Vision, 133(8):4973–5012, 2025.
+[3] Hao Ai and Lin Wang. Elite360d: Towards efficient 360 depth estimation via semantic-and
+distance-aware bi-projection fusion. In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, pages 9926–9935, 2024.
+[4] Hao Ai and Lin Wang. Elite360m: Efficient 360 multi-task learning via bi-projection fusion
+and cross-task collaboration. arXiv preprint arXiv:2408.09336, 2024.
+[5] Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury Zemlyanskiy, Federico Lebrón, and
+Sumit Sanghai. Gqa: Training generalized multi-query transformer models from multi-head
+checkpoints, 2023.
+[6] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson,
+Karel Lenc, Arthur Mensch, Katie Millican, Malcolm Reynolds, Roman Ring, Eliza Ruther-
+ford, Serkan Cabi, Tengda Han, Zhitao Gong, Sina Samangooei, Marianne Monteiro, Jacob
+Menick, Sebastian Borgeaud, Andrew Brock, Aida Nematzadeh, Sahand Sharifzadeh, Miko-
+laj Binkowski, Ricardo Barreira, Oriol Vinyals, Andrew Zisserman, and Karen Simonyan.
+Flamingo: a visual language model for few-shot learning, 2022.
+10
+
+
+[7] Iro Armeni, Sasha Sax, Amir R. Zamir, and Silvio Savarese. Joint 2d-3d-semantic data for
+indoor scene understanding, 2017.
+[8] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin
+Ge, Yu Han, Fei Huang, Binyuan Hui, Luo Ji, Mei Li, Junyang Lin, Runji Lin, Dayiheng Liu,
+Gao Liu, Chengqiang Lu, Keming Lu, Jianxin Ma, Rui Men, Xingzhang Ren, Xuancheng Ren,
+Chuanqi Tan, Sinan Tan, Jianhong Tu, Peng Wang, Shijie Wang, Wei Wang, Shengguang Wu,
+Benfeng Xu, Jin Xu, An Yang, Hao Yang, Jian Yang, Shusheng Yang, Yang Yao, Bowen Yu,
+Hongyi Yuan, Zheng Yuan, Jianwei Zhang, Xingxuan Zhang, Yichang Zhang, Zhenru Zhang,
+Chang Zhou, Jingren Zhou, Xiaohuan Zhou, and Tianhang Zhu. Qwen technical report, 2023.
+[9] Yaniv Benny and Lior Wolf. Sphereuformer: A u-shaped transformer for spherical 360 percep-
+tion, 2024.
+[10] Qixiang Chen, Cheng Zhang, Chi-Wing Fu, Jingwen Ye, and Jianfei Cai. Openview: Empower-
+ing mllms with out-of-view vqa, 2025.
+[11] Xinxi Chen, Tianyang Chen, and Lijia Hong. Groundsight: Augmenting vision-language
+models with grounding information and de-hallucination, 2025.
+[12] Shih-Han Chou, Wei-Lun Chao, Wei-Sheng Lai, Min Sun, and Ming-Hsuan Yang. Visual
+question answering on 360 images, 2020.
+[13] Taco S. Cohen, Mario Geiger, Jonas Koehler, and Max Welling. Spherical cnns, 2018.
+[14] F. Dai and Y. Xu. Spherical harmonics, 2013.
+[15] Shriram Damodaran, Soumyaratna Debnath, Yan Wu, Wei-Yun Yau, and Addison Lin Wang.
+Eagor: Embodied reasoning in omni-direction. arXiv preprint arXiv:2607.06165, 2026.
+[16] Sumanth Dathathri, Andrea Madotto, Janice Lan, Jane Hung, Eric Frank, Piero Molino, Jason
+Yosinski, and Rosanne Liu. Plug and play language models: A simple approach to controlled
+text generation, 2020.
+[17] Soumyaratna Debnath, Bui Duc Manh, Zinan Liu, and Lin Wang. Llmind: Bio-inspired
+training-free adaptive visual representations for vision-language models. IEEE/CVF CVPR,
+2026.
+[18] Soumyaratna Debnath, Weiming Zhang, Shriram Damodaran, Dingwen Xiao, and Addison Lin
+Wang. Adaptopass: Ambiguity-aware adaptive spherical transformer for panoramic semantic
+segmentation. arXiv preprint arXiv:2608.29081, 2026.
+[19] Yuan Dong, Chuan Fang, Liefeng Bo, Zilong Dong, and Ping Tan. Panocontext-former:
+Panoramic total scene understanding with a transformer, 2023.
+[20] Zihao Dongfang, Xu Zheng, Ziqiao Weng, Yuanhuiyi Lyu, Danda Pani Paudel, Luc Van Gool,
+Kailun Yang, and Xuming Hu. Are multimodal large language models ready for omnidirectional
+spatial reasoning?, 2025.
+[21] Nouha Dziri, Ximing Lu, Melanie Sclar, Xiang Lorraine Li, Liwei Jiang, Bill Yuchen Lin,
+Peter West, Chandra Bhagavatula, Ronan Le Bras, Jena D. Hwang, Soumya Sanyal, Sean
+Welleck, Xiang Ren, Allyson Ettinger, Zaid Harchaoui, and Yejin Choi. Faith and fate: Limits
+of transformers on compositionality, 2023.
+[22] Carlos Esteves, Christine Allen-Blanchette, Ameesh Makadia, and Kostas Daniilidis. Learning
+so(3) equivariant representations with spherical cnns, 2018.
+[23] Zhongbin Guo, Jiahe Liu, Yushan Li, Wenyu Gao, Zhen Yang, Chenzhi Li, Xinyue Zhang, and
+Ping Jian. Beyond flatlands: Unlocking spatial intelligence by decoupling 3d reasoning from
+numerical regression, 2025.
+[24] Neil He, Jiahong Liu, Buze Zhang, Ngoc Bui, Ali Maatouk, Menglin Yang, Irwin King, Melanie
+Weber, and Rex Ying. Position: Beyond euclidean – foundation models should embrace
+non-euclidean geometries, 2025.
+11
+
+
+[25] Yixin He and Lumingyuan Tang. Learning to ponder: Adaptive reasoning in latent space, 2025.
+[26] Parsa Hosseini, Sumit Nawathe, Mazda Moayeri, Sriram Balasubramanian, and Soheil Feizi.
+Spurlens: Automatic detection of spurious cues in multimodal LLMs, 2026.
+[27] Tao Huang, Zhekun Liu, Rui Wang, Yang Zhang, and Liping Jing. Visual hallucination detection
+in large vision-language models via evidential conflict. International Journal of Approximate
+Reasoning, 186:109507, 2025.
+[28] Hualie Jiang, Zhe Sheng, Siyu Zhu, Zilong Dong, and Rui Huang.
+Unifuse: Unidirec-
+tional fusion for 360° panorama depth estimation. IEEE Robotics and Automation Letters,
+6(2):1519–1526, April 2021.
+[29] Dongki Jung, Jaehoon Choi, Yonghan Lee, Somi Jeong, Taejae Lee, Dinesh Manocha, and
+Suyong Yeon. Edm: Equirectangular projection-oriented dense kernelized feature matching,
+2025.
+[30] Jongsung Lee, Harin Park, Byeong-Uk Lee, and Kyungdon Joo. Hush: Holistic panoramic 3d
+scene understanding using spherical harmonics. In 2025 IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 16599–16608, 2025.
+[31] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating
+object hallucination in large vision-language models, 2023.
+[32] Yi-Lun Liao and Tess Smidt. Equiformer: Equivariant graph attention transformer for 3d
+atomistic graphs, 2023.
+[33] Zekai Lin and Xu Zheng. Panoenv: Exploring 3d spatial intelligence in panoramic environments
+with reinforcement learning, 2026.
+[34] Duy Nguyen, Archiki Prasad, Elias Stengel-Eskin, and Mohit Bansal. Grains: Gradient-based
+attribution for inference-time steering of llms and vlms, 2025.
+[35] Joseph Redmon, Santosh Divvala, Ross Girshick, and Ali Farhadi. You only look once: Unified,
+real-time object detection, 2016.
+[36] Manuel Rey-Area, Mingze Yuan, and Christian Richardt. 360monodepth: High-resolution 360
+monocular depth estimation, 2022.
+[37] Manuel Rey-Area, Mingze Yuan, and Christian Richardt. Matterport3d 360o rgbd dataset,
+March 2022.
+[38] Anna Rohrbach, Lisa Anne Hendricks, Kaylee Burns, Trevor Darrell, and Kate Saenko. Object
+hallucination in image captioning, 2019.
+[39] Fernando Ropero, Erkin Turkoz, Daniel Matos, Junqing Du, Antonio Ruiz, Yanfeng Zhang,
+Lu Liu, Mingwei Sun, and Yongliang Wang. Riemind: Geometry-grounded spatial agent for
+scene understanding, 2026.
+[40] Anushka Sivakumar, Andrew Zhang, Zaber Hakim, and Chris Thomas. Steervlm: Robust model
+control through lightweight activation steering for vision language models, 2025.
+[41] Bruno Souza, Marius Aasan, Helio Pedrini, and Adín Ramírez Rivera. Selfgraphvqa: A
+self-supervised graph neural network for scene-based question answering, 2023.
+[42] Tsun-Hsuan Wang, Hung-Jui Huang, Juan-Ting Lin, Chan-Wei Hu, Kuo-Hao Zeng, and Min
+Sun. Omnidirectional cnn for visual place recognition and navigation, 2018.
+[43] Mingrui Wu, Zhaozhi Wang, Fangjinhua Wang, Jiaolong Yang, Marc Pollefeys, and Tong Zhang.
+From indoor to open world: Revealing the spatial reasoning gap in mllms, 2025.
+[44] Liu Yang, Huiyu Duan, Ran Tao, Juntao Cheng, Sijing Wu, Yunhao Li, Jing Liu, Xiongkuo
+Min, and Guangtao Zhai. Odi-bench: Can mllms understand immersive omnidirectional
+environments?, 2026.
+12
+
+
+[45] Heeseung Yun, Youngjae Yu, Wonsuk Yang, Kangil Lee, and Gunhee Kim.
+Pano-avqa:
+Grounded audio-visual question answering on 360◦videos, 2021.
+[46] Chi Zhang et al. Deep learning for omnidirectional vision: A survey and new perspectives.
+IEEE Transactions on Pattern Analysis and Machine Intelligence, 2022.
+[47] Jiaming Zhang, Kailun Yang, Chaoxiang Ma, Simon Reiß, Kunyu Peng, and Rainer Stiefel-
+hagen. Bending reality: Distortion-aware transformers for adapting to panoramic semantic
+segmentation, 2022.
+[48] Jiaming Zhang, Kailun Yang, Hao Shi, Simon Reiß, Kunyu Peng, Chaoxiang Ma, Haodong
+Fu, Philip H. S. Torr, Kaiwei Wang, and Rainer Stiefelhagen. Behind every domain there is
+a shift: Adapting distortion-aware vision transformers for panoramic semantic segmentation.
+IEEE Transactions on Pattern Analysis and Machine Intelligence, 46(12):8549–8567, 2024.
+[49] Xinshen Zhang, Zhen Ye, and Xu Zheng. Towards omnidirectional reasoning with 360-r1: A
+dataset, benchmark, and grpo-based method, 2025.
+[50] Xu Zheng, Tianbo Pan, Yunhao Luo, and Lin Wang. Look at the neighbor: Distortion-aware
+unsupervised domain adaptation for panoramic semantic segmentation. In Proceedings of the
+IEEE/CVF International Conference on Computer Vision, pages 18687–18698, 2023.
+[51] Xu Zheng, Pengyuan Zhou, Athanasios V Vasilakos, and Lin Wang. Semantics distortion
+and style matter: Towards source-free uda for panoramic segmentation. In Proceedings of
+the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 27885–27895,
+2024.
+[52] Xu Zheng, Jinjing Zhu, Yexin Liu, Zidong Cao, Chong Fu, and Lin Wang. Both style and distor-
+tion matter: Dual-path unsupervised domain adaptation for panoramic semantic segmentation.
+In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+pages 1285–1295, 2023.
+13
+
+
+A
+SHSG: Theoretical Foundations
+A.1
+Why Spherical Harmonics Are the Right Representation
+Completeness and optimality.
+Real spherical harmonics {Yℓm}ℓ≥0,|m|≤ℓform a complete or-
+thonormal basis for L2(S2):
+Z
+S2 Yℓm(ω) Yℓ′m′(ω) dω = δℓℓ′δmm′.
+(8)
+Any square-integrable function f : S2 →R has a unique expansion f = P
+ℓ,m ˆfℓmYℓm, so truncating
+at degree Lmax gives the best L2-approximation using (Lmax + 1)2 coefficients. For Lmax =7 this
+yields 64 coefficients per node — sufficient to resolve angular features at ≈20◦resolution on the
+sphere, comfortably capturing the spatial separations typical of indoor objects in Matterport3D.
+Figure 8: SH inner product decay vs. angular separation for L ∈{2, 7, 12}. L = 7 (blue) decays
+sharply near 0◦and oscillates minimally in the mid-range, whereas L = 12 (green) rings more
+severely despite a sharper onset. The dashed black curve shows the ideal cos(δ) reference. ReLU
+gating in SSH makes ringing beyond 90◦irrelevant, justifying Lmax = 7 as the operating point.
+Bandwidth validation.
+Figure 8 empirically validates the choice of Lmax = 7. Each curve plots the
+normalised SH inner product ⟨fa, fk⟩as a function of angular separation δ for three bandwidth settings.
+Higher L sharpens the near-field peak but introduces stronger sidelobe ringing; L = 12 produces
+a deeper first null than L = 7 yet oscillates more severely beyond 30◦, degrading discrimination
+at larger separations. L = 7 strikes the optimal balance: the peak is narrow enough to resolve the
+≈20◦angular features typical of indoor scenes on Matterport3D, while the ReLU gate in SSH (Eq. 2)
+suppresses all negative-valued lobes beyond 90◦, rendering the far-field ringing inconsequential for
+candidate ranking.
+Exact SO(3) equivariance via Wigner matrices.
+The defining property exploited by SHSG is that
+any rotation R ∈SO(3) acts on degree-ℓSH coefficients via a known (2ℓ+ 1) × (2ℓ+ 1) matrix
+D(ℓ)(R):
+[R · f]ℓm =
+ℓ
+X
+m′=−ℓ
+D(ℓ)
+mm′(R) ˆfℓm′.
+(9)
+This means: rotating the scene and then computing SH features gives exactly the same result as
+computing SH features first and then applying the Wigner matrix. No approximation is involved. For
+our directional ranking task, this means we can rotate the canonical “north-pole points here” kernel
+to any direction d by matrix multiplication rather than by re-computing geometry from scratch.
+14
+
+
+What is to in front of board ?
+Current VLMs
+The window is in front
+VLM + SphMind (Ours)
+Chair is in front
+Figure 9: SHSG corrects directional reasoning via SO(3)-equivariant scoring. For “What is in
+front of the board?”, SPHMIND places objects on the sphere: + SH center; × suppressed candidates
+(low Wigner-D SSH); ⋆top candidate (chair) aligned with the rotated anchor lobe; ⋆anchor.
+A.2
+Geodesic NMS on S2
+Standard NMS suppresses overlapping boxes by pixel IoU. For detections lifted to spherical coor-
+dinates, pixel-IoU is ill-defined across cubemap faces. We instead suppress a detection Nj if there
+exists Ni of the same category with higher confidence such that the great-circle distance is below
+threshold τNMS:
+cos δij = sin ϕi sin ϕj + cos ϕi cos ϕj cos(θi −θj) ≥cos τNMS,
+τNMS = 0.08 rad.
+(10)
+At τ =0.08 rad ≈4.6◦, two detections of the same object on adjacent cubemap faces (typical overlap
+< 3◦at face boundary) are correctly merged, while genuinely distinct objects at typical indoor
+separations (> 10◦) are preserved.
+Further, in Fig. 9, the brown lobe is the Wigner-D rotated anchor field — any object whose SH vector
+fk aligns with it (high inner product) is geometrically “in front.” The chair aligns; the window does
+not, regardless of how large it appears in the ERP image.
+Visual validation on a real MP3D scene.
+Figure 10 illustrates the consequence of scoring can-
+didates in ERP pixel-space versus on S2 for the query “What is to the right of the shelf?” on
+a real Matterport3D scan. The scene contains six objects: Bed (red, θ=50◦, ϕ=45◦), Cabinet
+(blue, θ=−160◦, ϕ=−28◦), Shelf (purple star, anchor, θ=−100◦, ϕ=−10◦), and three additional
+distractors (brown, teal, pink).
+Panel (a) shows the ERP Cartesian projection. The pink dotted ellipses are ERP pixel-distance
+iso-rings centred at the anchor: because azimuth degrees and elevation degrees have unequal metric
+meaning in ERP, these rings are distorted ellipses — a candidate at (θ, ϕ) = (50◦, 45◦) appears far
+from the anchor in pixel-space but is in fact geodesically adjacent on S2. The red dashed arrow is the
+ERP straight-line path, which a pixel-space VLM would use to rank candidates ,it points toward the
+Bed at (50◦, 45◦) only by accident of pixel proximity, not geometric reasoning.
+Panel (b) shows the same scene in Mollweide projection on S2. The teal dotted rings are true geodesic
+equidistant circles, which are metric circles on the sphere. Marker area encodes the Wigner-D score
+SSH: the Bed (large green, SSH = 0.82) is the correct answer and receives the highest score; the
+Cabinet (SSH = 0.31), Shelf distractors (SSH ≤0.18) are correctly suppressed. The green geodesic
+arc is the great-circle path from anchor to the top-ranked candidate, visibly different from the ERP
+straight-line path in panel (a), confirming that pixel-space proximity is a poor proxy for spherical
+directional alignment.
+A.3
+Bandwidth-Derived Directional Cone
+To validate the bandwidth-derived cone (Eq. 11), we compare three gating strategies in Table 3:
+(i) no gate (SSH used directly), (ii) the proposed ∆d cone derived from Lmax, and (iii) fixed per-
+direction angular ranges as a heuristic baseline. Removing the gate entirely degrades direction
+accuracy by −2.3%, confirming that harmonic spectral leakage at Lmax=7 produces false positives
+that require suppression. The bandwidth-derived cone matches or exceeds the fixed-range heuristic
+on all categories while introducing zero additional hyperparameters, as ∆d ≈15.2◦follows directly
+from Lmax=7 with no tuning. This validates that the gate is a representational necessity and that its
+threshold is fully determined by the SH bandwidth.
+15
+
+
+Figure 10: ERP pixel-space vs. geodesic S2 scoring on a real MP3D scene. (a) Cartesian ERP:
+iso-distance rings (pink dotted) are distorted ellipses; the ERP straight-line path (red dashed) is
+geometrically misleading. (b) Mollweide S2: geodesic rings (teal dotted) are metric circles; marker
+area ∝SSH score; Bed scores 0.82 (correct), Cabinet 0.31, all others ≤0.18. The green geodesic arc
+connects the anchor (purple star) to the top-ranked candidate along the true great-circle path.
+Figure 11: Gram matrix of Wigner-D score
+vectors across all six query directions (MP3D).
+Diagonal = 1.00; all off-diagonal Pearson cor-
+relations lie in [−0.13, −0.05], confirming near-
+orthogonality of the six directional subspaces in-
+duced by SSH. The −0.13 entries at antipodal pairs
+(Right/Left, Front/Behind) reflect residual spectral
+leakage at δ ≈π, which the bandwidth-derived
+cone gate ∆d ≈15.2◦is designed to suppress.
+The Wigner-D score SSH(a, k, d) measures the
+inner product between the rotated anchor feature
+Dd fa and candidate feature fk, where both are
+vectors of SH basis values evaluated at point
+locations on S2. Since SH basis functions Yℓm
+at finite degree Lmax are globally supported —
+not spatially localized — two nodes at large
+geodesic separation δk ≈π can yield a non-
+trivially positive inner product purely due to har-
+monic overlap. This is a spectral leakage effect,
+distinct from Gibbs ringing (which concerns
+truncated reconstruction of discontinuous func-
+tions and does not apply here, as we evaluate
+basis functions pointwise rather than reconstruct-
+ing a field). The angular scale below which this
+leakage becomes significant is the spacing of the
+Gauss–Legendre quadrature nodes of a degree-
+Lmax SH expansion [14], which provides the
+finest angular scale resolvable without aliasing:
+The angular scale below which this leakage be-
+comes significant is the Nyquist angular resolu-
+tion of the SH basis at degree Lmax:
+∆d = arccos
+
+1 −
+2
+Lmax(Lmax+1)
+
+.
+(11)
+For Lmax=7, this gives ∆d ≈15.2◦. Candi-
+dates with great-circle distance δk > π −∆d
+from anchor Na are in the antipodal leakage zone and are excluded. This threshold is entirely
+determined by Lmax and requires no additional tuning. Note that this replaces the direction-specific
+hard-coded angular ranges used in prior versions of SHSG, which lacked theoretical grounding.
+Empirical validation of directional independence.
+The bandwidth-derived cone ∆d ≈15.2◦
+(Eq. 11) is designed to suppress antipodal spectral leakage in SSH. Figure 11 provides direct
+empirical evidence that this suppression is effective: the Pearson correlation matrix of the six Wigner-
+16
+
+
+D score vectors {sd}6
+d=1 — each collecting SSH(a, k, d) scores over N candidate pairs sampled
+from MP3D — shows all off-diagonal entries in [−0.13, −0.05], with diagonal entries exactly 1.00.
+The two largest off-diagonal magnitudes (−0.13) occur precisely at the antipodal pairs Right↔Left
+and Front↔Behind, consistent with residual leakage at δ ≈π that the cone gate suppresses. All
+remaining cross-direction correlations are below 0.10 in magnitude, confirming that querying Right
+and querying Left produce geometrically orthogonal evidence patterns over the candidate set — a
+non-trivial consequence of the Wigner-D structure that scalar re-ranking cannot replicate.
+B
+IGG: Proofs and Parameter Justification
+B.1
+Exact Gradient of Contrastive Energy
+We derive ∇hE for the contrastive geometric violation energy (Eq. 6). Let h ∈Rd, Wlm ∈RV ×d
+be the frozen LM head, and z = Wlmh the logits. Define:
+P(yk | h) =
+ezk
+P
+k′ ezk′ =: σ(z)k.
+(12)
+Gradient of the contrastive term.
+The contrastive term is:
+Egeo =
+1
+|P|
+X
+(k+,k−)∈P
+∆Ck+k−· log P(yk−|h)
+P(yk+|h),
+(13)
+where ∆Ck+k−= C(yk−) −C(yk+) > 0 is a fixed positive scalar for each pair. Differentiating with
+respect to logit zj:
+∂
+∂zj
+log P(yk−|h)
+P(yk+|h) =
+∂
+∂zj
+ log P(yk−|h) −log P(yk+|h)
+
+= (δjk−−P(yk−|h)) −(δjk+ −P(yk+|h))
+= δjk−−δjk+ −P(yk−|h) + P(yk+|h).
+(14)
+In vector form over all logits j:
+∂
+∂z log P(yk−|h)
+P(yk+|h) = ek−−ek+ −P(yk−|h)1 + P(yk+|h)1,
+(15)
+where ek is the standard basis vector for token k. Summing over all pairs and applying the chain rule
+∂z/∂h = W⊤
+lm:
+∇hEgeo =
+1
+|P|W⊤
+lm
+X
+(k+,k−)∈P
+∆Ck+k−·
+ ek−−ek+ + (Pk+ −Pk−)1
+
+.
+(16)
+Gradient of the KL term.
+The KL divergence term is:
+EKL =
+X
+v
+Porig(v) log Porig(v)
+P(v|h) .
+(17)
+Differentiating with respect to zj:
+∂EKL
+∂zj
+= P(yj|h) −Porig(yj).
+(18)
+In vector form:
+∇hEKL = W⊤
+lm
+ Ph −Porig
+
+.
+(19)
+Full gradient.
+Combining both terms:
+∇hE = W⊤
+lm
+
+βgeo
+|P|
+X
+(k+,k−)∈P
+∆Ck+k−·
+ ek−−ek+ + (Pk+ −Pk−)1
+
++ βKL
+ Ph −Porig
+
+
+.
+(20)
+The gradient is a weighted sum of differences of LM head rows Wlm[k−] −Wlm[k+] — each pair
+contributes a direction in hidden state space pointing from the wrong-answer token embedding toward
+the correct-answer token embedding, weighted by both the geometric cost difference ∆Ck+k−and the
+current probability log-ratio. Updates therefore propagate through inter-token semantic correlations
+encoded in Wlm without any weight update.
+17
+
+
+Self-scaling property.
+The log-ratio log(Pk−/Pk+) is:
+log P(yk−|h)
+P(yk+|h) = zk−−zk+.
+(21)
+When the VLM assigns high probability to the geometrically wrong candidate (zk−≫zk+), this
+term is large — the gradient is strong. When the probability ordering already matches the geometric
+ordering (zk+ ≥zk−), the log-ratio is non-positive and the pair contributes zero or negative gradient
+— the energy does not penalise correctly-ordered pairs. This self-scaling property means no empirical
+step-count tuning is required: the gradient is intrinsically calibrated to the degree of geometric
+ordering violation.
+B.2
+Proof: Energy Zero at Geometric Optimum
+Claim.
+Egeo(h) = 0 if and only if P(yk+|h) ≥P(yk−|h) for all (k+, k−) ∈P.
+Proof.
+Each term ∆Ck+k−· log(Pk−/Pk+) in the sum satisfies:
+• ∆Ck+k−> 0 by construction of P.
+• log(Pk−/Pk+) ≤0 iff Pk+ ≥Pk−, i.e. the probability ordering matches the geometric
+ordering.
+• log(Pk−/Pk+) = 0 iff Pk+ = Pk−.
+Since ∆Ck+k−> 0 for all pairs by construction, each term ∆Ck+k−· log(Pk−/Pk+) is non-positive
+iff Pk+ ≥Pk−(correct ordering) and strictly negative iff Pk+ > Pk−(strict correct ordering). Egeo
+therefore reaches its least negative value (closest to zero from below) when every pair is correctly
+ordered. Without the KL term, Egeo is unbounded below as P(yk−|h) →0; the KL anchor in Eq. 6
+provides the lower bound that makes the joint optimisation well-posed. The claim in the main text that
+“Egeo reaches zero when Ph is monotonically decreasing in C(yk)” holds exactly when Pk+ = Pk−
+for all pairs, i.e. the distribution is uniform over Sd — a degenerate case prevented by the KL term. □
+This gives a clean geometric interpretation: IGG minimises E until the VLM’s probability distribution
+over Sd is monotonically decreasing in C(yk) — perfectly reflecting the geometric ranking produced
+by SHSG.
+B.3
+Proof: Norm-Preserving Update Stays on the Sphere
+Claim.
+The update in Eq. (7) satisfies ∥h′∥= ∥h∥exactly.
+Proof.
+Let u = h −ε∥h∥˜g. Then:
+h′ =
+u
+∥u∥· ∥h∥.
+(22)
+By construction ∥h′∥= ∥h∥. □
+Why this is the correct geometric operation.
+The tangent space of the hypersphere Sd−1 at
+ˆh = h/∥h∥is:
+TˆhSd−1 = {v ∈Rd : v⊤ˆh = 0}.
+(23)
+The Gram–Schmidt projection:
+˜g = ˆg −(ˆg⊤ˆh)ˆh
+(24)
+removes the radial component of ˆg, so ˜g ∈TˆhSd−1. A step along ˜g therefore moves h along the
+sphere surface (changing semantic direction) rather than outward (changing norm). Norm restoration
+in Eq. (22) maps back to the exact same hypersphere radius, corresponding to the retraction map on
+Sd−1.
+Assumptions. (i) The LM head Wlm ∈RV ×d is frozen; gradients flow through h only. (ii) The final
+hidden state lies on the ℓ2-norm hypersphere M = {h ∈Rd : ∥h∥= r}, where r = ∥h0∥is fixed
+by the pretrained LayerNorm scale.
+18
+
+
+Why norm matters for the LM head.
+In LLaVA-1.5, the last hidden state h passes through a
+final LayerNorm before the LM head: z = Wlm LN(h), where LN(h) = γ (h −µ)/σ + β with
+µ, σ computed over the d components of h. The Riemannian update changes only the direction of h,
+not its norm. With ε≈0.09 at t=0 (the step at which early stopping fires in 74% of examples), the
+induced angular displacement is arccos(0.989)≈8.5◦in the d=4096 dimensional hidden space, as
+confirmed by Fig. 6 C. A simultaneous norm change would compound this directional correction with
+an uncontrolled scale shift: because LN normalises by σ computed over all d components, a norm
+perturbation alters µ and σ asymmetrically when combined with a directional change, shifting the
+effective softmax temperature in a way that is neither controlled nor interpretable. Norm preservation
+via Eq. (22) isolates the geometric correction as a pure directional intervention, ensuring the only
+change to the output logits is the one induced by the geometric gradient ∇E — and keeping the
+energy descent monotone and interpretable across steps. This is consistent with the small adaptive
+step size (ε0 =0.15) and the cos(h0, h′)=0.989 semantic coherence shown in Fig. 6 C.
+B.4
+Step Size and Convergence
+The step size is fixed as η = ε0 = 0.15 with early stopping when |∆E| < δ = 0.005. Unlike the
+pointwise energy formulation, the contrastive gradient is self-scaling: its magnitude is proportional
+to the log-ratio log(Pk−/Pk+), which is large when correction is most needed and diminishes as
+the ordering converges. Empirical behavior. In practice, early stopping fires at T=1 for 74% of
+examples, confirming that a single step is empirically sufficient for the majority of cases; this is an
+empirical observation and not a consequence of the Lipschitz descent bound above. This eliminates
+the need for an adaptive step schedule or multi-step tuning — a single Riemannian step suffices
+for the majority of examples, with early stopping providing a principled termination criterion. The
+energy satisfies a standard Riemannian descent guarantee for Lipschitz-smooth objectives:
+E(ht+1) ≤E(ht) −η∥h∥∥˜g∥2 + O(η2),
+(25)
+for step sizes η < 1/Lsmooth, where Lsmooth is the Lipschitz constant of ∇E on M (Appendix B.3).
+The correction is intentionally minimal: we seek not the global minimum of E — which would
+override the VLM’s semantic prior — but the smallest directional correction sufficient to align the
+probability ordering with the geometric ranking from SHSG.
+Figure 12: Effect of IGG on candidate probability distribution. Query: “What is in front of the
+board?” Heatmap shows P(yk|h) projected onto candidate bounding box regions. Before IGG (left):
+probability mass concentrates on the geometrically incorrect candidate (⊕, wrong answer). After
+IGG (right): the Riemannian update shifts probability mass to the geometrically correct candidate
+(⋆, chair), consistent with SHSG’s directional score ranking. This shift occurs without modifying
+any model weights. See Table 3 (SHSG-only vs. Full) for the quantitative contribution of IGG beyond
+candidate filtering alone.
+C
+Benchmark Construction Details
+C.1
+Evaluation Protocol Details
+Table 1 spans two distinct evaluation protocols. Presence and counting receive no external detections
+in either setting, measuring the raw VLM perception gap on distorted ERP images directly; gains
+here reflect cubemap-based detection versus direct ERP perception. Direction and distance provide
+identical YOLO detections and graph V to both Vanilla and SPHMIND; gains are therefore attributable
+19
+
+
+Table 4: IGG hyperparameters and their roles.
+Parameter
+Value
+Role
+βgeo
+0.3
+Weight of geometric violation term
+βKL
+0.7
+Weight of prior-preservation term
+τ
+2.0
+Softmax temperature for Pτ; raised to main-
+tain gradients across all candidates
+ε0
+0.15
+Base guidance scale
+T
+2
+Max correction steps
+δ
+0.005
+Early stopping threshold on |∆E|
+γ
+1.5
+Score sharpening exponent in SSH
+solely to SHSG+IGG geometric reasoning. The Overall row averages across both protocols and is
+best read alongside the per-category rows.
+C.2
+Spatial Relationship Ground Truth
+Anchor - Door                    Dir - Right                        SphMind - Chair                 GT - Chair
+Azimuth
+-180
+-90
+0
++90
++180
+-90
+-45
+0
++45
++90
+Anchor - Board                    Dir - Left                       SphMind - Chair                 GT - Chair
+Azimuth
+-180
+-90
+0
++90
++180
+-90
+-45
+0
++45
++90
+Figure 13: SO(3)-equivariance of the SH directional field. Qualitative results to show directional
+reasoning using SH scores and equivariance properties. Top: ERP panorama with SH field overlay;
+the anchor (blue) and query arrow rotate consistently with the scene. Bottom: Pure SH field on S2
+(equirectangular); the peak tracks the rotation exactly (<1◦error), a direct consequence of Wigner-D
+equivariance (Eq. 2).
+Object extraction.
+For Stanford 2D-3D-S, object instances are extracted from the per-area
+semantic.obj mesh by grouping face geometry under each usemtl label and computing the
+instance centroid as the mean position of all assigned face vertices. For Matterport3D, instance
+centroids are read directly from the per-region semantic mesh annotations provided with the dataset.
+20
+
+
+Structural primitives (wall, floor, ceiling, door, window, column, beam) and noisy ontology entries
+(unlabelled, clutter, void, otherfurniture, otherstructure) are discarded before any further
+processing. Instances of the same category whose centroids lie within rdedup = 0.5 m of each other
+are merged to a single representative centroid to eliminate redundant near-duplicate annotations
+arising from mesh segmentation artefacts. Evaluation is restricted to the eleven furniture categories
+present in both datasets: chair, sofa, bed, toilet, television, shelf, cabinet, desk, sink, lamp, board.
+Camera-frame projection.
+Each panorama’s calibration file provides the world-to-camera rotation
+Rw2c ∈SO(3) and camera centre C ∈R3. An object with world centroid p is projected into the
+viewer-centric frame as
+v = Rw2c (p −C),
+(26)
+and converted to spherical coordinates (θ, ϕ, r) under the convention
+θ = atan2(vx, vz),
+ϕ = arcsin
+  vy
+r
+
+,
+r = ∥v∥,
+(27)
+where vx points right, vy up, and vz forward. This convention places the forward hemisphere at
+|θ| < π/2 and is consistent across both datasets.
+Multi-anchor spatial GT generation.
+For each anchor category a and direction d
+∈
+{front, behind, left, right, above, below}, ground-truth answers are aggregated over all visible anchor
+instances within rmax = 18 m of the camera. For a given anchor instance at (θa, ϕa), a viewer-centric
+Gaussian compatibility score is computed for every candidate target object at (θt, ϕt) within 8 m:
+s(θt, ϕt | θa, ϕa, d) ∝exp
+
+−(∆θ −µd)2
+2σ2
+H
+
+exp
+
+−(∆ϕ −νd)2
+2σ2
+V
+
+,
+(28)
+where ∆θ = wrap(θt −θa) ∈(−π, π] is the signed azimuthal separation, ∆ϕ = ϕt −ϕa is the
+signed elevation difference, and the direction-specific centers are
+µd ∈{0, π, −π
+2 , + π
+2 , 0, 0},
+(29)
+νd ∈{0, 0, 0, 0, + π
+4 , −π
+4 },
+(30)
+for d ∈{front, behind, left, right, above, below} respectively. The bandwidth parameters σH = π/4
+(45◦) and σV = π/6 (30◦) encode the natural graded uncertainty at direction-zone boundaries.
+Hard angular gates enforce geometrically unambiguous attribution. For the horizontal directions, the
+acceptance windows are
+|∆θ| ≤5π
+12 (75◦)
+for front and behind,
+(31)
+π
+12 (15◦) ≤|∆θ| ≤
+11π
+12 (165◦)
+for left and right,
+(32)
+where the inner exclusion zone for left and right prevents objects near the forward axis from being
+attributed to a lateral direction. For the vertical directions, 5◦≤±∆ϕ ≤85◦with the sign matched
+to the queried direction. Targets whose score falls below τ = 0.05 after gate filtering are discarded.
+Vote aggregation and answer list.
+Within a single anchor instance, all candidates whose score
+satisfies s ≥0.35 · smax cast a unit vote for their object category, where smax is the highest score
+among surviving candidates. Votes are accumulated across all valid anchor instances of category a
+visible in the panorama. The top-K (K = 5) categories ranked by vote count, tie-broken by mean
+score, form the answer list; the top-1 entry is the primary GT answer used in strict evaluation. A
+single valid anchor instance is sufficient to generate a GT entry, ensuring coverage of panoramas
+where only one instance of the anchor category is visible.
+Independence from the proposed model.
+The Gaussian compatibility function in Eq. 28 operates
+entirely on ground-truth 3D mesh geometry and calibrated camera poses at dataset construction time,
+with no dependence on any model output, SH feature, or component of the proposed SHSG system.
+The directional centres µd (e.g. µleft
+θ
+= −90◦) reflect the only geometrically correct definition
+of viewer-centric directions — any method claiming to reason about “left” must align with −90◦
+azimuth. The bandwidth parameters σH=45◦and σV =30◦encode the natural graded uncertainty at
+direction-zone boundaries and are wider than the SH resolution of ≈20◦at Lmax=7, meaning GT
+accepts answers that SHSG ranks below its peak — the shared angular geometry is a constraint of the
+task definition, not a tuning advantage for SHSG.
+The model is evaluated on directions inferred from image evidence alone; GT is derived from
+independent 3D geometry. Evaluation is therefore not circular.
+21
+
+
+Validity of geometry-derived spatial relations.
+A natural concern is whether 3D-centroid-derived
+spatial relations correspond to visually verifiable directions in the panoramic image. We address this
+in two parts.
+Co-presence. Since our pipeline operates on full equirectangular panoramas (360◦× 180◦), every
+object within the distance filter is guaranteed to appear somewhere in the image regardless of its
+angular position relative to the anchor. Co-presence in a narrow field-of-view crop is not required and
+is not assumed by our model.
+Occlusion. GT generation does not perform ray-casting and therefore cannot verify that a geometri-
+cally valid target is optically visible. This limitation is shared by all existing 3D-annotation-derived
+indoor VQA benchmarks. We mitigate its impact through three design choices: (i) the 6 m target
+distance filter removes objects likely to be at low resolution or partially hidden behind intervening
+structure;Anchor instances beyond ranc = 6 m from the camera and target objects beyond rtgt = 6 m
+are excluded. These thresholds approximate the largest dimension of a single indoor room in both
+datasets — objects beyond this distance are almost certainly in an adjacent space and therefore not
+spatially related to the anchor in the sense intended by the question. (ii) the multi-anchor voting
+scheme requires a candidate to score above threshold τ = 0.05 across multiple anchor instances
+— a transiently occluded object will generally receive inconsistent votes and fail to accumulate
+sufficient support; (iii) restricting the object vocabulary to eleven large furniture categories (≥0.3 m
+characteristic size) reduces the incidence of complete occlusion compared to small-object categories.
+We further conducted a manual audit of 50 randomly sampled spatial questions, verifying that in
+46 of 50 cases both anchor and target are visually discernible in the equirectangular panorama at
+the labelled angular relationship. The four failure cases all involved the sofa category partially
+occluded behind a chair cluster at close range (< 1.5 m), and were not systematically biased toward
+any direction label. This 92% visual validity rate is consistent with figures reported for comparable
+geometry-derived benchmarks.
+C.3
+Distance Comparison GT
+For each panorama, the closest visible instance of each category within 8 m is retained. All unordered
+pairs (a, b) of distinct categories are compared by their camera distances da, db; pairs where |da −
+db| < 0.3 m are discarded as ambiguous. The GT answer is the category with the smaller camera
+distance.
+C.4
+Counting and Presence GT
+Counting questions report the number of instances of each category visible within 18 m; questions
+with counts outside [1, 10] are discarded. Presence questions sample up to two positively-present
+categories (visible within 8 m) and one truly-absent category (not present anywhere in the area) to
+balance yes/no labels.
+C.5
+Question Statistics
+The resulting benchmark contains ∼12k questions across both datasets, with no overlap in panoramas
+between training and evaluation splits. Matterport3D contains approximately ∼1.2k questions for
+each of the six scenes, while Stanford2D-3D-S contains ∼1.2k questions for each of the four scenes.
+Around 50% of the questions evaluate directional reasoning, 25% evaluate distance reasoning, and
+the remaining questions cover presence and counting. All GT answers are derived entirely from 3D
+mesh geometry and calibrated poses; no human annotation or VLM output is used at any stage of
+benchmark construction.
+22
+
+
+D
+SHSG Directional Parameters
+Direction d
+µθ
+d (◦)
+µϕ
+d (◦)
+σθ (◦)
+σϕ (◦)
+α
+β
+left
+−90
+0
+45
+30
+−π/2
+0
+right
++90
+0
+45
+30
++π/2
+0
+front
+0
+0
+45
+30
+0
+0
+behind
+±180
+0
+45
+30
+π
+0
+above
+0
++15
+45
+22.5
+0
+π/2
+below
+0
+−15
+45
+22.5
+π
+−π/2
+Note on above/below. The elevation peak at ±15◦rather than ±90◦reflects the typical elevation
+difference between co-planar indoor objects (e.g., a shelf above a sofa ≈10–20◦in Matterport3D),
+with a tighter σϕ = 22.5◦to avoid bleeding into the horizontal plane. All six directions use a uniform
+σθ = 45◦azimuthal gate, ensuring symmetric and unbiased directional coverage across the sphere.
+E
+Distance Query Handling
+E.1
+Problem Formulation
+The distance benchmark (Appendix C) poses exclusively pairwise camera-distance queries of the
+form “which of object A or object B is closer to the camera?” Ground-truth answers are derived from
+camera-frame radial distances rk = ∥vk∥computed directly from 3D mesh annotations (Appendix C).
+The task therefore requires estimating the sign of rA −rB from image evidence alone, without access
+to ground-truth depths. Unlike directional queries, distance queries involve no anchor-candidate
+relationship — both objects are candidates and neither serves as a spatial reference; the reference
+point is the camera origin.
+E.2
+Depth Estimation from S2-Native Signals
+SHSG estimates a scalar depth score sk for each candidate node Gk from two signals that are native
+to the spherical representation, requiring no external depth estimator, no category-specific priors, and
+no camera calibration beyond what is already available in the dataset.
+Signal 1 — Centroid elevation.
+For a camera at height hcam above the floor, an object whose
+centroid projects to elevation angle ϕk on S2 satisfies:
+ˆdϕ
+k =
+hcam
+tan |ϕk| + ε,
+(33)
+where ε = 10−4 prevents division by zero. Objects closer to the camera project to steeper elevations
+(larger |ϕk|); objects farther away project near the horizon (ϕk →0). We use the node centroid ϕk
+rather than the bounding box bottom edge, as centroid coordinates are more robust to partial occlusion
+and cubemap face boundary clipping. hcam is read directly from calibrated poses in Matterport3D
+and Stanford 2D-3D-S; distance queries are not evaluated on ODI-Bench or OpenView-VQA where
+calibration is unavailable.
+The elevation signal is exact for floor-standing objects but degrades systematically for wall-mounted
+categories — shelf, television, board, sink, lamp — whose centroids are elevated above the floor.
+For these categories, ˆdϕ
+k underestimates true camera distance because the centroid elevation reflects
+mounting height rather than camera proximity. Signal 2 compensates for this failure mode.
+Signal 2 — Relational scene density.
+For each node Gk, we define its relational scene density as a
+confidence-weighted sum of geodesic proximities to all other detected nodes in G:
+ρk =
+X
+j̸=k
+ˆcj
+
+1 −δjk
+π
+
+,
+(34)
+where δjk is the great-circle distance between Gk and Gj on S2, already computed during GNMS
+(Appendix A.2), and ˆcj ∈[0, 1] is the detection confidence of neighbour Gj. The weight (1 −δjk/π)
+23
+
+
+decays linearly from 1 at co-location to 0 at the antipodal point, giving a geometrically natural
+proximity measure on S2 with no free parameters.
+Why density correlates with depth. An object close to the camera occupies a central region of the
+panorama and tends to be surrounded by other visible objects — furniture, walls, and floor features
+— within a given angular radius. An object far from the camera sits near the background or periphery
+and has fewer detected neighbours within the same angular radius. This relationship holds regardless
+of whether the object is floor-standing or wall-mounted, because it depends on scene co-occurrence
+structure rather than floor geometry.
+SO(3)-equivariance. Since δjk is a great-circle distance defined purely on S2, it is invariant to global
+rotation of the observer: rotating the entire scene by R ∈SO(3) moves all nodes (θj, ϕj) consistently
+but preserves all pairwise geodesic distances δjk. Therefore ρk is SO(3)-invariant — the depth score
+assigned to each object does not depend on the panorama’s azimuthal orientation, consistent with the
+rotational consistency requirement of the full pipeline.
+Computational cost. ρk requires K −1 geodesic distance evaluations per node, where K is the total
+number of detected nodes. Since geodesic distances are already computed pairwise during GNMS,
+ρk is a simple weighted sum over cached values — O(K2) total, negligible for typical indoor scenes
+with K ≤30.
+E.3
+Combined Depth Score
+The two signals are complementary: elevation is geometrically exact for floor-standing objects given
+calibration, while density provides a calibration-free signal for all object types. We combine them as:
+sk = α |ϕk| + (1 −α)
+ρk
+maxj ρj + ε,
+(35)
+where α = 0.6 weights the elevation signal slightly higher when calibration is available, and ρk is
+normalised by the maximum density across all candidates to bring both signals into [0, 1]. A higher
+sk indicates an object closer to the camera.
+Fallback for sparse scenes.
+When K < 3 (fewer than three detected objects in the scene graph),
+the density signal is unreliable — a single neighbour provides insufficient evidence for proximity
+estimation. In this case the pipeline falls back to elevation alone by setting α = 1.
+E.4
+Geometric Violation Cost
+For a pairwise distance query between objects A and B with depth scores sA and sB, the geometric
+violation costs passed to IGG are:
+C(yA) =
+sB
+sA + sB
+,
+C(yB) =
+sA
+sA + sB
+.
+(36)
+Three properties follow directly:
+• Query-conditioned: C(yA) < C(yB) iff sA > sB, i.e. the closer object always receives
+lower violation cost, regardless of absolute depth values.
+• Normalised: C(yA) + C(yB) = 1, ensuring consistent energy scale with βgeo across all
+query types.
+• Smooth: C(yk) ∈(0, 1) for all finite sk > 0, preserving non-vanishing gradients in the
+IGG energy for both candidates.
+These costs slot directly into Eq. 6 without modification — the same contrastive IGG energy and
+Riemannian update handle distance queries identically to directional queries, with only C(yk)
+changing to reflect the depth-ordering signal rather than the Wigner-D directional signal.
+E.5
+Sensitivity Analysis
+Table 5 reports distance accuracy on MP3D on all four scenes(Qwen2.5-7B) across values of α and
+ablations of each signal component.
+24
+
+
+Configuration
+Distance Acc.
+∆
+Full (α=0.6)
+64.1
+—
+α=0.4
+63.2
+−0.9
+α=0.8
+63.7
+−0.4
+α=1.0 (elev. only)
+61.3
+−2.8
+α=0.0 (density only)
+60.8
+−3.3
+Linear decay vs exp. kernel
+63.9
+−0.2
+Table 5: Distance accuracy sensitivity on MP3D (Qwen2.5-7B). Neither signal alone matches their
+combination; α is robust within [0.4, 0.8].
+Performance varies by at most ±0.9% across α ∈[0.4, 0.8], confirming robustness to the combination
+weight. Elevation alone (−2.8%) and density alone (−3.3%) both underperform the combination,
+validating that the two signals are complementary rather than redundant. The last row confirms
+that replacing the linear geodesic decay (1 −δjk/π) with an exponential kernel yields negligible
+difference (−0.2%), justifying the simpler parameter-free linear form.
+E.6
+Alignment with Benchmark Ground Truth
+The benchmark GT (Appendix C) is derived from true camera-frame distances rk = ∥vk∥computed
+from 3D mesh geometry. Our depth score sk estimates the sign of rA −rB without accessing rk
+directly — elevation approximates rk via floor geometry, and density approximates it via scene
+co-occurrence structure. Neither uses the GT ordering, ensuring the evaluation is not circular. Pairs
+where |rA −rB| < 0.3 m are discarded as ambiguous in the benchmark, reducing the impact of cases
+where both signals are genuinely indiscriminative.
+F
+ODI-Bench Evaluation Details
+ODI-Bench provides human-annotated QA pairs on raw Flickr ODIs with no pose metadata or 3D
+annotations — a structurally different regime from MP3D and 2D-3D-S, where GT is derived from
+known camera poses and 3D centroids. SPHMIND requires no adaptation because the ERP format
+itself defines the viewer-centric frame: pixel (u, v) maps directly to spherical coordinates via
+θ = u −W/2
+W
+· 2π,
+ϕ = H/2 −v
+H
+· π
+(37)
+with no extrinsic pose matrix required. Human annotators labelled directions relative to the viewer
+(e.g., “the chair is to the left of the table”), which corresponds exactly to θ < 0 in this viewer-centric
+frame — the same convention SHSG uses natively.
+RD Adaptation.
+Both anchor and target objects are detected via YOLO on the ERP image and
+lifted to (θ1, ϕ1) and (θ2, ϕ2) on S2. The Wigner-D operator Dd rotates the anchor SH field fa =
+[Yℓm(θ1, ϕ1)] toward the queried direction d, and SSH scores the target:
+SSH(a, k, d) = ReLU(⟨Dd fa, fk⟩)γ
+P
+k′ ReLU(· · · )γ
+(38)
+This is identical to the standard MP3D setting — no structural change is required.
+EVO Adaptation.
+EVO asks for the direction of a single object relative to the viewer (camera
+centre). SHSG localises the object at (θ, ϕ) and the viewer-centric frame yields the directional
+probability directly from the SH field evaluation at that position, with the camera origin as the implicit
+anchor.
+Coordinate Invariance.
+ODI-Bench images carry no coordinate frame metadata. SPHMIND
+is unaffected because SHSG operates on S2 via SO(3)-equivariant spherical harmonics: Wigner-
+D scoring satisfies ⟨Dd(Rfa), Rfk⟩= ⟨Dd fa, fk⟩for any global rotation R ∈SO(3), making
+directional scores invariant to the coordinate conventions of the underlying dataset.
+25
+
+
+G
+OpenView-VQA Evaluation Details
+G.1
+Benchmark and Scope
+OpenView-VQA was designed to evaluate out-of-view (OOV) spatial reasoning from restricted FoV
+crops — inferring objects in unobserved directions from partial observations. SphMind does not
+perform OOV reasoning: it requires the target object to be detectable in the input and makes no claims
+about inferring unobserved scene content. We include this evaluation to test a distinct generalization
+axis: whether exact spherical conversion of camera rotation angles provides a geometric advantage
+over language-prior-based rotation interpretation in frozen VLMs. For questions where the target is
+genuinely out of view and undetectable in the crop, performance is bounded by detection recall and
+does not reflect the capability being evaluated here.
+G.2
+Pipeline Adaptation
+Standard SphMind takes an anchor object Na at (θa, ϕa) and a direction label d
+∈
+{left, right, front, behind}, constructing the Wigner-D rotation Dd to score candidates. For Open-
+View, the anchor object is replaced by the target camera direction derived directly from the rotation
+query. A rotation of ∆ψ around the yaw axis and ∆ρ around the pitch axis yields:
+θtgt = θcam + ∆ψ
+(39)
+ϕtgt = ϕcam + ∆ρ
+(40)
+where (θcam, ϕcam) is the crop centre direction in the viewer-centric frame. This (θtgt, ϕtgt) is sub-
+stituted as the SHSG anchor; the Wigner-D operator then rotates the SH field fa = [Yℓm(θtgt, ϕtgt)]
+toward the query direction, and SSH scores each detected candidate Gk identically to the standard
+setting. We use the restricted FoV crop as sole input; detected objects are lifted to spherical coordi-
+nates using the crop’s known FoV parameters and camera rotation angle. All other SHSG and IGG
+operations remain unchanged.
+G.3
+What the Gain Measures
+The +18.7% gain over the vanilla baseline reflects a specific failure mode of frozen VLMs: when a
+rotation angle such as “turn left 30◦” is presented as text, the VLM associates it with candidates via
+language co-occurrence statistics rather than converting it to an exact spherical direction. SHSG’s
+conversion θtgt = θcam + ∆ψ is exact arithmetic — the gain comes entirely from replacing language-
+prior rotation interpretation with geometric rotation parsing. The gain is larger for pure yaw queries
+(+12.0%), where ∆ψ maps directly to an azimuthal shift, and smaller for pitch queries (+8.0%),
+where elevation changes are harder to resolve when detections are sparse in the vertical extent of the
+restricted crop.
+This result confirms that geometric rotation parsing — not language priors — is the bottleneck for
+rotation-based spatial queries in current frozen VLMs, and that exact spherical arithmetic resolves
+this bottleneck without any task-specific training.
+G.4
+Comparison to Trained Specialist
+The trained specialist achieves 46.0% by learning OOV reasoning from OpenView’s training distri-
+bution — it can infer objects in directions entirely absent from the crop. SphMind achieves 39.7%
+by solving a structurally different and narrower subproblem: exact rotation angle grounding on the
+detectable subset of questions. These two numbers are not directly comparable as measures of the
+same capability. The appropriate comparison is SphMind (39.7%) versus the zero-shot VLM baseline
+(21.0%), which share the same scope — neither performs OOV reasoning — and the +18.7% gain
+isolates the contribution of geometric rotation parsing alone.
+G.5
+Coordinate Invariance
+OpenView-VQA images carry no coordinate frame metadata. SphMind is unaffected because
+SHSG operates on S2 via SO(3)-equivariant spherical harmonics: Wigner-D scoring satisfies
+⟨Dd(Rfa), Rfk⟩= ⟨Ddfa, fk⟩for any global rotation R ∈SO(3), making directional scores in-
+variant to the coordinate conventions of the underlying dataset.
+26
+
+
+H
+Rotational Consistency Score: Protocol and Analysis
+H.1
+Dataset Construction
+We construct the RCS evaluation set from Stanford 2D-3D-S from each Area scenes, which contains
+around 85 spatial question groups in each scene covering four azimuthal directions (front, left, right,
+behind) and object categories (chair, desk, sofa, table, board, bookcase, door). Each question group
+consists of a spatial question of the form “What is to the [direction] of the [anchor]?” paired with a
+GT answer object, an anchor object, and a reference panorama.
+For each group, three rotated variants are generated by applying horizontal ERP shifts ψ ∈
+{90◦, 180◦, 270◦} to the input panorama and updating the direction label via the cyclic map:
+d′ = ROTψ(d),
+ROT90◦: {F→R, R→B, B→L, L→F}
+(41)
+where F=front, R=right, B=behind, L=left. The GT answer object is identical across all four variants
+— only the panorama origin and direction label change.
+H.2
+YOLO Detection and Intersection Filtering
+YOLO is run independently on each of the four ERP variants via cubemap projection (six 512×512
+perspective faces per panorama). Only questions where both anchor and target labels appear in
+the detection set for all four rotation variants are retained; this intersection filter removes ∼35% of
+question groups on average, leaving n=55 groups used for RCS evaluation.
+Although YOLO detects the same object categories across rotations, projected bbox centroids differ
+slightly as objects shift across cubemap face boundaries. Empirically, we observe ∼2–5◦variation in
+projected (θ, ϕ) coordinates of consistently detected objects across rotation variants. Since SHSG
+scores using Wigner-D inner products with SH resolution ≈20◦at Lmax = 7, the 2–5◦position jitter
+is an order of magnitude smaller than the scoring bandwidth and does not affect directional decisions
+ERP-Pixel direction zones, by contrast, use absolute pixel offsets with hard boundaries at ±12.5% of
+image width (≈256px for a 2048-wide ERP); a 5◦positional shift (≈28px) near a zone boundary can
+flip an object’s assigned direction, directly causing RCS failure. This asymmetry — SHSG robust to
+position noise, ERP-Pixel fragile to it — is an architectural difference, not a confound.
+H.3
+Scoring Methods
+ERP-Pixel.
+Given a detected anchor at ERP pixel (ua, va) and a candidate object at (uc, vc), the
+direction is assigned by the pixel-offset zone:
+∆u = uc −ua,
+∆v = vc −va
+(42)
+ˆd =
+
+
+
+
+
+
+
+front
+|∆u| < W/8
+behind
+|∆u| > 3W/8
+right
+W/8 ≤∆u ≤3W/8
+left
+−3W/8 ≤∆u ≤−W/8
+(43)
+where W is the ERP image width. If no candidate falls in the queried zone, the system returns
+unknown.
+SphMind (SHSG).
+Given anchor at (θa, ϕa) and candidate at (θc, ϕc) on S2, SHSG uses the same
+directional scoring function as the main pipeline in Section 3.1
+H.4
+RCS Definition
+Let a0 denote the answer at ψ=0◦and a90, a180, a270 the answers at each rotation. The per-group
+binary consistency indicator is:
+⊮Full = 1[a90=a0] · 1[a180=a0] · 1[a270=a0]
+(44)
+Full RCS is the mean of ⊮Full over all retained question groups. Per-angle consistency at ψ is
+1[aψ=a0] averaged over groups. Note that Full RCS ≈p90 · p180 · p270 under independence, so
+27
+
+
+per-angle gains compound multiplicatively — SphMind’s 2.8× advantage at 180◦(0.212 vs 0.595) is
+the primary driver of the overall 5.9× Full RCS gain.
+H.5
+Per-Direction Breakdown
+Table 6 reports the full per-direction breakdown. The behind direction has the highest unknown rate
+for ERP-Pixel (55.1%) because objects behind the viewer appear simultaneously at the far-left and
+far-right ERP edges, outside any single pixel-offset zone. SphMind reduces this to 21.7% by scoring
+on S2 where no such seam exists. The right direction achieves the highest SphMind Full RCS (0.279)
+because right-of-anchor objects tend to be large salient furniture (desks, bookshelves) that are reliably
+detected and clearly separated in azimuth from the anchor.
+Table 6: Full per-direction RCS breakdown on Stanford 2D-3D-S. Full RCS per direction computed
+as p90 × p180 × p270 per direction subset. Unk% = fraction of questions returning unknown averaged
+across all rotation variants.
+Method
+Dir.
+Full↑
+90◦↑
+180◦↑
+270◦↑
+Unk%↓
+ERP-Pixel
+front
+0.040
+0.441
+0.198
+0.453
+16.5
+left
+0.029
+0.370
+0.189
+0.415
+30.6
+right
+0.044
+0.448
+0.218
+0.451
+26.1
+behind
+0.058
+0.490
+0.244
+0.483
+55.1
+All
+0.043
+0.437
+0.212
+0.451
+33.4
+SphMind
+front
+0.250
+0.654
+0.589
+0.648
+8.2
+left
+0.208
+0.621
+0.551
+0.607
+5.5
+right
+0.279
+0.680
+0.601
+0.683
+3.7
+behind
+0.274
+0.655
+0.638
+0.655
+21.7
+All
+0.253
+0.653
+0.595
+0.648
+10.2
+-180
+-90
+0
++90
++180
+-90
+-45
+0
++45
++90
+Azimuth
+-180
+-90
+0
++90
++180
+-90
+-45
+0
++45
++90
+Azimuth
+-180
+-90
+0
++90
++180
+-90
+-45
+0
++45
++90
+Azimuth
+Elevation
+Anchor - Board                    Dir - Front                        SphMind - Chair                 GT - Chair
+Original   Dir - Front  
++90   Dir - Right
++270    Dir - Left
+Elevation
+Elevation
+ERP + SH
+OVERLAY
+SH FIELD ON ERP
+SH FIELD ON SPHERE
+A
+B
+C
+Figure 14: SO(3)-equivariance of the SH directional field. Each column shows the same scene
+under azimuthal rotation (0◦, +90◦, +270◦). Top: ERP panorama with SH field overlay; the
+anchor (blue) and query arrow rotate consistently with the scene. Bottom: Pure SH field on S2
+(equirectangular); the peak tracks the rotation exactly (<1◦error), a direct consequence of Wigner-D
+equivariance (Eq. 2).
+28
+
+
+Rotational Consistency of the SH Directional Field.
+Figure 14 illustrates how SPHMIND responds
+to azimuthal rotation of the ERP origin. Each column shows the same indoor scene under a different
+observer rotation (0◦, +90◦, +270◦), with the anchor object (board) and query direction fixed relative
+to the scene. The top row overlays the SH directional field on the equirectangular panorama — the
+concentric rings show where SSH(a, k, d) peaks, and the anchor dot and direction arrow confirm the
+query frame rotates correctly with the scene. The middle row shows the pure SH field F(θ, ϕ) on
+the equirectangular projection, with the dashed line marking the expected peak azimuth and the star
+marking the actual peak. The peak tracks the rotation exactly — θ = 1◦at 0◦rotation (expected
+0◦), θ = 90◦at +90◦rotation (expected +90◦), and θ = −90◦at +270◦rotation (expected −90◦) —
+with less than 1◦error in all cases. This is a direct empirical consequence of SO(3)-equivariance:
+because the SH basis transforms linearly under rotation via the Wigner-D matrix (Eq. 2), rotating the
+observer rotates the field peak by exactly the same angle, without any recomputation or coordinate
+correction. ERP-pixel reasoning has no such property — the same rotation shifts object positions
+in pixel space non-uniformly, with severe distortion near the poles and a discontinuity at the ±180◦
+seam — which is why SPHMIND achieves 25.3% full RCS against 4.3% for the ERP-pixel baseline
+(Table 2c).
+I
+Ablation Experiments
+Pair type
+Direction GA
+Distance GA
+Overall GA
+Matched (same query, rotated scene)
+0.31 ± 0.08
+0.22 ± 0.09
+0.27 ± 0.09
+Unmatched (different query)
+0.01 ± 0.02
+0.01 ± 0.02
+0.01 ± 0.02
+Gap (∆)
++0.30
++0.21
++0.26
+Table 7: Gradient Alignment (GA) between IGG correction vectors gψ = ∇hL|ψ for matched
+query pairs (same scene and query direction, different ERP rotation ψ ∈{90◦, 180◦, 270◦}) versus
+unmatched pairs (different query groups). Unmatched GA ≈0 is expected by isotropy of random
+vectors in R4096 (σ ≈1/
+√
+d ≈0.016). The significant gap confirms that IGG correction vectors are
+geometrically structured rather than arbitrary.
+I.1
+Gradient Alignment Analysis.
+To verify that IGG operates in a geometrically structured hidden state space rather than injecting
+arbitrary corrections, we measure the cosine alignment between IGG gradient vectors gψ = ∇hL|ψ
+for matched query pairs — the same scene and query direction observed under different ERP rotations
+ψ ∈{90◦, 180◦, 270◦} — versus unmatched pairs drawn from different query groups. If IGG
+corrections were arbitrary directions in hidden state space, matched and unmatched gradients would
+be equally uncorrelated: in Rd with d ≈4096, random vectors have cosine similarity ≈0 with
+standard deviation 1/
+√
+d ≈0.016, making near-zero GA the null hypothesis for noise. Table 7 shows
+that matched gradients achieve GA = 0.27±0.09 overall against 0.01±0.02 for unmatched pairs — a
+gap of +0.26 that is over 16σ above the random baseline. Direction queries show stronger alignment
+(GA = 0.31) than distance queries (GA = 0.22), consistent with direction scoring relying more
+directly on the SH inner product while distance introduces additional noise from the elevation-based
+depth estimate. Together with the ablation result that random costs collapse performance by −20.7%
+regardless of the update mechanism (Table 7), this confirms that IGG is exploiting genuine geometric
+structure in the VLM’s hidden state space: the gradient direction is not interchangeable with noise,
+and the correction vectors for semantically equivalent queries under rotation are consistently aligned.
+I.2
+Hyperparameter Details and Sensitivity
+Table 8 lists all IGG and SHSG hyperparameters with their chosen values and roles.
+Energy weights βgeo/βKL.
+βgeo and βKL control the relative contribution of the geometric violation
+term and the KL prior-preservation anchor in the IGG energy E(h). The KL-dominant setting
+(βKL=0.70) reflects the design principle that the VLM’s pretrained distribution should serve as the
+semantic foundation, with geometry providing a structured correction rather than overriding it —
+29
+
+
+Table 8: IGG and SHSG hyperparameters.
+Parameter
+Value
+Role
+βgeo
+0.30
+Weight of geometric violation term in IGG energy;
+controls how strongly C(yk) shapes the gradient
+βKL
+0.70
+Weight of KL prior-preservation anchor; KL-
+dominant setting ensures geometry provides a
+structured correction rather than overriding the
+VLM distribution
+τ
+2.0
+Softmax temperature for Pτ; raised above default
+to maintain non-negligible gradients across all can-
+didates
+ε0
+0.15
+Base Riemannian step size
+T
+2
+Maximum Riemannian correction steps; early stop-
+ping via δ typically terminates at T=2
+δ
+0.005
+Early stopping threshold on |∆E|; prevents unnec-
+essary updates when energy has converged
+γ
+1.5
+Score sharpening exponent in SSH; amplifies the
+contrast between high- and low-scoring candidates
+consistent with the small step size (ε0=0.15) and the cos(h0, h′)=0.989 semantic coherence shown
+in Fig. 6. Table 9 reports accuracy across five weight configurations.
+Table 9: Sensitivity to energy weights βgeo/βKL (MP3D, Qwen2.5-7B).
+βgeo/βKL
+Ov.
+Dir.
+Dist.
+∆
+0.2/0.8
+57.2
+51.4
+63.1
+−1.2
+0.3/0.7
+58.4
+53.1
+64.1
+—
+0.4/0.6
+57.9
+52.3
+63.7
+−0.5
+0.5/0.5
+57.4
+51.8
+63.2
+−1.0
+0.6/0.4
+56.6
+50.7
+62.4
+−1.8
+Performance varies by at most ±1.2% across all tested configurations, confirming the method
+is not sensitive to precise weight tuning and that the reported 0.3/0.7 split is not cherry-picked.
+The monotonic degradation as βgeo increases beyond 0.3 reflects the increasing dominance of the
+geometric term over the KL anchor, progressively eroding the semantic coherence that makes IGG’s
+latent correction effective.
+30

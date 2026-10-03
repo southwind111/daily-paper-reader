@@ -1,0 +1,345 @@
+{
+  "date": "20261003",
+  "date_label": "",
+  "generated_at": "2026-10-03 22:05:57 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2609.33518v1",
+      "route": "202610/03/2609.33518v1-scenescaffold-active-scene-state-construction-for-unified-3d-scene-understanding",
+      "title": "SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "统一三维场景理解与空间关系推理",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.33563v1",
+      "route": "202610/03/2609.33563v1-ma-jepa-joint-embedding-world-models-for-multi-agent-reinforcement-learning",
+      "title": "MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向基于模型多智能体强化学习的世界模型",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.35311v1",
+      "route": "202610/03/2609.35311v1-rogsw4rld-feed-forward-4d-gaussian-lifting-for-robot-world-model-rollouts",
+      "title": "RoGSW4RLD: Feed-Forward 4D Gaussian Lifting for Robot World Model Rollouts",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "用于机器人世界模型推演的4D高斯场",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.39235v1",
+      "route": "202610/03/2609.39235v1-the-planning-limits-of-latent-world-models",
+      "title": "The Planning Limits of Latent World Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "世界模型用于基于模型规划的能力边界",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2610.01742v1",
+      "route": "202610/03/2610.01742v1-world-motion-models-flexible-sequence-modeling-of-se3-trajectories",
+      "title": "World Motion Models: Flexible Sequence Modeling of SE(3) Trajectories",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "通过SE(3)轨迹对动态三维世界进行四维建模的生成先验",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31005v1",
+      "route": "202610/03/2609.31005v1-trackgraph-online-open-vocabulary-3d-scene-graphs-via-image-space-tracking",
+      "title": "TRACKGRAPH: Online Open-Vocabulary 3D Scene Graphs via Image-Space Tracking",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向机器人的在线开放词汇三维场景图与空间理解",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31339v1",
+      "route": "202610/03/2609.31339v1-chronofusegs-multi-temporal-gaussian-fusion-with-per-splat-persistence-and-change-visualization",
+      "title": "ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat Persistence and Change Visualization",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向随时间变化场景的多时相高斯泼溅",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31595v1",
+      "route": "202610/03/2609.31595v1-graphwrit3r-end-to-end-3d-scene-graph-writing",
+      "title": "GraphWrit3R: End-to-End 3D Scene Graph Writing",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从点云端到端生成三维场景图",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.33462v2",
+      "route": "202610/03/2609.33462v2-sphmind-towards-robust-training-free-vlm-based-spatial-reasoning-with-a-360-camera",
+      "title": "SphMind: Towards Robust, Training-Free VLM-based Spatial Reasoning with a 360 Camera",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "基于360相机与视觉语言模型的免训练空间推理",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.33616v1",
+      "route": "202610/03/2609.33616v1-spatialspeak-qa-native-reconstruction-with-local-and-global-context-for-spatial-chain-of-thought-reasoning",
+      "title": "SpatialSpeak: QA-Native Reconstruction with Local and Global Context for Spatial Chain-of-Thought Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "问答式多视角重建预训练结合空间思维链推理",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.34035v1",
+      "route": "202610/03/2609.34035v1-3d-point-tracking-with-state-space-models",
+      "title": "3D Point Tracking with State Space Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "支撑三维与四维重建的米制三维点跟踪",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.34159v1",
+      "route": "202610/03/2609.34159v1-worldgraph-graph-native-world-modeling",
+      "title": "WorldGraph: Graph-Native World Modeling",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "对演化动态进行图原生世界建模",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.35734v2",
+      "route": "202610/03/2609.35734v2-geoverse-world-consistent-novel-view-synthesis-in-geometric-latent-space",
+      "title": "GeoVerse: World-Consistent Novel View Synthesis in Geometric Latent Space",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "几何潜在空间中的生成式新视角合成",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31025v1",
+      "route": "202610/03/2609.31025v1-precision-at-speed-sample-efficient-online-model-based-reinforcement-learning-for-hydraulic-excavator-control",
+      "title": "Precision at Speed: Sample-Efficient Online Model-Based Reinforcement Learning for Hydraulic Excavator Control",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "在线基于模型强化学习与学习动力学集成",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31103v1",
+      "route": "202610/03/2609.31103v1-depthevidence-unifying-metric-depth-prediction-and-geometric-reasoning-in-multimodal-language-models",
+      "title": "DepthEvidence: Unifying Metric Depth Prediction and Geometric Reasoning in Multimodal Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "以度量深度预测作为空间推理的物体级证据",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.32427v1",
+      "route": "202610/03/2609.32427v1-citytoolvqa-tool-augmented-visual-question-answering-for-3d-spatial-cognition-in-urban-low-altitude-environments",
+      "title": "CityToolVQA: Tool-Augmented Visual Question Answering for 3D Spatial Cognition in Urban Low-Altitude Environments",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "面向三维空间认知与空间计算的工具增强视觉问答",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.32761v1",
+      "route": "202610/03/2609.32761v1-from-feed-forward-to-flow-unifying-reconstruction-and-generation-is-easier-than-you-think",
+      "title": "From Feed-Forward to Flow: Unifying Reconstruction and Generation Is Easier Than You Think",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "统一三维重建与生成的流式建模框架",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.30865v1",
+      "route": "202610/03/2609.30865v1-reliability-regulated-trajectory-optimization-for-progressive-colmap-free-3d-gaussian-splatting",
+      "title": "Reliability-Regulated Trajectory Optimization for Progressive COLMAP-Free 3D Gaussian Splatting",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "无COLMAP的三维高斯泼溅与轨迹优化",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.30952v1",
+      "route": "202610/03/2609.30952v1-mvvbench-benchmarking-4d-reasoning-in-vision-language-models",
+      "title": "MVVBench: Benchmarking 4D Reasoning in Vision-Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "跨视角与时间的多视角视频四维推理基准",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.31198v1",
+      "route": "202610/03/2609.31198v1-light-field-primitive-for-novel-view-synthesis",
+      "title": "Light Field Primitive for Novel View Synthesis",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "用于实时新视角合成的四维光线空间场景表示",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    },
+    {
+      "paper_id": "2609.32645v1",
+      "route": "202610/03/2609.32645v1-from-scene-graphs-to-answers-selective-neuro-symbolic-reasoning-for-autonomous-driving",
+      "title": "From Scene Graphs to Answers: Selective Neuro-Symbolic Reasoning for Autonomous Driving",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "基于场景图对空间关系与时间转移进行神经符号推理",
+      "first_seen_at": "2026-10-03 22:05:57 UTC",
+      "updated_at": "2026-10-03 22:05:57 UTC"
+    }
+  ]
+}

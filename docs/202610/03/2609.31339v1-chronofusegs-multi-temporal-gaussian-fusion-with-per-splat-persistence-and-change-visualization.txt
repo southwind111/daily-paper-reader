@@ -1,0 +1,1534 @@
+Pacific Graphics 2026/ Y. He, N. Thürey, and L. Liu
+Conference Paper
+ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat
+Persistence and Change Visualization
+Tobias Batik
+, Diana Marin
+, Peter Kán
+, Hannes Kaufmann
+TU Wien, Austria
+(a)
+(b)
+(c)
+Figure 1: ChronoFuseGS incrementally fuses individually trained Gaussian Splatting models and visualizes changes at the Gaussian prim-
+itive level. (a) Individual timesteps. (b) Change highlighting between the first two timesteps. (c) After fusion of a third timestep, changes
+across all three timesteps are highlighted. Highlight colors correspond to timestep presence; persistent parts retain their appearance.
+Abstract
+Reconstructing environments where parts of the scene change between captured image sets poses a challenge for 3D scene
+reconstruction. We present ChronoFuseGS, a multi-temporal Gaussian Splatting approach that addresses this issue by taking
+multiple separately trained Gaussian Splatting models, each representing a distinct timestep and partially overlapping in ge-
+ographic coverage, and merging them into a single combined model. By allowing Gaussians from one timestep to contribute
+to the reconstruction at other timesteps, our approach leverages data across all captured timesteps to refine persistent parts of
+the scene. The model supports incremental extension, allowing new timesteps to be added while preserving the existing merged
+reconstruction. It encodes, for each Gaussian primitive, at which timesteps it contributes to the reconstruction. To support visual
+exploration of the reconstructed scene, we present a change-aware visualization approach that highlights the parts of the scene
+that have changed across a user-defined time selection, while preserving the color of persistent parts. Since the persistence
+encoding operates at the Gaussian primitive level, changes are visualized at sub-object granularity rather than being limited
+to object-level changes. We evaluate our approach on a real-world outdoor dataset of a flood management area, captured over
+7 months across eight recording days and covering seasonal vegetation changes, snow cover, and flooding events, which we
+make publicly available. Our results demonstrate that the combined model consistently outperforms individually trained single-
+timestep models in novel-view synthesis quality, recovers structural details absent in the individual reconstructions, and reliably
+highlights changes in fine details and sub-parts of objects and natural structures.
+CCS Concepts
+• Computing methodologies →Rendering; Image-based rendering; • Human-centered computing →Scientific visualization;
+1. Introduction
+Reconstructing large, unknown, and evolving outdoor environ-
+ments is a difficult task that challenges the assumption that the input
+images represent the scene at a single point in time. This assump-
+tion can break down for areas too large to be captured in detail
+within a time frame short enough to assume the scene remains un-
+changed, as well as partially unknown environments, where the re-
+quired level of detail for different subareas is not known in advance.
+In both cases, repeated recapturing is required, and the scene may
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+This is an open access article under the terms of the Creative Commons Attribution License, which
+permits use, distribution and reproduction in any medium, provided the original work is properly
+cited.
+arXiv:2609.31339v1  [cs.GR]  25 Sep 2026
+
+
+2 of 12
+Batik et al. / ChronoFuseGS
+change between captures, meaning the input data can no longer be
+assumed to represent a single unchanged state of the scene, and the
+resulting reconstruction can no longer be treated as representing a
+single point in time and rendered to the user as such.
+In particular, we target – but do not limit ourselves to – the re-
+construction of areas affected by natural disasters such as floods
+and landslides, where 3D reconstructions provide actionable infor-
+mation for first responders and domain expert teams while the dis-
+aster is actively evolving. Taking inspiration from Shneiderman’s
+Visual Information-Seeking Mantra [Shn96], we aim for a captur
+and reconstruction process in which an overview of the affected
+area is created first, and detailed reconstructions of subareas are
+added on demand as new data becomes available. This process may
+span multiple days as the disaster progresses, altering both natural
+features and infrastructure. Individual recording periods are chosen
+such that the scene can be assumed to remain static within each
+period, with changes occurring between captures.
+Therefore, we propose a multi-time reconstruction approach that
+builds on Gaussian Splatting [KKLD23]. Our approach takes mul-
+tiple individually pre-trained Gaussian Splatting models as input,
+each trained on a separate image set representing a single timestep,
+and combines them into a single merged model that is subsequently
+refined. Gaussians originating from one timestep can thereby con-
+tribute to the representation of other timesteps, provided they rep-
+resent a persistent part of the scene. The model encodes, for each
+Gaussian, which timesteps it contributes to. A Gaussian is only
+considered to contribute to a given timestep if it can be vali-
+dated against at least one image from the corresponding image set.
+Hence, our model can represent the scene for any user-defined se-
+lection of the captured timesteps, not limited to a consecutive se-
+quence. Compared to independently trained single-timestep mod-
+els, this increases the novel-view synthesis quality, as our results
+demonstrate in Section 7.1. In addition, our model provides a per-
+Gaussian encoding of which areas of the scene have changed across
+timesteps.
+To render novel views for multiple timesteps, we introduce a
+rendering approach that highlights areas that are not present dur-
+ing the selected time period, while retaining the true appearance of
+persistent parts (Figure 1). This allows users to explore the whole
+model without switching between timesteps. At the same time, our
+change-aware rendering provides a visual indication of when (i.e.,
+during which timesteps) individual parts, objects, and details of
+the reconstruction are present. Users can therefore quickly identify
+which areas are persistent across the selected timesteps, which ar-
+eas may have changed, and at which timestep the change occurred.
+In summary, our contributions are as follows:
+• A multi-temporal Gaussian Splatting-based reconstruction ap-
+proach that merges individually pre-trained models into a single,
+combined model, while encoding per-Gaussian persistence and
+change across timesteps.
+• A rendering approach for the multi-temporal model that visually
+indicates when and where parts of the scene have changed across
+a user-defined time selection.
+• A quantitative comparison of our reconstruction against individ-
+ually trained Gaussian models, and a user study evaluating our
+visualization approach.
+• An open-source dataset of a flood management area recorded
+over 8 days across 7 months, including seasonal vegetation
+changes, snow cover, and flooding events.
+2. Related Work
+2.1. Gaussian Splatting
+Neural radiance fields have become a standard representation for
+novel-view synthesis, but their implicit formulation often makes
+training and rendering computationally expensive [MST∗21]. 3D
+Gaussian Splatting (3DGS) introduced an explicit radiance-field
+representation based on anisotropic 3D Gaussians optimized di-
+rectly from posed images [KKLD23]. Each Gaussian stores po-
+sition, covariance, opacity, and view-dependent appearance, and
+the scene is rendered using a visibility-aware differentiable raster-
+izer. This explicit formulation combines high-quality view synthe-
+sis with real-time rendering, making 3DGS attractive for interactive
+graphics applications and for downstream tasks that require direct
+access to scene primitives.
+2.2. Multi-Timestep and Dynamic Reconstruction
+A large body of recent work extends 3DGS from static scenes
+to dynamic reconstruction. One common strategy is to represent
+a scene in a canonical space and learn a time-dependent de-
+formation field that maps the canonical Gaussians to each ob-
+served frame [YGZ∗24]. A second line of work represents time
+more directly by introducing 4D or time-aware Gaussian primi-
+tives [WYF∗24]. These approaches can render a scene at different
+timestamps by querying a shared spatio-temporal representation.
+Both families are well-suited to continuous temporal interpolation
+of a single coherent dynamic capture, but are not designed for our
+setting of repeated, independently captured reconstructions of ap-
+proximately the same environment, where each timestep should re-
+main an identifiable reconstruction while benefiting from shared
+cross-timestep information.
+Long-term mapping and scene-update methods are more closely
+aligned with our setting. Instead of reconstructing every times-
+tamp independently, these methods reuse an existing Gaussian
+map, detect stale or changed regions, and perform targeted up-
+dates [CQZ∗25, FLZ∗25, YKC∗25]. These approaches show that
+temporal reuse is valuable for efficiency and consistency, but most
+existing systems maintain a single evolving map rather than a struc-
+tured collection of timestep-specific reconstructions.
+The
+closest
+method
+to
+our
+reconstruction
+approach
+is
+ChronoGS
+[WDZ∗26],
+which
+similarly
+represents
+multiple
+timesteps within a unified model and shares information across
+timesteps to refine the persistent regions. ChronoGS jointly opti-
+mizes a single anchor scaffold across all timesteps, using an MLP to
+decode features into Gaussian attributes. In contrast, our approach
+takes individually pre-trained Gaussian models as input, allowing
+each model to be trained, pruned, and optimized in parallel be-
+fore merging. Furthermore, new timesteps can be incorporated in-
+crementally without rebuilding the complete multi-temporal model
+from scratch. Moreover, while ChronoGS uses MLP-predicted ac-
+tivation to render individual timesteps, our explicit per-Gaussian
+persistence encoding supports rendering arbitrary timestep selec-
+tions and directly highlighting when and where changes occur.
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+Batik et al. / ChronoFuseGS
+3 of 12
+...
+...
+...
+...
+Persistence encoding & 
+Light compensation
+Inputs
+Multi-Temporal 
+Model
+Cross-Timestep Initialization
+Combined
+Refinement
+Multi-Temporal 
+Change Visualization
+Figure 2: Incremental reconstruction and refinement pipeline. A set of individually trained Gaussian Splatting models and their correspond-
+ing image sets are merged into a multi-temporal model GINIT. This is followed by cross-timestep initialization to estimate the per-Gaussian
+persistence encoding oi and light compensation li, training Gaussians Gk
+INIT originating from Gk against Ip̸=k, and by a combined refinement
+step. The refined model enables novel-view synthesis and change highlighting H(t) for any user-defined time selection t. Solid arrows indi-
+cate the initial computation of G′, dashed arrows the incremental fusion of an additional model Gq into G′, yielding G′′.
+2.3. Change Detection in Gaussian Splatting
+Change detection with 3DGS has recently emerged as a natu-
+ral consequence of explicit radiance-field reconstruction. A com-
+mon strategy is render-then-compare: a pre-change 3DGS model
+is rendered from post-change camera poses and compared against
+newly captured images. 3DGS-CD follows this approach by local-
+izing post-change images against a pre-change Gaussian model,
+extracting image features from rendered and observed views, and
+fusing view-wise differences into object-level changes [LYL25].
+MV3DCD similarly targets multi-view change detection, but learns
+an additional change channel in the Gaussian representation so that
+change masks can be rendered from unseen viewpoints [GLW∗25].
+As an alternative to render-space comparisons, GS-Diff compares
+Gaussian reconstructions directly in primitive space [GLP∗26]. By
+accounting for uncertainty and visibility, primitive-space differenc-
+ing reduces false positives caused by poorly observed regions or
+reconstruction drift. However, GS-Diff is evaluated on controlled
+scenes with clearly defined object-level changes, and it is unclear
+how primitive-space comparison performs on large outdoor envi-
+ronments where complex natural structures are approximated by a
+sparse number of Gaussians at low reconstruction detail.
+While both render-then-compare and primitive-space methods
+derive a change signal that is mapped back onto Gaussian primi-
+tives as a post-hoc label, neither approach uses the cross-timestep
+image comparison as a training signal that modifies the reconstruc-
+tion itself. In contrast, our method propagates gradients from cross-
+timestep image-space comparisons back through the differentiable
+renderer to jointly update geometry and per-Gaussian persistence
+parameters, making change encoding an inherent property of the
+reconstruction rather than a derived label.
+Our work is positioned at the intersection of these directions. Dy-
+namic 3DGS methods provide temporal regularization and shared
+structure; long-term mapping methods provide mechanisms for
+reusing and updating Gaussian maps; and change-detection meth-
+ods provide render-space and primitive-space comparison strate-
+gies. We focus on fusing multiple individually trained Gaussian
+models – each representing a distinct timestep – into a single
+combined model, where cross-timestep information is used to im-
+prove reconstruction quality and enable fine-grained visualization
+of scene changes at the Gaussian level.
+3. Multi-Temporal Gaussian Fusion
+Our approach takes multiple Gaussian Splatting models G1,G2,...,
+each representing a distinct point in time t1,t2,... and individually
+trained on a corresponding set of ground-truth images I1,I2,....
+These models are combined into a single refined model G′ that sup-
+ports novel-view synthesis for each timestep. New timesteps can
+be incorporated incrementally by fusing an additional pre-trained
+model Gk into the existing model G′, yielding an updated model
+G′′. Our merging and cross-timestep fusion process consists of
+three steps, outlined in the following subsections. First, we bring
+all Gaussians into a shared coordinate space and combine them
+into a single multi-temporal Gaussian model. Second, in a cross-
+timestep initialization, we estimate light compensation and initial-
+ize the per-Gaussian persistence between all pairs of timesteps.
+Third, we perform a combined optimization run to refine the multi-
+temporal Gaussian model. The pipeline is illustrated in Figure 2.
+3.1. Multi-Temporal Model
+Since the merged model G′ represents multiple timesteps, we store,
+for each Gaussian gi, its contribution to the reconstruction at each
+timestep via the opacity manipulation vector oi. The length of this
+vector equals the number of timesteps in G′. A value of op
+i ≈1
+indicates that the Gaussian is visible at time tp, while oq
+i ≈0 results
+in an invisible Gaussian at tq. To compensate for light differences
+between individual timesteps, similar to Kulhanek et al. [KPK∗24],
+we store, for each Gaussian gi, the light compensation matrix li,
+composed of an RGB vector for each timestep of G′. Hence, li is
+of shape 3× |t|. Since the direction of light and, therefore, various
+elements, e.g., shadows, can change between individual timesteps,
+a single RGB for all Gaussians originating from the same timestep
+is not enough. Note that for op
+i and lp
+i we use the subscript i to
+denote the correspondence to the ith Gaussian and the superscript
+p to denote the timestep tp. Besides the time-dependent parameters
+o and l, our Gaussian primitives store the same parameters as the
+original 3DGS: position, opacity α, rotation, scale, and color c.
+To combine our initial reconstructions, we first have to bring
+them into a shared coordinate space. In the absence of precise real-
+world positioning data for the training images, we compute another
+Structure from Motion (SfM) matching step to register a subset of
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+4 of 12
+Batik et al. / ChronoFuseGS
+(a) [• ◦◦◦]
+(b) [◦◦• ◦]
+(c) [◦◦◦• ]
+(d) [• ◦• • ]
+(e) [• ◦• • ]
+(f) [◦◦• • ]
+Figure 3: Individual timestep renderings and change highlighting for different time selections. (a)–(c) show the multi-temporal model ren-
+dered at t1, t3, and t4; (d) shows the blended multi-time view (t1, t3, and t4); (e)–(f) show change highlights with Gaussian color ci converted
+to grayscale. In (e), the scaffolding is absent at t1, so it is rendered in the combined highlight color of t3 and t4. In (f), the time selection
+is restricted to the last two timesteps, and the scaffolding appears in grayscale as it changed minimally between them. • indicates enabled
+timesteps, with color corresponding to timestep presence in (e)–(f); ◦indicates a disabled timestep.
+our new ground-truth images to the corresponding SfM model of
+G′. Next, we transform all splats of Gp to fit the coordinate space
+of G′ and merge them into the multi-temporal Gaussian set G′
+INIT.
+Each Gaussian’s oi vector is initialized with a value of 1 for the po-
+sition corresponding to the timesteps it was initially trained on; all
+other elements of oi are initialized with 0. The light compensation,
+li, is initialized with 1 for all components, causing no initial effect.
+Rendering our multi-temporal Gaussian model follows the origi-
+nal 3DGS approach [KKLD23]. We project Gaussians into 2D and
+blend the N depth-ordered Gaussians that overlap a pixel. Each
+Gaussian contributes to the pixel color with its color, ci, weighted
+by its opacity αi and the accumulated transmittance of Gaussians
+in front of it. We extend this formulation by incorporating op
+i and
+lp
+i , yielding the timestep-dependent pixel color C(p) as:
+C(p) = ∑
+i∈N
+lp
+i ⊙ciαiop
+i
+i−1
+∏
+j=1
+(1−αjop
+j )
+(1)
+with ⊙representing the Hadamard product. For a detailed explana-
+tion of projecting Gaussians onto the screen plane, we refer to the
+original 3DGS publication.
+3.2. Cross-Timestep Initialization
+The cross-timestep initialization process computes initial values for
+the time-dependent parameters o and l by optimizing each subset of
+Gaussians originating from the same timestep against the ground-
+truth images of all other timesteps, while disabling the remaining
+Gaussians of G′. During this stage, α remains fixed at the values
+established during the individual per-timestep training. More pre-
+cisely, for every subset of Gaussians originating from tp, we op-
+timize oq
+i and lq
+i for all q̸ = p against Iq. Gaussians representing
+persistent parts of the scene should result in oq
+i ≈1 with a light
+compensation lq
+i such that C(q) ≈Iq
+k , where k is the index of the
+individual training images of Iq. Gaussians representing changed
+or absent parts should result in oq
+i ≈0. To guide this optimization,
+we use the spatial feature difference map from LPIPS [ZIE∗18] as
+a per-pixel similarity weight ϵ, with ϵ ≈0 indicating high similarity
+and ϵ ≈1 indicating no similarity. The following loss is evaluated
+per pixel and minimized over all training images Iq
+k :
+LINIT = (1−ϵ)|C(q)−Iq
+k |+ϵ|b−C(q)|,
+(2)
+where b is a randomly selected background color, chosen inde-
+pendently for each optimization step to decouple l and o. Other-
+wise, Gaussians representing changed areas may adapt their color
+to the background instead of converging to oq
+j ≈0. We initialize
+oq̸=p
+i
+= δop
+i with δ < 1.0 to prevent Gaussians close to the camera
+from fully occluding those further back. In the first iterations, we
+set ϵ = 0.5, and uniformly and gradually transition to the LPIPS-
+based per-pixel similarity as the optimization progresses. To pre-
+vent l from encoding arbitrary color changes, we constrain its com-
+ponents to cold/warm and luminance shifts, limiting the degrees of
+freedom of the per-Gaussian light compensation.
+3.3. Combined Refinement
+After the cross-timestep initialization, Gaussians from different
+timesteps may overlap in the same region. Since appearance is
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+Batik et al. / ChronoFuseGS
+5 of 12
+(a) [• • • • ]
+(b) [• • • • ]
+Figure 4: Reconstruction of the Baluster Vase dataset across four
+timesteps, with new cracks progressively added to the central vase.
+(a) Blended multi-time view with all timesteps selected; (b) the
+same view with change highlighting, where persistent parts are ren-
+dered in grayscale and crack colors indicate at which timesteps
+they are present. • indicates an enabled timestep, with color corre-
+sponding to timestep presence in (b).
+achieved by alpha-blending, the combined optimization step re-
+fines the Gaussian parameters to find the linear combination of
+Gaussians that best approximates the scene at each timestep. For
+the refinement, we run a combined optimization close to a classic
+3DGS optimization, training G′ against all training images across
+all timesteps. Since scene changes between timesteps are encoded
+by the differences between corresponding elements of oi deter-
+mined during cross-timestep initialization, we aim to preserve this
+encoding during refinement. We therefore extend the 3DGS loss by
+a penalty term LCHANGE that constrains the sequential differences
+between elements of oi relative to their values ˜oi defined after the
+cross-timestep initialization. The sequential difference is defined as
+d(oi) = [op
+i −op+1
+i
+,...]. Hence, the refinement loss is:
+LREFINE = (1−λ)L1 +λLD-SSIM +σLCHANGE
+(3)
+where LCHANGE = MAE(d( ˜o),d(o)), with λ = 0.2, and σ = 0.1,
+weighting the image similarity and regularization terms respec-
+tively. Since Gaussians in G′ can overlap because they originate
+from different initial Gaussian sets, we multiply α by 0.5 at the
+start of the optimization, encouraging the model to primarily re-
+solve overlaps through α while preserving the persistence encoding
+in o. Additionally, as training images are sampled randomly from
+all timesteps, αi cannot be adjusted to compensate for oi at a spe-
+cific timestep without simultaneously affecting all others, keeping
+the two parameters functionally disentangled. Results are shown in
+Figures 3a–3c.
+4. Multi-Temporal Change Visualization
+Our trained multi-temporal Gaussian Splatting model represents
+the reconstructed area for multiple timesteps, supporting partial and
+varying spatial coverage across timesteps. To efficiently represent
+the Gaussian model for user exploration, we outline an approach
+to render user-defined time ranges. Additionally, in our rendering
+approach, non-persistent areas between any selected timesteps can
+be highlighted on the Gaussian level.
+(a) [◦◦• • ]
+(b) [• • • • ]
+Figure 5: Reconstruction of the Coral data with change visualiza-
+tion and different time selections. The Gaussian color ci is con-
+verted to grayscale. In (a), the last two timesteps are enabled, and
+in (b), changes across all four timesteps are highlighted. • indi-
+cates an enabled timestep, with color corresponding to timestep
+presence; ◦indicates a disabled timestep.
+To render the multi-temporal Gaussian model for a user-defined
+time range, we encode the time selections in a vector t =
+[t0,t1,··· ,tn], where components equal to 1 signify that the respec-
+tive timestep should be visible, and components equal to 0 signify
+that the timestep is not visible. We could allow every value be-
+tween 0 and 1, but we found in our testing that values between 0
+and 1 were hard to interpret by users. Hence, we use a normalized
+time selection vector, written as ˆt = t/∑ti∈t ti. For a true color rep-
+resentation of our scene for a time selection t, we extend Equation 1
+to
+C(ˆt) = ∑
+i∈N
+Bi(ˆt)
+i−1
+∏
+j=1
+(1−αjoj · ˆt)
+(4)
+with
+Bi(ˆt) = (li · ˆt)⊙ciαi(oi · ˆt).
+(5)
+Here · represents the dot product and ⊙the Hadamard product.
+C(ˆt) results in a weighted average of the appearance of the splats
+over the time selection t. Objects of the scene that are removed in
+one of the selected timesteps would appear semi-transparent, while
+parts of the captured scene that stay constant would render as solid.
+Alternatively, to avoid semi-transparent parts for objects that are
+non-persistent between timesteps, we can use max(oi ⊙t) instead
+of oi ·ˆt. The visualizations computed with Equation 4 provide a true
+color overview of the scene, but changes in small details or changes
+in complex scenes can be hard to spot for the user, as shown in
+Figures 3d and 4a.
+4.1. Change Visualization
+We aim to provide the observer with visual feedback on which sub-
+areas of the reconstruction are confirmed by the input data and
+which subareas may have changed, while preserving the overall
+appearance of the captured scene. For areas that have changed dur-
+ing the selected timespan, we alter the color to indicate that some-
+thing changed and at which timesteps it happened. However, input
+images may not cover all subareas at every timestep, and objects
+may be occluded at some timesteps. Such areas are treated as non-
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+6 of 12
+Batik et al. / ChronoFuseGS
+(a)
+(b) [• • ◦]
+(c) [• • • ]
+Figure 6: Individual timestep renderings and change highlighting for different time selections. (a) Individual timestep renderings at t1, t2, and
+t3. (b) t = [1,1,0], with little change between the first two timesteps, resulting in a nearly unaltered representation. (c) t = [1,1,1], extending
+the selection to all three timesteps, highlighting changes across all timesteps. • indicates an enabled timestep, with color corresponding to
+timestep presence; ◦indicates a disabled timestep.
+validatable, meaning that their Gaussians may be absent (op
+i ≈0)
+for some of the timesteps. This means non-persistence is not a sin-
+gle event and cannot be encoded by a single point along a linear
+color gradient. A color lookup table of all potential combinations
+of appearances is equally infeasible: four timesteps would already
+require 14 colors, exceeding the recommended limit for categorical
+color scales [War19], and since op
+i is a continuous value rather than
+a binary presence flag, a lookup table would require a user-defined
+threshold to classify each Gaussian as present or absent. Therefore,
+we visualize non-persistence in a color space where colors corre-
+sponding to timesteps at which a Gaussian is absent are filtered out,
+leaving fully persistent Gaussians visually unaltered.
+To encode non-persistence in the color of each Gaussian while
+preserving the appearance of persistent ones, we extend Equa-
+tion 4 by introducing the persistence filter S, yielding the highlight
+color H:
+H(t) = ∑
+i∈N
+Bi(ˆt)Si(t)
+i−1
+∏
+j=1
+(1−αjo j · ˆt) .
+(6)
+With the persistence filter returning a three-component vector for
+an individual Gaussian as
+Si(t) = ∑
+tp∈t
+
+tp(op
+i +1−max(oi ⊙t))
+Z Tp+1
+Tp
+λ(x) dx
+
+,
+(7)
+with Tp = ∑p−1
+k=0 ˆtk. λ is a vector-valued function mapping the opac-
+ity manipulation to a three-component vector (λ : R →R3), con-
+sisting of a shifted Gaussian function, defined as
+λ(x) =
+
+
+2
+σ
+√
+2π exp
+
+−x2
+2σ2
+
+1
+σ
+√
+2π exp
+
+−(x−0.5)2
+2σ2
+
+2
+σ
+√
+2π exp
+
+−(x−1)2
+2σ2
+
+
+.
+(8)
+When integrated, this results in
+R 1
+0 λ(x)dx ≈[1,1,1]T . Therefore, in
+the case of a Gaussian that is persistent over the whole time selec-
+tion, we have S ≈[1,1,1]T , whereas a Gaussian that is not visible
+at the beginning of the selected time period would result in a vec-
+tor λ(x) with the first component close to 0. Since the persistence
+of a Gaussian is encoded by the relative differences between the
+components of oi rather than their absolute values, we shift oi by
+1−max(oi ⊙t). This ensures that a Gaussian with max(oi ⊙t) < 1
+but with op
+i ≈oq
+i for all p and q still results in S ≈[1,1,1]T , indi-
+cating a persistent Gaussian. Figures 3 and 4 show results rendered
+with our change-aware approach as well as the blended true-color
+version. Figure 5 shows the synthetic coral dataset where whole
+objects are added and removed across timesteps. Figure 6b shows a
+time selection with little change between the first two timesteps, re-
+sulting in a nearly unaltered representation, while Figure 6c extends
+the selection to a third timestep that differs significantly, producing
+more pronounced color highlights.
+4.2. Increasing Visual Distance
+To make the change visualization stand out more clearly and to
+separate the change highlight visualization and the true colors of
+the Gaussians, the color B can be altered to grayscale BGRAY, or
+the contrast can be decreased. Depending on the use case, either
+a clear highlight of the changes, or the preservation of the overall
+visual representation is desired. Since op
+i is continuous, there is no
+discrete threshold separating persistent from non-persistent Gaus-
+sians. To control the visual contrast of the change highlight, we
+optionally apply the parametric sigmoid
+φ(x) =
+xk
+xk +
+
+1−b
+b (1−x)
+k
+(9)
+to op
+i in Equation 7, where k controls the contrast between persis-
+tent and non-persistent Gaussians and b controls the midpoint of
+the transition.
+4.3. Custom Highlight Colors
+The persistence filter S, given in Equation 7, maps the time of
+changes to the full RGB space, where the direction of Si encodes
+when a change occurred, and its magnitude encodes the overall
+contribution of the filter. For visualization purposes, we replace
+the RGB hue space with a custom gradient γ, defined by colors
+v = [v0,v1,...] evenly spaced along the gradient with linear inter-
+polation between adjacent pairs, with γ(ρ) denoting the color at po-
+sition ρ. This remapping replaces the directional component of Si
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+Batik et al. / ChronoFuseGS
+7 of 12
+(a) Full RGB color space
+(b) Three color gradient
+(c) Three color gradient
+(d) Two color gradient
+Figure 7: Different gradients for change highlighting across four
+selected timesteps.
+with the corresponding gradient color while preserving ∥Si∥1 and
+the saturation of Si.
+To remap Si to a custom gradient γ, we re-express its directional
+component in terms of γ while retaining its magnitude and satu-
+ration. First we compute the scalar position ρ ∈[0,N−1] into the
+N-color gradient by normalizing Si and projecting onto the tem-
+poral axis ρ = ( ˆS2
+i /2 + ˆS3
+i )(N −1), where ˆSi = Si/∥Si∥1, and ˆS2
+i
+and ˆS3
+i are the second and third components of ˆSi respectively. The
+gradient color ˜γ is then obtained by linearly interpolating between
+the two adjacent gradient samples v⌊ρ⌋and v⌊ρ⌋+1. We rescale the
+sampled gradient color by the ratio of input to target magnitude
+˜Si = ˜γ(ρ) ∥Si∥1
+∥˜γ(ρ)∥1
+(10)
+and scale the saturation of ˜Si by the saturation of ˆSi in HSV color
+space. Together, the magnitude rescaling and saturation scaling
+ensure that a fully persistent Gaussian (Si ≈[1,1,1]T ) produces
+S′
+i ≈[1,1,1]T regardless of the chosen gradient, leaving the Gaus-
+sian’s color unaffected. An example of different gradient colors can
+be seen in Figure 7.
+5. Implementation Details
+Our approach is independent of the training method of the ini-
+tial Gaussian Splatting sets that represent a single timestep. For
+large scenes, where the number of Gaussians is critical for real-
+time rendering, we train our initial Gaussian Splatting sets using
+PUP 3D-GS [HTS∗25]. For small-scale scenes, where we aimed to
+preserve finer details, we used the original Gaussian Splatting im-
+plementation [KKLD23]. For both cases, we limited the training to
+pre-computed colors and optimized the model with random back-
+ground colors to prevent background leakage and semi-transparent
+parts. For large outdoor scenes, we used a position learning rate of
+1.6×10−5, and 1.6×10−4 for the other test scenes.
+For our training procedure, we extended the differentiable ren-
+derer by Kerbl et al. [KKLD23] to include light compensation and
+opacity manipulation. For the cross-timestep initialization, we run
+Name
+T
+Days
+Images
+No Wolf in the Meadow (NWM)
+Complete
+9
+8
+2221
+Autumn
+4
+4
+975
+Flooding
+3
+3
+629
+Snow
+3
+1
+608
+Car
+3
+1
+705
+Baluster Vase
+4
+-
+200
+Corals
+4
+-
+300
+Table 1: Overview of datasets, including the number of timesteps T,
+recording days, and total input images. The snow subset includes
+two timesteps that are not present in the complete dataset. Some
+timesteps are used for multiple subsets. Synthetic datasets (Baluster
+Vase, Corals) have no associated recording days.
+each Gaussian set against each other ground-truth image set for
+3000 iterations. We only optimize o and l in this run, using a learn-
+ing rate of 0.0075 for o and 0.00375 for l. We start with randomly
+colored backgrounds and gradually limit the background color to
+black. To restrict components of o and α to the interval (0,1), we
+activate the values with a sigmoid function. For components of l,
+we aim for an interval of (0,2), whereas 1 results in no color shift.
+Hence, we activate the components of l with 2σ(l).
+For our combined optimization run, we optimize all parameters
+of the Gaussians except l. In our experiments, there was little im-
+provement in optimizing l further, since the cross-timestep initial-
+ization should already result in a good light compensation. We use
+an experimentally determined learning rate of 2.5 × 10−6 for o,
+0.005 for α, 2×10−5 for c, the same learning rate for the position
+parameter as when training the input Gaussian sets, and 5 × 10−5
+for the remaining parameters. We use a smaller learning rate for o
+than for α to preserve a strong encoding of the persistence of the
+Gaussians. In every training iteration, we select a training image
+from across all timesteps. At regular intervals during refinement,
+we check, for each Gaussian, whether it contributes to any train-
+ing image of Ip when rendered from the corresponding training
+cameras. If a Gaussian is never rendered for any image of Ip, no
+gradient flows to its time-dependent parameters for that timestep,
+leaving op
+i unconstrained. We therefore explicitly set op
+i = 0 in this
+case. After refinement, we prune all Gaussians where αiop
+i ≤1/255
+for all p, removing Gaussians that are never visible across any
+timestep.
+We implemented our Interactive Renderer for the multi-temporal
+visualization and change highlighting in Unreal 5.6, using a GPU
+Niagara Particle System, where each Gaussian splat is represented
+by a particle sprite facing the camera. All renderings and FPS mea-
+surements are performed at the highest material settings. We allow
+user-defined time selections t, where each component of t can be 0
+or 1. This enables arbitrary time selections, for example, to render
+the scene and highlight the changes for t1 and t4. In our implemen-
+tation, we transform the Gaussian color c to the linear color space
+and perform all computations there. Our code and dataset are pub-
+licly available at https://tobiasbat.github.io/ChronoFuseGS/.
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+8 of 12
+Batik et al. / ChronoFuseGS
+Snow
+Car
+Autumn
+Snow
+Flood
+Complete
+Best Baseline
+Best Baseline
+Ours
+Ours
+GT
+GT
+Figure 8: Reconstruction results on five subsets of the No Wolf in the Meadow dataset. Rows correspond to dataset subsets; columns show
+the best-performing individually trained baseline, ChronoFuseGS at 30k refinement iterations, and the ground-truth test image.
+(a) Autumn
+(b) Complete
+Figure 9: Results of our approach with 30,000 refinement iter-
+ations for different datasets, where (a) and (b) share the shown
+timestep. The Autumn subset includes 4 timesteps, and the Com-
+plete NWM dataset includes 9 timesteps.
+6. Dataset
+To evaluate our approach, we captured a real-world outdoor dataset
+spanning multiple months, named No Wolf in the Meadow (NWM).
+The dataset captures a flood control system in Vienna, Austria,
+covering an area of approximately 100 × 200 meters with a mix
+of natural and artificial elements, including weir and flood control
+structures constructed from stone, wood, steel, and concrete, mul-
+tiple river branches, and vegetation. We captured the area using a
+consumer drone with pre-recorded flight plans, recording 4K video
+and exporting individual frames at regular intervals, downscaled to
+1600×900 pixels. The dataset additionally includes detailed close-
+up recordings of specific parts of the scene. In total, we captured the
+area on eight days, with the first recording on 25th August 2025 and
+the last on 28th March 2026. Beyond seasonal vegetation changes
+and varying lighting conditions, the dataset includes days when the
+area was covered by snow or flooded, as well as periods during
+which reinforcement and renovation work were carried out. Besides
+the full dataset covering all eight days, we created subsets focusing
+on specific types of change – flooding, snow, and vegetation change
+– to simulate a more realistic data collection process, for example,
+during a natural disaster. A list of all datasets and their input image
+counts is provided in Table 1.
+We additionally created two synthetic datasets, each consisting
+of 3D-scanned and textured objects [Smi26] rendered in Blender at
+1600 × 900 pixels. The Baluster Vase scene features three vases
+across four simulated timesteps, with new cracks added to the
+central vase at each timestep. The Coral scene arranges multi-
+ple corals and shells that appear and disappear across four simu-
+lated timesteps. In both scenes, lighting remains constant across
+timesteps. Results are shown in Figures 4 and 5.
+7. Evaluation
+7.1. Reconstruction Quality
+We evaluated whether our multi-temporal Gaussian fusion ap-
+proach achieves better generalization compared to individually
+trained Gaussian sets. In particular, we are interested in whether
+Gaussians detected as persistent by our system and originating
+from one timestep also contribute to the reconstruction at other
+timesteps. Additionally, we evaluated whether our merging pro-
+cess – the computation and transformation into a shared coordinate
+system – is sufficiently precise and robust for real-world data.
+For our experiments, we train each timestep individually using
+PUP 3D-GS [HTS∗25]. We merge the individual Gaussian sets and
+refine the resulting multi-temporal model for 6,000, 15,000, and
+30,000 iterations, in addition to the initialization step, using the
+same parameters and learning rates as outlined in Section 5. As
+a baseline, we compare against individually trained Gaussian sets
+with additional iterations (6,000, 15,000, and 30,000) for the initial
+training, using the same parameters as the individual sets that serve
+as input to our approach. We split all datasets into training and test
+sets, where every 8th image from the ordered list of images for
+each individual timestep serves as a test image. We evaluate on the
+five subsets of the No Wolf in the Meadow dataset, which cover a
+range of scene-change types, including seasonal vegetation, snow,
+and flooding.
+We evaluated each method at each saved iteration checkpoint us-
+ing the average PSNR, SSIM [WBSS04], and LPIPS [ZIE∗18] over
+the test split. For our method, we additionally report results for the
+initial merged model prior to any refinement. For the individually
+trained baselines, metrics are averaged across timesteps weighted
+by the number of images per timestep. Additionally, we manually
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+Batik et al. / ChronoFuseGS
+9 of 12
+Complete (4.67)
+Autumn (2.17)
+Flooding (1.65)
+Snow (0.81)
+Car (1.56)
+Method
+PS↑
+SS↑
+LP↓
+PS↑
+SS↑
+LP↓
+PS↑
+SS↑
+LP↓
+PS↑
+SS↑
+LP↓
+PS↑
+SS↑
+LP↓
+Individual Init
+21.6
+0.73
+0.45
+20.9
+0.69
+0.47
+22.2
+0.76
+0.43
+23.2
+0.82
+0.38
+22.7
+0.76
+0.44
+Ours Merged
+21.6
+0.73
+0.45
+20.9
+0.69
+0.47
+22.2
+0.76
+0.43
+23.2
+0.82
+0.38
+22.7
+0.76
+0.44
+Ours 6k
+21.5
+0.71
+0.44
+21.2
+0.70
+0.46
+22.8
+0.78
+0.41
+23.3
+0.82
+0.37
+23.1
+0.78
+0.42
+Ours 15k
+21.8
+0.73
+0.43
+21.1
+0.69
+0.47
+22.8
+0.78
+0.41
+23.4
+0.82
+0.36
+23.2
+0.78
+0.42
+Ours 30k
+21.9
+0.74
+0.43
+21.3
+0.70
+0.46
+22.8
+0.78
+0.40
+23.4
+0.83
+0.36
+23.3
+0.79
+0.41
+Individual +6k
+21.5
+0.73
+0.45
+20.7
+0.67
+0.48
+21.7
+0.73
+0.44
+23.2
+0.82
+0.38
+22.3
+0.73
+0.45
+Individual +15k
+21.6
+0.73
+0.45
+21.0
+0.69
+0.47
+22.1
+0.76
+0.43
+23.2
+0.82
+0.37
+22.7
+0.76
+0.44
+Individual +30k
+21.4
+0.73
+0.45
+20.6
+0.68
+0.47
+21.8
+0.73
+0.46
+23.1
+0.82
+0.37
+22.5
+0.76
+0.44
+Table 2: Quantitative comparison across the five subsets of the No Wolf in the Meadow dataset. Numbers in parentheses indicate the
+combined number of Gaussians of the input Gaussian sets in millions. PS: PSNR, SS: SSIM, LP: LPIPS. ↑indicates higher is better, ↓lower
+is better. Best , second best , and third best results are highlighted per column. Individual Init represents the individual trained Gaussian
+sets used as input for our approach, and Ours Merged represents the multi-temporal model after merging the individual Gaussian sets before
+additional training.
+compare and analyze the representation of fine details in the indi-
+vidual novel view synthesis.
+The results of the quantitative analysis are listed in Table 2.
+As expected, the individually trained models serving as input to
+our approach, and the multi-temporal model after the merging
+stage, achieved equivalent scores across all datasets. Across all
+five datasets and three metrics, our approach consistently outper-
+formed the individually trained baselines, with Ours 30k achieving
+the highest scores in all cases. Our approach, with the fewest ad-
+ditional iterations (6k), already outperformed the best individual
+baseline across all datasets in terms of LPIPS, with improvements
+or comparable results in PSNR and SSIM. For the individual base-
+lines, differences across iteration counts were minimal, with some
++30k scores performing worse than +6k (e.g. Flooding LPIPS:
++6k = 0.44, +30k = 0.46). Within our approach, scores generally
+improved with more iterations, though the gains were marginal.
+Overall, while our approach outperformed the individually trained
+models, the differences in PSNR, SSIM, and LPIPS are small, as
+these metrics average over the full image and do not capture fine-
+detail improvements well. For fine-grained details, our approach
+yields greater improvements than additional iterations of individu-
+ally trained models, recovering whole structures absent in single-
+timestep reconstructions and noticeably increasing reconstruction
+detail (Figure 8).
+To validate the joint optimization of αi and oi during the com-
+bined refinement stage, we ran two ablations on the Autumn
+dataset: one freezing αi and one freezing oi during refinement
+(6,000 iterations). Both performed worse than our combined op-
+timization (PSNR/SSIM/LPIPS: 21.2/0.70/0.46): freezing oi yields
+21.0/0.68/0.47 and freezing αi yields 20.2/0.66/0.49.
+We observed that adding more timesteps to the fused reconstruc-
+tion increases the level of detail across all timesteps. As shown in
+Figure 9, the complete reconstruction contains more detail than the
+subset, even though both models were refined for the same number
+of iterations – meaning the multi-temporal model received fewer it-
+erations per timestep. Together with the recorded similarity scores,
+this suggests that Gaussians are reused across timesteps rather than
+each timestep being refined independently. The number of Gaus-
+sians remains stable across methods, with a variation below 3.2%
+across all datasets and iteration counts (exception: Flooding Indi-
+vidual +30k, −13%), indicating that the additional detail is not sim-
+ply a result of a higher total Gaussian count. Our experiments also
+highlighted a limitation of our approach: it relies on precise camera
+parameter estimation through SfM when merging individual mod-
+els. In the complete dataset results, the camera parameters for the
+snow timestep were insufficiently precise, resulting in blurry details
+and edges in the reconstruction.
+Training Time (min)
+Rendering FPS
+Dataset
+Merge
+Cross
+Ref
+Sum
+C
+H
+H0,1
+NWM
+Complete
+75.4
+48.3
+12.0
+135.7
+48
+49
+49
+Autumn
+19.3
+14.4
+4.5
+38.2
+120
+120
+121
+Flooding
+11.3
+7.5
+4.0
+22.7
+149
+151
+151
+Snow
+15.2
+6.0
+3.0
+24.2
+231
+233
+232
+Car
+13.8
+7.3
+3.8
+24.9
+163
+163
+164
+Baluster Vase
+4.9
+14.5
+4.5
+23.9
+184
+184
+184
+Corals
+6.0
+8.2
+1.7
+15.8
+264
+264
+264
+Table 3: Training times in minutes for 6000 refinement itera-
+tions and average rendering FPS of our Unreal implementation.
+Merge, Cross, and Ref denote the pipeline stages: Merging to
+Multi-Temporal Model, Cross-Timestep Initialization, and Com-
+bined Refinement. C and H represent the FPS with all timesteps
+selected in true color and change highlighting respectively. H0,1
+represents the FPS for change highlighting with only the first two
+timesteps selected.
+7.2. Training Times & Rendering Frame Rates
+Training times and average rendering FPS at a resolution of 1920×
+1080 are reported in Table 3. Training times and rendering FPS are
+measured on separate implementations as described in Section 5,
+both on an NVIDIA RTX 4090 with 24GB of VRAM. Figure 10
+shows the training times for incrementally adding new timesteps
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+10 of 12
+Batik et al. / ChronoFuseGS
+12
+16
+17
+18
+21
+22
+13
+23
+34
+46
+59
+66
+75
+16
+24
+35
+48
+12
+10
+14
+20
+25
+29
+33
+38
+42
+10
+20
+34
+50
+70
+92
+112
+136
+t1
+t2
+t3
+t4
+t5
+t6
+t7
+t8
+0
+20
+40
+60
+80
+100
+120
+140
+Up to timestep
+Time (min)
+Merge
+Cross
+Refinement
+Incremental
+From Scratch
+Incremental Training Times vs Retraining from Scratch
+Figure 10: Training time up to each timestep of the NWM (com-
+plete) dataset, comparing
+incremental fusion—where the multi-
+temporal model is extended with a new timestep—against
+re-
+training from scratch, where the model is fully recomputed from all
+timesteps available so far. Each bar represents the time to incorpo-
+rate the new timestep and yield a single refined model containing
+all timesteps from t0 through the new one. Times broken down by
+pipeline stage:
+merging,
+cross-timestep initialization, and
+refinement.
+to the NWM (complete) dataset compared to complete recompu-
+tation. The incremental approach is significantly faster: adding the
+last timestep t8 to the model already including t0–t7 required 42
+minutes, compared to 136 minutes for a full recomputation of the
+multi-temporal model, with the merging stage accounting for ap-
+proximately half of that time in both cases (incremental: 22 min,
+from scratch: 75 min). This makes the incremental approach partic-
+ularly well-suited for scenarios where new timesteps become avail-
+able over time.
+7.3. User Study
+In addition to the quantitative reconstruction evaluation, we as-
+sessed the effectiveness of our visualization method through a
+within-group user study. We investigated whether users can distin-
+guish between persistent and changing parts of a scene and deter-
+mine at which timesteps non-persistent parts were present, to what
+extent interactive time-selection is necessary for this, and for which
+types of tasks static color highlighting alone is sufficient.
+We conducted an online survey in which participants were asked
+to determine the presence of objects at specific timesteps using ren-
+derings of a reconstructed scene. We tested three visualization con-
+ditions: static color highlighting, interactive color highlighting, and
+a single-timestep baseline. In the static condition, the scene was
+rendered using our change highlighting method (Section 4.1) with
+all timesteps selected simultaneously, without the ability to modify
+the selection. The interactive condition extended the static condi-
+tion by allowing participants to freely enable and disable individual
+timesteps, with the highlighting adapting accordingly. All timesteps
+were selected at the start of each trial. In the baseline condition,
+participants were presented with renderings of individual timesteps
+and could navigate between them, with only one timestep visible
+at a time. An overview of the interface is shown in Figure 11. The
+study comprised 19 tasks, each answered under all three conditions
+across participants, but each participant completed every task ex-
+actly once under a single randomly assigned condition. Tasks were
+grouped by condition in randomized order, with the condition order
+(a) Interactive
+(b) Static
+(c) Baseline
+Figure 11: Screenshots of the web survey tool for the three condi-
+tions.
+86%
+71%
+100%
+I
+S
+B
+0%
+33%
+67%
+100%
+Condition
+Success rate
+Success Rate
+36s
+28s
+22s
+I
+S
+B
+0s
+43s
+87s
+130s
+Condition
+time (s)
+Completion Time
+Figure 12: Quantitative results of the user study across three condi-
+tions (I: Interactive, S: Static, B: Baseline). The black line indicates
+the median.
+also randomized across participants. After each condition block,
+participants completed a post-exposure questionnaire. There was
+no time limit, but participants were instructed to be as efficient and
+accurate as possible.
+In total, 21 participants completed the study voluntarily, with 11
+identifying as male, 8 as female, and 2 not reporting their gender.
+The average age was 28.7 years (std: 3.81). 14 participants had vi-
+sualization education, and 10 worked with visualizations profes-
+sionally.
+For each participant and condition, the mean and median suc-
+cess rate and completion time were computed across the com-
+pleted tasks and then aggregated across all participants. Across
+all trials, the majority of tasks were answered correctly. The in-
+teractive (mean: 83%, std: 21%) and baseline conditions (mean:
+93%, std: 10%) did not differ significantly (Wilcoxon signed-rank,
+p = 0.12, W = 32) with a Bonferroni corrected α = 0.017. The
+static condition performed worst (mean: 72%, std: 17%), signif-
+icantly below both the baseline (p = 0.001, W = 8) and inter-
+active condition (p = 0.013, W = 38). For completion time, the
+static (median: 28s, mean: 34s, std: 20s) and baseline conditions
+(median: 22s, mean: 30s, std: 19s) were not significantly different
+(p = 0.32,W = 86), similarly to the static and interactive conditions
+(p = 0.035,W = 55). The interactive condition (median: 36s, mean:
+45s, std: 28s) took significantly longer than the baseline (p = 0.007,
+W = 40). Results are shown in Figure 12.
+When asked how beneficial each method was for quickly spot-
+ting changes, participants rated the static method highest (mean 5.6,
+std 1.2), followed by the interactive method (mean 5.1, std 1.5)
+and the baseline lowest (mean 5.0, std 1.7), on a seven-point Likert
+scale from 1 (not at all) to 7 (highly beneficial). We additionally
+recorded the time-selection changes performed by participants dur-
+ing each trial of the interactive color highlighting condition. Partic-
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+Batik et al. / ChronoFuseGS
+11 of 12
+(a) [ • • ◦◦◦◦◦◦◦]
+(b) [ ◦◦◦• ◦◦◦◦• ]
+(c) [• • ◦◦]
+Figure 13: Change visualization between two timesteps for different scene change types. Insets show the individual timestep renderings. (a)
+Rocks partially covered by vegetation at different levels. (b) Scene covered with ice at one timestep, with additional objects present during
+the other timestep. (c) River with differing water levels, highlighting the change in waterline. • indicates an enabled timestep, with color
+corresponding to timestep presence; ◦indicates a disabled timestep.
+ipants frequently selected three or four timesteps simultaneously,
+and at the point of answer submission, all timesteps were selected
+in 60% of three-timestep tasks and three or four timesteps in 56%
+of four-timestep tasks. In follow-up interviews, multiple partici-
+pants noted that both color highlighting conditions required a fa-
+miliarization period, but that tasks felt easier to solve once they
+had become accustomed to the approach. Participants also reported
+that the color highlighting provided a good overview of what had
+changed and approximately when, but that decomposing the mixed
+highlight color into individual timesteps was difficult when ob-
+jects were present across multiple timesteps, requiring additional
+interaction. For example, in one task where only the first timestep
+was correct, but the majority of participants selected the first two
+timesteps, indicating that they could approximate when the change
+occurred, but struggled to decompose the mixed color into individ-
+ual timesteps. For tasks where users observed a persistent area, the
+static method performed on par with the other two methods, sug-
+gesting that color highlighting alone may be sufficient to identify
+persistent parts without additional interaction. Post-exposure inter-
+views support this observation.
+8. Discussion
+Our results show that we are able to reliably fuse individual
+timesteps through our approach. The cross-timestep optimization
+leads to higher levels of detail compared to individually trained
+Gaussian sets without increasing the combined Gaussian count.
+By allowing new pre-trained Gaussian sets to be added incremen-
+tally, the reconstruction can be improved over time without repro-
+cessing previously merged timesteps. Through the integrated per-
+sistence encoding at the Gaussian primitive level, our visualiza-
+tion approach highlights changes at sub-object granularity and in-
+dicates at which timesteps parts of the scene are present. Our re-
+sults demonstrate reliable change highlighting across both natural
+environments – including vegetation, snow, and water levels – and
+built environments, even in sparsely covered areas (Figure 13). By
+fusing different Gaussian sets, users can explore scenes without
+switching between individual reconstructions. Our approach pro-
+vides visual indications of at which timestep a subarea can be val-
+idated and which areas have changed – critical information for use
+cases such as mission planning and decision making in case of nat-
+ural disasters. Additionally, the change visualization can support
+capture planning by highlighting which structures or parts of struc-
+tures have not been captured in recent timesteps, as illustrated in
+Figure 14.
+9. Limitations and Future Work
+While we account for changes between timesteps, we do not con-
+sider structural changes or lighting shifts that occur within a single
+recording period. Our approach also depends on a sufficiently ac-
+curate SfM registration when merging initial Gaussian sets. If the
+scene changes dramatically between timesteps (e.g., due to snow
+cover), the registration may fail, preventing any improvement in
+reconstruction quality. Additionally, the SfM registration is a time-
+consuming preprocessing step and more efficient 3DGS-based reg-
+istration methods [CXL∗24] could substantially reduce the time re-
+quired to incorporate new timesteps. Our approach currently pre-
+serves approximately the same number of Gaussians throughout the
+optimization, due to the lack of a cross-timestep pruning step. We
+believe that adding such a step could substantially reduce the Gaus-
+sian count without compromising reconstruction quality or persis-
+tence encoding, which we leave as future work.
+Our user study evaluated the visualization approach on pre-
+rendered 2D images, isolating the perceptual task from 3D naviga-
+tion and interface familiarity effects, which we consider a natural
+next step toward a realistic field deployment evaluation.
+10. Conclusion
+We presented ChronoFuseGS, a multi-temporal Gaussian Splat-
+ting approach that merges individually pre-trained Gaussian mod-
+els into a single refined reconstruction supporting novel-view syn-
+thesis across multiple timesteps. By encoding per-Gaussian persis-
+tence, our approach leverages data across all captured timesteps,
+improving the reconstruction quality over individually trained mod-
+els, while enabling incremental extension as new data becomes
+available. Our change-aware visualization highlights scene changes
+at sub-object granularity and indicates at which timesteps individ-
+ual parts of the scene are present, without requiring users to switch
+between individual reconstructions. We demonstrated our approach
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.
+
+
+12 of 12
+Batik et al. / ChronoFuseGS
+(a) [• • • ]
+(b) [• ◦◦]
+(c) [◦• ◦]
+(d) [ ◦◦• ]
+Figure 14: Demonstration of our change visualization on regions not covered by the input data at one timestep. (a) Yellow highlights areas
+not covered at t3 but present at t1 and t2; grayscale indicates regions persistent across all timesteps. (b)–(d) Individual timestep renderings
+for t1–t3. • indicates an enabled timestep, with color corresponding to timestep presence in (a); ◦indicates a disabled timestep.
+on a real-world outdoor dataset spanning 7 months, showing con-
+sistent improvements in novel-view synthesis quality and effective
+change highlighting.
+11. Acknowledgements
+This research was funded in part by the Austrian KIRAS program
+of the Federal Ministry of Finance within the PostDisaster project.
+References
+[CQZ∗25]
+CHENG L., QI Z., ZHOU Z., LU C., XIONG G.: LT-Gaussian:
+Long-Term Map Update Using 3D Gaussian Splatting for Autonomous
+Driving.
+In 2025 IEEE Intelligent Vehicles Symposium (IV) (2025),
+IEEE, pp. 1427–1433. 2
+[CXL∗24]
+CHANG J., XU Y., LI Y., CHEN Y., FENG W., HAN X.:
+GaussReg: Fast 3D Registration with Gaussian Splatting. In European
+Conference on Computer Vision (2024), Springer, pp. 407–423. 11
+[FLZ∗25]
+FU B., LI J., ZHANG B., WANG R., CHEN X.:
+GS-LTS:
+3D Gaussian Splatting-Based Adaptive Modeling for Long-Term Service
+Robots, 2025.
+URL: https://arxiv.org/abs/2503.17733,
+arXiv:2503.17733. 2
+[GLP∗26]
+GALAPPATHTHIGE C. J., LAI J., PATTEN T., DANSEREAU
+D., SUENDERHAUF N., MILLER D.: From Pixels to Primitives: Scene
+Change Detection in 3D Gaussian Splatting, 2026. URL: https://
+arxiv.org/abs/2605.07203, arXiv:2605.07203. 3
+[GLW∗25]
+GALAPPATHTHIGE
+C.
+J.,
+LAI
+J.,
+WINDRIM
+L.,
+DANSEREAU D., SUENDERHAUF N., MILLER D.:
+Multi-View
+Pose-Agnostic Change Localization with Zero Labels. In Proceedings
+of the Computer Vision and Pattern Recognition Conference (2025),
+pp. 11600–11610. 3
+[HTS∗25]
+HANSON A., TU A., SINGLA V., JAYAWARDHANA M.,
+ZWICKER M., GOLDSTEIN T.:
+PUP 3D-GS: Principled Uncertainty
+Pruning for 3D Gaussian Splatting. In Proceedings of the Computer Vi-
+sion and Pattern Recognition Conference (CVPR) (June 2025), pp. 5949–
+5958. URL: https://pup3dgs.github.io/. 7, 8
+[KKLD23]
+KERBL
+B.,
+KOPANAS
+G.,
+LEIMKÜHLER
+T.,
+DRET-
+TAKIS
+G.:
+3D
+Gaussian
+Splatting
+for
+Real-Time
+Radiance
+Field Rendering.
+ACM Transactions on Graphics 42, 4 (July
+2023).
+URL:
+https://repo-sam.inria.fr/fungraph/
+3d-gaussian-splatting/. 2, 4, 7
+[KPK∗24]
+KULHANEK J., PENG S., KUKELOVA Z., POLLEFEYS M.,
+SATTLER T.:
+WildGaussians: 3D gaussian splatting in the wild.
+In
+Proceedings of the 38th International Conference on Neural Information
+Processing Systems (2024). 3
+[LYL25]
+LU Z., YE J., LEONARD J.: 3DGS-CD: 3D Gaussian Splatting-
+Based Change Detection for Physical Object Rearrangement.
+IEEE
+Robotics and Automation Letters (2025). 3
+[MST∗21]
+MILDENHALL B., SRINIVASAN P. P., TANCIK M., BAR-
+RON J. T., RAMAMOORTHI R., NG R.: NeRF: representing scenes as
+neural radiance fields for view synthesis. Commun. ACM 65, 1 (Dec.
+2021), 99–106.
+URL: https://doi.org/10.1145/3503250,
+doi:10.1145/3503250. 2
+[Shn96]
+SHNEIDERMAN B.: The Eyes Have It: A Task by Data Type
+Taxonomy for Information Visualizations. In Proceedings of the IEEE
+Symposium on Visual Languages (1996), pp. 336–343. 2
+[Smi26]
+SMITHSONIAN INSTITUTION:
+Smithsonian 3D Digitization,
+2026. Accessed: 2026. URL: https://3d.si.edu/. 8
+[War19]
+WARE C.:
+Information Visualization: Perception for Design.
+Morgan Kaufmann, 2019. 6
+[WBSS04]
+WANG Z., BOVIK A. C., SHEIKH H. R., SIMONCELLI E. P.:
+Image Quality Assessment: From Error Visibility to Structural Similar-
+ity. IEEE Transactions on Image Processing 13, 4 (2004), 600–612. 8
+[WDZ∗26]
+WANG Z., DAI J., ZHU Q., LI Y., SU M., ZHU F., GAI
+M., WANG S., PAN C., CHEN Y., ET AL.: ChronoGS: Disentangling
+Invariants and Changes in Multi-Period Scenes. In Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(2026), pp. 8298–8307. 2
+[WYF∗24]
+WU G., YI T., FANG J., XIE L., ZHANG X., WEI W., LIU
+W., TIAN Q., WANG X.: 4D Gaussian Splatting for Real-Time Dynamic
+Scene Rendering. In Proceedings of the IEEE/CVF Conference on Com-
+puter Vision and Pattern Recognition (CVPR) (June 2024), pp. 20310–
+20320. 2
+[YGZ∗24]
+YANG Z., GAO X., ZHOU W., JIAO S., ZHANG Y., JIN X.:
+Deformable 3D Gaussians for High-Fidelity Monocular Dynamic Scene
+Reconstruction. In Proceedings of the IEEE/CVF conference on com-
+puter vision and pattern recognition (2024), pp. 20331–20341. 2
+[YKC∗25]
+YUGAY V., KERSTEN T., CARLONE L., GEVERS T., OS-
+WALD M. R., SCHMID L.:
+Gaussian Mapping for Evolving Scenes,
+2025. URL: https://arxiv.org/abs/2506.06909, arXiv:
+2506.06909. 2
+[ZIE∗18]
+ZHANG R., ISOLA P., EFROS A. A., SHECHTMAN E., WANG
+O.: The Unreasonable Effectiveness of Deep Features as a Perceptual
+Metric. In CVPR (2018). 4, 8
+© 2026 The Author(s).
+Proceedings published by Eurographics - The European Association for Computer Graphics.

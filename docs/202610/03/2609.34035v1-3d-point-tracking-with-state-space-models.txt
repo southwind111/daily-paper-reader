@@ -1,0 +1,735 @@
+Title: 3D Point Tracking with State Space Models
+
+URL Source: https://arxiv.org/pdf/2609.34035v1
+
+Published Time: Tue, 29 Sep 2026 02:55:41 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+# 3D Point Tracking with State Space Models 
+
+Masahiro Ogawa a, ∗, Qi An b, Atsushi Yamashita b
+
+> aDepartment of Precision Engineering, Graduate School of Engineering, The University of Tokyo, Kashiwa, Chiba, Japan
+> bDepartment of Human and Engineered Environmental Studies, Graduate School of Frontier Sciences, The University of Tokyo, Kashiwa, Chiba, Japan
+
+Abstract 
+
+Tracking any point of a dynamic scene in metric 3D — in absolute meters, not up to an unknown scale — underpins 3D and 4D reconstruction, robot navigation, and autonomous driving, where decisions are made in meters, not pixels. Our objective is a 3D point tracker accurate in those absolute terms and operating within a single commodity GPU, pose-free, monocular budget. Our method rests on one observation: once a point’s 2D image trajectory is fixed, the quantity that governs its metric accuracy is the depth along its pixel ray. Rather than learning tracking end-to-end, we therefore compose two frozen front-ends — dense optical flow for 2D correspondence and a monocular metric-depth network for the third dimension — and learn only the residual they cannot supply: that depth, refined by a compact state space model (Mamba-3) conditioned on appearance features (DINOv3). A state space model rather than the transformers the strongest 3D trackers adopt is what makes a single-GPU budget attainable: it summarises a track in a fixed-size recurrent state whose memory cost is constant in the number of frames, whereas attention requires a key–value cache that grows linearly with them. On the TAPVid-3D minival benchmark our best configuration attains the highest 
+
+absolute metric accuracy among methods evaluated under identical conditions (mean metric Average Jaccard, 0 .256), exceeding strong feed-forward trackers, while a companion analysis, reproduced with each competitor’s own evaluator, explains why several published trackers lose most of their accuracy under this budget. 
+
+Keywords: 3D point tracking, state space models, Mamba, monocular metric depth, optical flow 
+
+1. Introduction 
+
+1.1. Background 
+
+Understanding a dynamic scene from images requires knowing not only where a physical point on an object appears in each frame’s 2D image, but where it is in 3D over time. This capability—tracking any point in metric 3D, in absolute meters rather than up to an unknown scale—underpins 3D and 4D reconstruction, robot navigation, and autonomous driving, where decisions are made in meters rather than pixels. Recent 3D point trackers have made rapid progress on the TAPVid-3D benchmark [1]. 
+
+1.2. Problem statement 
+
+Despite that progress, two obstacles limit the practical use of current 3D point trackers. First, the standard leaderboard metric is scale-invariant : it rescales each prediction by a single global factor before scoring, which discards exactly the absolute-depth information that a downstream metric appli-cation needs. A method can top the leaderboard while being metrically wrong. Second, the strongest published trackers rely on large temporal windows [2], precise camera poses [3],      
+
+> ∗Corresponding author. Department of Precision Engineering, Graduate School of Engineering, The University of Tokyo, 5-1-5 Kashiwanoha, Kashiwa, Chiba 277-8563, Japan.
+> Email addresses: ogawa@robot.t.u-tokyo.ac.jp (Masahiro Ogawa),
+> anqi@robot.t.u-tokyo.ac.jp (Qi An),
+> yamashita@robot.t.u-tokyo.ac.jp (Atsushi Yamashita)
+
+or video-di ff usion backbones [4] that do not fit a commodity single-GPU budget; their reported numbers are therefore not reproducible on the hardware most practitioners own. 
+
+1.3. Objective 
+
+Our objective is a 3D point tracker that is metrically accu-rate in absolute , real-world terms and reproducible on a single commodity GPU, without relying on the large temporal win-dows, precise camera poses, or heavy video-di ff usion back-bones that the strongest existing trackers need. Figure 1 shows a representative sample output of our system, tracking points in metric 3D on a real driving scene. 
+
+1.4. Key idea 
+
+We take a deliberately modular and interpretable route. Our overall architecture is shown in Fig. 2. The one quantity that governs metric 3D accuracy for a tracked point, once its 2D image trajectory is fixed, is the depth along its pixel ray . We therefore compose two frozen, well-understood front-ends—dense optical flow [5, 6] for 2D correspondence and a monocular metric-depth network [7] (depth in absolute meters) for the third dimension—and learn only the depth residual they cannot supply, with a small refiner conditioned on appearance features (DINOv3 [8]). The refiner runs a state space model (Mamba-3 [9]) over the per-track temporal axis, mixing each track’s frames at clip level; it needs no spatial mixing of its own because its appearance and local-geometry inputs already carry that spatial context—the DINOv3 feature                           
+
+> Preprint submitted to Computer Vision and Image Understanding September 29, 2026 arXiv:2609.34035v1 [cs.CV] 27 Sep 2026 (a) Tracked points on the input video (b) Recovered metric 3D tracks
+> Figure 1: Our metric 3D point tracking on a driving scene. (a) Query points are propagated in 2D and overlaid on the video: each track is drawn as one curve from its start up to the frame shown, ending in a dot at the point’s position in that frame; the panel is therefore the tracker’s state at one instant rather than a summary of the whole clip. (b) The same points are lifted and refined into metric 3D. The axis values are absolute meters in the DriveTrack [10] ground-truth frame, read o ff
+> the data and not re-centred: Zis distance from the camera, so this clip lies at 13–15 m, while Xand Yare o ff sets about the optical axis and stay near zero. Solid =
+> predicted, dashed =ground truth, dots =anchor frame; the view is cropped to a 3 m cube centred on the anchor points so that individual trajectories separate, and tracks that run outside it are clipped. Predicted tracks closely follow ground truth along all three axes X,Y,Z, not only in the X-Yimage-plane projection that a method with correct 2D tracking but wrong depth could also get right. Our depth-along-ray refiner corrects per-point depth so that the recovered tracks lie on the true surfaces in all three dimensions, not just when reprojected to 2D. The 3D view is oriented like the image of (a): Xto the right, Ydownward, Zdepth.
+
+is a whole-image summary at the tracked pixel, computed by DINOv3’s own frozen self-attention, and the local depth patch’s samples occupy fixed grid positions the network can learn to interpret directly. Applying such a model to image data requires removing the causality that suits language but not images, which the method does as part of building the refiner. We abbreviate it vmamba3 in the prose and tables that follow, for readability, the leading v standing for vision : it is Mamba-3 applied to image data. We build the refiner on a state space model rather than a transformer for a concrete reason: it summarises history in a 
+
+fixed-size recurrent state, whose memory cost is constant in the sequence length, whereas softmax attention must retain a key– value cache that grows linearly with the number of tokens. A 3D point track can span hundreds of frames of a long video, and this compact-state property lets the refiner scale to such very long temporal sequences at a constant per-step memory budget—a decisive advantage on the single commodity GPU we target, and one we quantify directly: at a sequence length of 1025 tokens the operator runs in 30–54% of softmax attention’s peak memory. 
+
+1.5. Contribution 
+
+Our contributions are: 1. A compact state space depth-along-ray 3D refiner 
+
+for metric 3D point tracking that corrects only per-point depth on top of frozen flow and monocular depth, keeping the learned module under 1 M parameters and the pipeline fully interpretable. 2. A depth scale refiner : the larger of two metric-depth backbones is not simply better—it trades a learnable far-field bias for a frame-to-frame scale flicker no per-track refiner can observe—and we therefore stabilise the per-frame depth scale before refinement, reading the depth map directly. 3. VSSD-2pool, a second independently-read pool in the non-causal collapse. Making Mamba-3 non-causal costs its β-band: the band folds into a single per-token vec-tor while the mask is causal, but not once that vector must also serve queries looking forward in the sequence, and recovering it there requires a second, independently-read pool. We derive, implement and evaluate that opera-tor, and it raises absolute metric accuracy on TAPVid-3D minival from 0 .248 to 0 .255 (§4). 4. Highest absolute metric accuracy among methods evaluated under identical conditions : combining the 3D refiner, the depth scale refiner, this second pool and the flow-only visibility head, our tracker attains the high-est absolute metric accuracy of all methods evaluated under identical conditions on a single commodity GPU: mean metric-Average Jaccard (AJ) 0 .256 (§4). We emphasise honest scoping throughout: our accuracy advantage is on the absolute metric, where it matters for downstream use; on the scale-invariant leaderboard a strong depth baseline and the feed-forward tracker DELTA [11] remain ahead, which we report explicitly. 2video 
+
+{It}
+
+optical flow (frozen) flow chaining 2D track 
+
+ut (+vis) metric depth (frozen) refiner inputs [ r(ut), zraw , v ]
+
+learned depth refiner 
+
+> Figs. 5(a), 6(a)
+
+3D track ˆXt         
+
+> Figure 2: Overall pipeline. The flow front-end (SEA-RAFT or WAFT) and the metric-depth backbone (DA3-l or DA3-g, §4) are both frozen and swappable: swapping either only changes which frozen network fills these two grey boxes, and re-training uses an identical architecture, only the frozen depth cache changes. Flow chaining composes the front-end’s consecutive-frame flow into a full-length 2D track and, by a forward–backward consistency check, sets each point’s visibility
+> v—the “ +vis” of its output box (§3.4). Grey =frozen /training-free; the blue box is the only learned module (under 1M params); its internals are the Mamba-3 refiner (Fig. 5(a)) and the vmamba3 refiner (Fig. 6(a)). The Mamba-3 refiner leaves the frozen flow front-end’s 2D track ut(and visibility) untouched; the vmamba3 refiner additionally applies a small bounded 2D correction to it.
+
+2. Related Work 
+
+2.1. 3D point tracking 
+
+TAPVid-3D [1] formalised tracking any point in 3D and provides the minival split we use. SpatialTracker [12] and its successor SpatialTrackerV2 [2] lift 2D tracks into a learned 3D representation, the latter on a VGGT [13] visual-geometry front-end trained end-to-end with the tracking head, but need a large temporal window to do so, which is memory-hungry; TAPIP3D [3] aggregates tracks in a persistent world frame, which requires camera-motion cancellation and hence precise 
+
+camera poses. DELTA [11] is a per-frame feed-forward dense 3D tracker, and its successor DELTAv2 [14] is lighter and reportedly faster at comparable accuracy; TrackCraft3R [4] repurposes a heavy video-di ff usion transformer for dense 3D tracking, at a correspondingly high inference cost. These meth-ods are strong on their intended settings, but several depend on large windows, precise poses, or heavy backbones that do not fit a commodity single-GPU budget. We report the resulting scores in §4 under a fixed single-commodity-GPU, pose-free, monocular budget, where only the feed-forward DELTA family remains competitive. Why the window- or pose-dependent methods degrade is verified with each method’s own o ffi cial evaluator rather than attributed to our harness. 
+
+2.2. Optical flow and monocular depth 
+
+Our front-ends are frozen o ff -the-shelf models, chosen because each leads its benchmark at the time of writing. SEA-RAFT [5] reports state-of-the-art accuracy on Spring [15] and the best cross-dataset generalization on KITTI [16] and Spring; WAFT [6], by the same authors, ranks first on Spring, Sintel [17], and KITTI while running faster than competitive alternatives. Both provide dense optical flow for 2D correspon-dence. Depth-Anything-3 [7] sets a new state of the art across camera pose, any-view geometry, and monocular depth on its own visual-geometry benchmark, and provides monocular 
+
+metric depth for the third dimension, in two backbone sizes (DA3-l, DA3-g) that we compare directly. As an alternative depth source we also employ and evaluate MegaSaM [18], a deep visual-SLAM system that recovers dense metric depth (together with camera pose) from casual monocular video, using no external sensor. Both therefore take their metric scale from a learned monocular prior—structure recovered from parallax alone is determined only up to scale. They di ff er in what happens next, which is what matters under our absolute metric: MegaSaM refines depth, pose and focal length in a joint bundle adjustment, and that solve is degenerate when the input lacks parallax; its result can therefore drift far from the scale its prior supplied. We compare the two front-ends under our absolute metric. We condition the refiner on frozen DINOv3 [8] features, whose Gram-anchored, high-resolution dense patch descriptors give appearance context at the tracked pixel. 
+
+2.3. State space models 
+
+Mamba [19] introduced selective state space models as a linear-time alternative to attention, but its recurrent scan is causal, which is natural for language and a poor fit for images, where a token should attend in every spatial direction. Three lines of work treat that causality as a constraint to work around rather than remove: Vision Mamba [20] runs separate forward and backward scans and merges them, at roughly double the compute for the modest gain its own ablation reports; MambaVision [21] keeps the causal mixer and appends genuine self-attention blocks in its final stages, abandoning the state space formulation exactly where global context matters; and SF-Mamba [22] restructures the sequence to encode bidirectional flow under a still unidirectional scan. Mamba-2 [23] established the state space duality (SSD), an exact identity between the recurrence and a masked form of linear attention, and VSSD [24] used it to reinterpret the decay non-causally, which yields one genuinely non-causal operator instead of a combination of scans or an appended fallback. Mamba-3 [9] separately improved the base recurrence with an exponential-trapezoidal, three-term discretisation, but remains causal by construction. Our refiner’s mixer composes the last two of these, VSSD’s non-causal collapse and Mamba-3’s three-term recurrence; the tracker needs only the temporal, single-direction case. 33. Method 
+
+The tracker is built from two frozen front-ends and one small learned module. §3.1 states the Mamba-3 layer that mod-ule uses; §3.3 onward builds the pipeline around it. 
+
+3.1. Preliminaries: Mamba-3 as masked linear attention 
+
+The only learned sequence operator in the pipeline is a Mamba-3 [9] layer applied along each track’s temporal axis. This subsection derives the two forms of it that the rest of §3 refers to, Eqs. (4) and (6). The operator’s standalone behaviour is not something the tracker relies on. A selective state space model carries a hidden state ht ∈ RN
+
+through the linear recurrence 
+
+ht = At ht−1 + Bt xt, yt = C⊤ 
+
+> t
+
+ht, (1) in the notation of [9], where the input xt ∈ R and output yt ∈ R
+
+are scalars and ht, Bt, Ct ∈ RN : the recurrence acts on one chan-nel at a time, and a layer runs D of them in parallel. Let X ∈
+
+RT ×D be a sequence of T tokens of dimension D. Mamba-3 car-ries a hidden state ht ∈ RN through an exponential-trapezoidal, three-term recurrence 
+
+ht = αt ht−1 + βt Bt−1 xt−1 + γt Bt xt, yt = C⊤ 
+
+> t
+
+ht, (2) with data-dependent scalars 
+
+αt = e∆t At , βt = (1 − λt) ∆t e∆t At , γt = λt ∆t, (3) where ∆t is a step size, At ∈ R a state-transition scalar and 
+
+λt ∈ [0 , 1] a learned convex weight, all produced from token t,and Bt, Ct ∈ RN are its key and query projections. Unrolling Eq. (2) and stacking over t yields the state space duality (SSD) parallel form 
+
+Y =  L ⊙ CB ⊤ X, (4) where ⊙ is the Hadamard product and L ∈ RT ×T is a structured mask, which makes SSD a linear attention with no softmax, L
+
+replacing it. That mask is structured and lower-triangular. For Mamba-2, Lt j = γ j
+
+Qtk= j+1 αk; the Mamba-3 recurrence adds a second band, 
+
+Lt j = Q tk= j+1 αk
+
+γ j + Q tk= j+2 αk
+
+β j+1, j ≤ t. (5) Reading Eq. (4) with Q := C, K := B, V := X exposes the dual-ity: SSD is linear attention Y = (L ⊙ QK ⊤)V with no softmax and no row normalisation, the structured mask L replacing them and its decay Qk αk acting as a relative-position bias (Fig. 3). This is the bridge the operators below exploit to build attention operators with SSD’s linear-time kernel. Because L is lower-triangular, Eq. (4) is causal. Reinterpreting At as weighting the current token rather than decaying the past makes the hidden state independent of the query index, and the T × T mask col-lapses to a single T -vector m with m j = 1/A j [24]: 
+
+Y = C (B ⊙ m)⊤ X, (6) at O(T ND ) cost with an O(ND ) state independent of the se-quence length T . That constant-state property is why the refiner is built on Mamba-3 rather than softmax attention: a track can span hundreds of frames, and Eq. (6) processes them at a fixed per-step memory budget. We write this operator VSSD-1pool, after the single pool its vector reads, to distinguish it from the two-pool VSSD-2pool of 3.2.2, which explains why the nam-ing counts pools rather than the bands of L. Equation (6) is the form both refiners and the de-flicker stage use along time. 
+
+3.2. Non-causal Mamba-3 self- and cross-attention 
+
+We abbreviate the construction below vmamba3 for read-ability. Nothing in it is claimed as novel: Mamba-3 [9] is not ours, nor is the non-causal collapse [24] or the multi-directional scanning [25] this section builds on, and Vision Mamba [20] al-ready names a separate line of work. The vmamba3 refiner of §3.8, for instance, adds no positional encoding of its own: its inputs already carry pre-encoded spatial context, and it simply applies Mamba-3 self-attention to those features. 
+
+3.2.1. Self- and cross-attention 
+
+Feeding a value projection V = SiLU( XW V ) into Eq. (4) gives a self-attention layer 
+
+Yself =  L ⊙ CB ⊤V, (7) causal because Li j = 0 for j > i. Cross-attention lets the query side supply C while a key /value side supplies B and V, either in a state-compressed form with constant memory in the key length, or in an exact token-level form 
+
+Ycross =  Lcross ⊙ Cq Bkv ⊤Vkv . (8) 
+
+3.2.2. Removing causality 
+
+A raster-flattened image token that only attends to earlier to-kens is blind to half its spatial neighbourhood; the causal mask of Eq. (5) is inappropriate for 2D data. Causality can be re-moved either by scanning the sequence in several directions, which is what a raster-flattened image needs, or by collapsing the mask to a per-token vector and holding a state whose size does not grow with the sequence. Figure 4 draws the causal mask and the four ways we considered of removing causality from it: two scan constructions and two collapses. The tracker mixes along time only and therefore uses a collapse; the four are set out and measured against one another in Appendix A.1. The collapse that already exists is VSSD [24], which we write VSSD-1pool : the query-independent form of Eq. (6), whose T × T mask reduces to a single T -vector m with 
+
+m j = 1/A j (Fig. 4(d)). It cannot represent a relative, |i − j|-dependent bias, since m j is independent of i, so Mamba-3’s extra β-band of Eq. (5) does not survive it: VSSD-1pool ap-plied to Mamba-3’s projections is structurally a Mamba-2-style reduction, trading per-pair adaptivity for an O(ND ) state. Recovering that band is what the operator below adds. 
+
+VSSD-2pool : the causal β-band is in fact recoverable in m
+
+at no extra cost by redefining m j := γ j + β j+1, because both bands then sit on the same side of the diagonal. The non-causal collapse of VSSD-1pool is not: its single vector serves queries 4ht−1 ht
+
+αt
+
+xt−1 xt
+
+βt Bt−1 γt Bt
+
+Eq. (2) recurrence 
+
+# ≡
+
+L =
+
+decay 
+
+Q α
+
+·
+
+γ-band 
+
+β-band 
+
+Eq. (4): Y = (L ⊙ CB ⊤)X, with L from Eq. (5) 
+
+Figure 3: Mamba-3 state space duality. The three-term recurrence of Eq. (2) (left) is exactly a masked linear attention (right); “ ≡” denotes this duality—the two sides are the same computation, not merely similar. The structured mask L is the product of a full lower-triangular decay matrix Q α (every cell generically non-zero) and a two-band matrix carrying a main ( γ) diagonal and, unique to Mamba-3, a sub-diagonal ( β) band, Eq. (5)—so L itself is densely lower-triangular, not two isolated bands, and replaces the softmax of ordinary attention. Blank (upper-triangular) cells are zero in both matrices. 
+
+(a) causal SSD 
+
+Li j = 0, j > i
+
+(b) bidirectional ˜Li j symmetric 
+
++
+
+row-major column-major 
+
+(c) four-directional two masks summed (d) VSSD-1pool mask → vector mmj = 1/Aj
+
+m(1)  
+
+> j
+
+= 1/A j
+
+m(2)  
+
+> j
+
+(new) 
+
+(e) VSSD-2pool mask → 2×T matrix 
+
+Figure 4: The causal mask, and the four ways of 3.2.2 to remove causality from Eq. (4). (a) Causal SSD masks the future. (b) Summing forward and reverse scans yields a symmetric, all-pairs mask—non-causal, but still weighted by distance along the scan order (3.2.2). (c) Four-directional scanning sums a second, column-major symmetric mask on top of (b)’s row-major one, removing the direction bias a single scan order leaves behind. (d) VSSD-1pool [24] collapses the 
+
+T × T mask to a single T -vector m, so Eq. (6) runs in O(T ND ) with an O(ND ) state independent of sequence length, but cannot represent Mamba-3’s β-band. (e) VSSD-2pool stacks a second, independently-read vector m(2) under m(1) , recovering β-band-like capacity at 2 × VSSD-1pool’s cost, Eq. (9); derived in 3.2.2 and measured in Table A.1. Coloured cells denote non-zero mask entries; blank cells are zero (masked out). Where a panel sums two contributions, the second is drawn in orange—the same orange Fig. 3 uses for the β-band, which in (e) is literally what m(2) is motivated by. 
+
+on both sides at once, where the β contribution comes from β j+1
+
+looking back and from β j−1 looking forward, and one m j —independent of the query index by construction — cannot hold both. The fix is a second, independently-read pool: its own query projection C(2) paired with a second vector m(2) , stacking 
+
+m into a 2 × T matrix (Fig. 4(e)): 
+
+Y = C(1)  (B ⊙ m(1) )⊤ X + C(2)  (B ⊙ m(2) )⊤ X, (9) with m(1)  
+
+> j
+
+= 1/A j unchanged and m(2)  
+
+> j
+
+a second, freely-learned per-token vector, at 2 × VSSD-1pool’s state and compute. This is a motivated capacity extension, not a proof that the second pool reproduces Mamba-3’s causal β-band behaviour. VSSD-2pool is our default: it is the more accurate of the two collapses in the tracker, raising mean absolute metric-AJ from 0 .248 to 0 .255, and every vmamba3-2pool arm uses it. The depth scale refiner is the one exception and uses VSSD-1pool. 
+
+3.3. Proposed method overview 
+
+Given a monocular video and query points, we produce a metric 3D track per query in three stages (Fig. 2): (i) propagate each query in 2D with frozen optical flow; (ii) lift the 2D track to metric 3D with frozen monocular depth; (iii) refine only the per-point depth along its fixed pixel ray with a compact Mamba-3 module. Only stage (iii) is learned. 
+
+3.4. 2D track (frozen) 
+
+We precompute dense flow between consecutive frames, forward and backward, with SEA-RAFT [5] or the stronger WAFT [6]. One such field moves a point by a single frame; a full-length trajectory therefore comes from flow chaining (the box of that name in Fig. 2): each query starts at its anchor frame, and we place it in the next frame by sampling the next flow field at its current sub-pixel position, bilinearly blending the displacements of the four surrounding pixels, then repeat from that new position—sweeping forward to later frames and backward to earlier ones. Sampling at the propagated position 5rather than at the query pixel is what accumulates the hops into a long-range track. Visibility follows a forward–backward consistency test: propagating a point forward and then back through the same flow field should return it close to where it started; a large round-trip error means the flow there could not be trusted, which is exactly what happens under occlusion, since flow assumes a one-to-one pixel correspondence that an occluded point does not have. A point that fails this test stays occluded. 
+
+3.5. Metric depth and unprojection 
+
+Depth-Anything-3 [7] predicts a per-frame metric depth map Dt. We use two frozen instances of it that di ff er by 4× in parameter count: DA3-l (DA3Metric-Large ,0.35 B), a single distilled monocular network, and DA3-g 
+
+(DA3Nested-Giant-Large , 1 .40 B), which nests a multi-view geometry branch with the DA3-l branch and fuses them by a per-frame least-squares scale fit. The two are metrically wrong in di ff erent ways—DA3-l carries a far-field bias, DA3-g a frame-to-frame scale flicker, and we report them separately; unless noted, DA3-l is our default and headline backbone. Sampling either at the tracked pixel gives a raw depth zraw  
+
+> t
+
+= Dt(ut), and the pinhole model unprojects the point to camera-frame 3D: 
+
+Xt = zt
+
+ ut −cx 
+
+> fx
+
+, vt −cy 
+
+> fy
+
+, 1⊤
+
+, (10) with intrinsics ( fx, fy, cx, cy). Taking zt = zraw  
+
+> t
+
+is our training-free baseline. 
+
+3.6. Two 3D refiner variants 
+
+On top of this baseline we develop two learned 3D refiners of increasing capacity, and we compare them directly in §4. The Mamba-3 3D refiner (depth-along-ray) corrects only the depth of each point along its fixed pixel ray, from purely scale-invariant geometric cues. The vmamba3 3D refiner 
+
+(appearance-conditioned) additionally conditions on frozen appearance and local-geometry features and is allowed a small 2D correction of the tracked pixel. Both run Mamba-3 over the per-track temporal axis and di ff er only in their inputs and in whether the 2D position is refined; we describe them in turn. Both refiners are non-causal in time . Their temporal mix-ing uses the query-independent collapse of Eq. (6) rather than a causal mask, and the correction at frame t is therefore com-puted from one pooled summary of the whole clip: later frames inform it exactly as much as earlier ones. The consequence is that the refiners work at clip level and not online—they need the whole clip in hand before producing anything, and a streaming tracker would instead require the causal mask we deliberately do not apply. That suits this application, where depth is read from an o ffl ine cache and the per-clip median zref below is itself a clip-level statistic. Neither refiner mixes over space . Both use the temporal col-lapse of Eq. (6), and neither needs the multi-directional scans (i)–(ii) of Appendix A.1, which exist to give a raster-flattened 
+
+image a non-causal neighbourhood, nor any of the three posi-tional encodings of Appendix A.2, 2-D RoPE included. The reason is that each refiner’s two extra inputs already carry spa-tial context from elsewhere—the DINOv3 feature is a whole-image summary at the tracked pixel, produced by DINOv3’s own frozen self-attention, and the local depth patch’s 25 sam-ples occupy fixed grid positions an MLP can learn to inter-pret directly—the refiner therefore only has to mix that context along time. 
+
+3.7. Mamba-3 3D refiner: depth-along-ray correction 
+
+With the pixel frozen, the only degree of freedom that pre-serves the 2D reprojection is the depth zt along the ray. The Mamba-3 refiner (Fig. 5(a)) therefore predicts a multiplicative correction 
+
+zt = zraw  
+
+> t
+
+e∆ log zt , (11) in log-depth rather than raw depth: a fixed relative depth er-ror grows without bound in absolute meters as range increases, and no single additive correction ∆zt can therefore fit both a near and a far point equally well, whereas a multiplicative cor-rection scales with zraw  
+
+> t
+
+automatically; DELTA [11] indepen-dently reports log-depth as the empirically best depth repre-sentation for 3D tracking. The Mamba-3 refiner takes scale-invariant inputs—the normalised ray direction, the depth ratio 
+
+zraw  
+
+> t
+
+/zref (with zref the per-clip median depth), and the visibil-ity flag—embedded by an MLP and processed by two Mamba-3 layers over the temporal axis, with a zero-initialised ∆ log z
+
+head so that the refiner starts exactly at the baseline. 
+
+3.8. vmamba3 3D refiner: appearance- and geometry-conditioned correction 
+
+A naive 2D correction—letting the refiner nudge the tracked pixel from geometry alone—in fact degraded accuracy in our experiments: the frozen flow track is already near-optimal, and a blind nudge tends to slide the point across a depth discontinuity onto the wrong surface. The lesson is that depth alone cannot tell the refiner which surface it is looking at; the 2D correction therefore needs appearance context to move safely. The vmamba3 refiner (Fig. 6(a)) therefore augments the Mamba-3 refiner—which otherwise leaves the 2D track untouched throughout, only the depth sliding along its frozen ray (Fig. 5(b))—with two per-track inputs: a 64-D DINOv3 [8] appearance feature sampled at the tracked pixel from a frozen ViT, and a 5 × 5 local depth patch (25 bilinear depth samples on a grid around the pixel, each divided by the centre depth to stay scale-invariant). Together these let a second, zero-initialised head predict a small bounded 2D correction ∆u = 2 tanh( ·) (at most ±2 px) safely, without crossing a depth discontinuity (Fig. 6(b)); depth is then re-sampled at the corrected pixel before Eq. (11). The full refiner has 0 .44 M trainable parameters with one pool and 0.61 M with two; the frozen flow, depth, and DINOv3 networks carry all the heavy representation. Both refiners mix along time with VSSD-1pool; the vmamba3-2pool arms swap it for VSSD-2pool, changing nothing else. 6learned depth refiner 
+
+[ r, z/zr , v ]per track MLP 128-D Mamba-3 causal ×2
+
+∆log z
+
+head zt Xt
+
+zraw 
+
+> (a) Mamba-3 3D refiner architecture
+
+camera pixel ray fixed 
+
+zraw 
+
+zt (refined) 
+
+> (b) Depth-along-ray refinement
+
+Figure 5: Mamba-3 3D refiner. (a) Architecture — the inside of the blue box in Fig. 2. r=(ray x, ray y) is the frozen pixel ray from the 2D track ut; z/zr =zraw /zref ;
+
+v=visibility. Bypass : zraw (the frozen metric-depth backbone’s raw depth) skips the SSM entirely and is multiplied back in via zt = zraw e∆ log z, Eq. (11); the SSM is therefore a relative corrector , not an absolute-depth predictor. causal ×2: two causal Mamba-3 layers (past-only; enables streaming). SSD splits the 64-dim state into 4 heads (16-dim each), analogous to multi-head attention but computed as a linear recurrence. (b) Ray-invariance guarantee. Red marks what the refiner changes, black what it leaves alone — the same convention as Fig. 6(b). The grey wedge is the camera: apex at the camera centre, right edge the image plane; the ray leaves the centre through the tracked pixel and continues into the scene. The pixel, and hence the ray direction, is frozen, so only the depth slides along the ray 
+
+and the 2D projection is unchanged: the refiner moves depth alone, leaving the 2D track and visibility invariant. 
+
+learned depth refiner 
+
+[ r, z/zr , v ]per track depth patch 5×5DINOv3 feat 64-D MLP 128-D Mamba-3 causal ×2
+
+∆log z
+
+head 
+
+∆u
+
+head 
+
+zt
+
+ut
+
+zraw 
+
+Xt
+
+> (a) vmamba3 3D refiner architecture
+
+camera original ray zraw 
+
+shifted ray 
+
+zt
+
+∆log z
+
+DINOv3 feat depth patch 
+
+> (b) Appearance-conditioned 2D correction
+
+Figure 6: vmamba3 3D refiner. (a) Architecture, extending Fig. 5(a) — again the inside of the blue box in Fig. 2. Orange nodes are new relative to the Mamba-3 refiner. The pixel position u0 (from the frozen optical-flow front-end; Fig. 2) sets the ray direction r(u0), the depth-patch centre, and the DINOv3 sample location. The three inputs are embedded and fed through the same causal Mamba-3 SSD stack, now carrying appearance and local-geometry context. A second, zero-initialised head predicts ∆u = 2 tanh( ·) (bounded to ±2 px); depth is re-sampled at ut = u0 + ∆ u before ∆ log z rescales it. Both heads start at zero, and the vmamba3 refiner therefore starts exactly at the Mamba-3 refiner’s output. (b) Safe, appearance-conditioned 2D correction. Red marks what changes, black what does not : the shifted ray and zt are both red because this variant moves both, whereas Fig. 5(b) moves only zt. The camera wedge is as in Fig. 5(b); both rays leave the centre through their own pixel. Two new inputs — DINOv3 appearance and a local 5 ×5 depth patch, both orange — give the model the context to predict a 2D shift ∆u
+
+safely: unlike a naive nudge, which crosses depth discontinuities, this correction is conditioned on local appearance and geometry. Depth is then re-sampled at the shifted pixel u0+∆ u before ∆ log z rescales it. 
+
+3.9. Depth scale refiner: stabilising a frame-to-frame scale be-fore refinement 
+
+Our larger metric-depth backbone (DA3-g, §3.5) is individ-ually more accurate at range, but its fused metric scale is re-solved independently every frame, and therefore drifts frame to frame even where the underlying depth shape is smooth. Nei-ther 3D refiner above can see this: both mix information only along time , one track at a time, and neither therefore observes a quantity shared by every point in a frame — and a per-frame, all-points-shared scalar is exactly what a frame-local flicker is. We therefore add a small stage before the refiner rather than trying to correct it after. 
+
+De-flicker, the first form of that stage. Per frame it mean-pools the visible tracked points — each described by its ray direction, its depth relative to the clip’s anchor-frame median, and its visibility — into a single frame token, mixes those to-kens along time, and emits one log-scale correction ∆s f per frame, applied to depth along the frozen ray. The head is zero-initialised; the stage therefore begins exactly at the un-corrected baseline, and any gain it shows is its own. §4 reports it both standalone and followed by the 3D refiner, the de-flicker-then-refine arms. 
+
+What the stage must not depend on. De-flicker reads the drift through the tracker : depth sampled at flow-chosen pix-els, averaged under a flow-derived visibility mask. The drift is a property of the depth model alone, and this therefore cou-ples the stage to a front-end that has nothing to do with the quantity being estimated, and two copies trained behind di ff er-ent flow networks then learn di ff erent corrections from identical depth. The depth scale refiner keeps the same per-frame, zero-initialised, time-mixed form and removes that coupling: it reads the depth map directly and never sees a tracked point (Fig. 7). Per frame it forms two independent summaries of the log depth: a small convolutional encoder over the map pooled to 64 2, giving 64 features, and ten percentiles of the log depth taken over every pixel — the 5th, 15th, . . . , 95th. The second exists because the encoder ends in a global average, which dis-cards the shape of the depth distribution; the percentiles put that shape back. The two concatenate to 74 and project to one 128-dimensional token per frame, and a time-axis layer mixes those tokens across the whole clip, symmetrically in time: rescal-7depth log CNN → 64 sampling → 10 state space ∆s f              
+
+> Figure 7: Depth scale refiner (§3.9). It reads the metric depth map directly: no tracker appears in the path, and the front-end cannot change what it learns. Two independent branches summarise each frame’s log depth: a small CNN over it pooled to 64 2, giving 64 features, and the 5th, 15th, . . . , 95th percentiles taken over every pixel, one vector of ten numbers per frame. Pooling and then averaging inside the CNN discards the shape of the depth distribution, which the percentiles restore. The two concatenate to 74 and project to one 128-dimensional token per frame; the state space layer mixes the Ftokens and a linear head emits one scalar ∆sf, rescaling that frame’s depth z←zraw e∆sf
+> before the refiner of §3.8 runs.
+
+ing a cached clip is free to look ahead. A zero-initialised head then predicts a single per-frame log-scale correction ∆s f ; every point in that frame is rescaled z ← zraw e∆s f before unprojection. The vmamba3 3D refiner then runs on this temporally stabilised depth, and its along-ray and 2D corrections work with a consis-tent signal instead of fighting the drift. 
+
+3.10. Visibility head 
+
+Every result above takes visibility from the front-end’s forward–backward consistency test: follow a point one frame forward and back again, and call it occluded if it fails to return to its start. The tracker fills frames after a query with a forward sweep and frames before it with a backward sweep, and each tests the round trip of its own hop: the forward sweep compares 
+
+∥ ft + bt+1∥ against α(∥ ft∥ + ∥bt+1∥) + β, and the backward sweep compares ∥ ft−1 + bt∥ against the same expression in those two vectors. Write ok t ∈ { 0, 1} for the outcome at frame t — 1 when the residual is within tolerance — and vt ∈ { 0, 1} for the visibility the tracker actually reports, with v0 = ok 0.Two properties of the rule limit it (Fig. 8). Its tolerance is governed by two hand-chosen numbers, α = 0.05 and β = 1 px: the same pair for every scene, every point and every kind of motion, never fitted to data. The reported flag is also latched ,
+
+vt+1 = vt ∧ ok t, the logical AND of the two: a single failure fixes a point as occluded for every later frame — yet 52–66% of ground-truth points on the three subsets reappear after being occluded, and the rule recovers none of them. We therefore learn the channel from the same evidence. Per point per frame the head reads two flow vectors sampled at the tracked position: the forward flow ft, which maps frame t to 
+
+t+1, and the backward flow bt, which maps t to t−1. From these it builds eight numbers — four vector components and four lengths: the two components of ft and the two of bt; the lengths ∥ ft∥ and ∥bt∥; and the two round-trip errors ∥ ft + bt+1∥,for the hop leaving frame t, and ∥ ft−1 + bt∥, for the hop arriving at it. The last two are exactly the residuals the hand-written test thresholds, one per sweep direction, handed over raw and without a tolerance. They carry nothing the two vectors do not already hold, and are supplied directly because a sum of two separate inputs is awkward for a small network to form on its own. An MLP embeds the eight to 64, two state space layers mix along frames only — never across points, each point being                                       
+
+> optical flow
+> ft,bt
+> forward–backward check latched AND mask {0,1}
+> MLP 8 →64 state space P∈[0 ,1] Figure 8: Visibility computation (§3.10). Both paths read one pair of flow vec-tors per point per frame and nothing else — no depth, no appearance, nothing from the refiner. Upper, the rule every earlier result was scored with : follow the point one frame forward by ftand back by bt+1, and call it occluded if it misses its start by more than α(∥ft∥+∥bt+1∥)+β, with αand βtwo hand-chosen constants (0 .05 and 1 px) rather than anything fitted; the backward sweep ap-plies the same test to ft−1and bt. The result is latched, vt+1=vt∧ok t, and one failure therefore fixes the point as occluded for every later frame. Lower, the learned head : eight scalars per point per frame, all functions of ftand bt, em-bedded to 64; two state space layers mix along time only, never across points; a linear head and a sigmoid follow. The outputs di ff er in kind — one bit against a probability, read as visible above 0 .5 — and only the head can mark a point visible again after an occlusion, which 52–66% of ground-truth points require.
+
+judged on its own track — and a linear head with a sigmoid emits P(visible), read as visible above 0 .5. The head is 0 .17 M parameters, sees no depth and no appearance, and reads nothing from the refiner; it can therefore be trained standalone, and a change to the 3D refiner cannot invalidate it. Because it decides each frame from its own evidence it has no latch, and a point that disappears behind something can be marked visible again when it reappears. 
+
+3.11. Training 
+
+Three modules are trained and nothing else: the 3D refiner, the depth scale refiner (with the de-flicker stage it replaces) and the visibility head. The flow, depth and DINOv3 networks stay frozen throughout. The two depth-correcting stages share one recipe. We min-imise an ℓ1 loss on 3D position over visible points, normalised by the per-clip median anchor-frame depth so that the objective is scale-balanced across the roughly 1 m (indoor) to 20 m (driv-ing) range of the data. Training uses AdamW [26] at learning rate 3 ×10 −4 for 20k steps on 8-frame windows in bf16 (16-bit brain float). The visibility head is trained separately, on its own objective and its own window. It reads nothing from the other two (§3.10) and therefore needs neither their loss nor their 8-frame window: we minimise a binary cross-entropy against ground-truth visi-bility, weighted to o ff set the class imbalance, for 3k steps at learning rate 1 ×10 −3 over whole clips of up to 300 frames. The long window is what lets the head see a point disappear and return inside one training example, which an 8-frame window rarely contains. 
+
+4. Evaluation 
+
+4.1. Evaluation dataset 
+
+We evaluate on the TAPVid-3D [1] minival split (150 clips: 50 each from DriveTrack [10], Panoptic Studio [27], and Aria Digital Twin [28]). Both splits we use are the benchmark au-thors’ own published file lists, not partitions of our choosing: 8Table 1: TAPVid-3D minival, median-scaled 3D-AJ (standard leaderboard metric; higher better) — DA3-l depth (DA3Metric-Large , 0.35 B). Bold = best per column. In the row names, vmamba3 is the appearance- and geometry-conditioned refiner of §3.8 (the v is for vision) and vmamba3-2pool is that refiner with its temporal mixer replaced by VSSD-2pool (3.2.2). All numbers are produced by our own evaluation pipeline on the same hardware. DA3-g counterpart: Table 3. 
+
+Method drivetrack pstudio adt mean 
+
+Published methods (external) 
+
+SpatialTrackerV2 ∗ 0.017 0.012 0.025 0.018 DELTA + DA3-l § 0.130 0.141 0.152 0.141 
+
+DELTAv2 + DA3-l § 0.130 0.136 0.155 0.140 TAPIP3D + DA3-l † 0.065 0.023 0.004 0.030 TAPIP3D + MegaSaM ‡ 0.000 0.003 0.004 0.002 TrackCraft3R ¶ 0.003 0.013 0.010 0.009 
+
+Ours (DA3-l depth) 
+
+SEA-RAFT + DA3-l (baseline) 0.108 0.111 0.132 0.117 SEA-RAFT + MegaSaM 0.103 0.135 0.163 0.134 SEA-RAFT +DA3-l +mamba3 0.057 0.041 0.123 0.074 SEA-RAFT +MegaSaM +mamba3 0.059 0.048 0.119 0.075 SEA-RAFT +DA3-l +vmamba3 0.093 0.057 0.141 0.097 SEA-RAFT +DA3-l +vmamba3-2pool 0.101 0.083 0.132 0.105 WAFT +DA3-l 0.111 0.111 0.142 0.121 WAFT +DA3-l +vmamba3 0.109 0.093 0.149 0.117 WAFT +DA3-l +vmamba3-2pool 0.110 0.096 0.157 0.121 
+
++ visibility head 0.090 0.082 0.133 0.102 
+
+> ∗
+
+SpatialTrackerV2, §DELTA +DA3-l and its successor DELTAv2 +DA3-l, †TAPIP3D +DA3-l, ‡TAPIP3D +MegaSaM, ¶TrackCraft3R are discussed in the text; see §5.2. Table 2: TAPVid-3D minival, absolute metric-AJ (no scaling, fixed-meter thresholds 1 cm–2.56 m; higher better) — DA3-l depth (DA3Metric-Large , 0.35 B). Bold = best per column. Row names and evaluation conditions as in Table 1. Highest mean across all four tables: WAFT +DA3-l +vmamba3-2pool with the visibility head (0 .256); no DA3-g pipeline reaches it (§5.1). DA3-g counterpart: Table 4. 
+
+Method drivetrack pstudio adt mean 
+
+Published methods (external) 
+
+SpatialTrackerV2 ∗ 0.008 0.192 0.179 0.126 DELTA + DA3-l § 0.006 0.199 0.344 0.183 DELTAv2 + DA3-l § 0.005 0.190 0.345 0.180 TAPIP3D + DA3-l 0.006 0.131 0.164 0.100 TAPIP3D + MegaSaM † 0.000 0.000 0.000 0.000 TrackCraft3R ¶ 0.002 0.025 0.032 0.020 
+
+Ours (DA3-l depth) 
+
+SEA-RAFT + DA3-l (baseline) 0.005 0.165 0.273 0.147 SEA-RAFT + MegaSaM 0.000 0.082 0.209 0.097 SEA-RAFT +DA3-l +mamba3 0.082 0.186 0.272 0.180 SEA-RAFT +MegaSaM +mamba3 0.001 0.092 0.208 0.100 SEA-RAFT +DA3-l +vmamba3 0.130 0.248 0.298 0.225 SEA-RAFT +DA3-l +vmamba3-2pool 0.135 0.271 0.299 0.235 WAFT +DA3-l 0.005 0.166 0.299 0.157 WAFT +DA3-l +vmamba3 0.141 0.276 0.328 0.248 WAFT +DA3-l +vmamba3-2pool 0.141 0.285 0.338 0.255 
+
++ visibility head 0.132 0.314 0.323 0.256 
+
+> ∗
+
+SpatialTrackerV2 evaluated with swind =60 on RTX 4080 Laptop (12 GB). §DELTA +DA3-l and DELTAv2 +DA3-l hold the best adt score of any method between them (0 .345, 0 .344), but their far-field drivetrack depth scale keeps their mean below ours. †TAPIP3D +MegaSaM scores exactly 0 everywhere: MegaSaM’s bundle adjustment is degenerate without parallax, and its scale therefore drifts far from the monocular prior (a 17 × error on drivetrack) and the 3D error exceeds even the 256 cm threshold — an evaluation-condition mismatch, not a failure of TAPIP3D. ¶TrackCraft3R on all 150 clips; see Table 1. 
+
+minival and the larger full_eval (4419 clips) are disjoint by construction, and we train the refiner on full_eval and test on minival; no clip appears in both roles. We refer to the three subsets by their lower-case informal names throughout: drive-track , pstudio , and adt . TAPVid-3D is the standard benchmark for metric 3D point tracking, and its three subsets span a range of conditions and scales relevant to real applications: drivetrack is outdoor driving (10–50 m), pstudio is indoor multi-person 9Table 3: TAPVid-3D minival, median-scaled 3D-AJ (leaderboard metric; higher better) — DA3-g depth (DA3Nested-Giant-Large , 1.40 B): every DA3-consuming method re-run on the DA3-g backbone, all other components unchanged. Bold = best per column. “OOM” = TAPIP3D adt out-of-memory. DA3-l counterpart: Table 1. 
+
+Method (DA3-g) drivetrack pstudio adt mean 
+
+Published methods (external) 
+
+DELTA + DA3-g 0.137 0.049 0.141 0.109 
+
+DELTAv2 + DA3-g 0.131 0.046 0.148 0.108 SpatialTrackerV2 + DA3-g 0.018 0.008 0.027 0.017 TAPIP3D + DA3-g 0.057 0.011 OOM 0.034 
+
+Ours 
+
+SEA-RAFT + DA3-g (baseline) 0.112 0.036 0.120 0.089 WAFT + DA3-g (no refiner) 0.116 0.036 0.130 0.094 WAFT +DA3-g +vmamba3-2pool 0.116 0.032 0.129 0.093 
+
++ per-frame scale head 0.115 0.035 0.126 0.092 WAFT +DA3-g +deflicker (standalone) 0.116 0.036 0.130 0.094 WAFT +DA3-g +deflicker +vmamba3-2pool 0.115 0.034 0.126 0.092 WAFT +DA3-g +scale refiner +2pool 0.111 0.033 0.128 0.091 
+
++ visibility head 0.091 0.031 0.108 0.076         
+
+> Table 4: TAPVid-3D minival, absolute metric-AJ (fixed-meter thresholds; higher better) — DA3-g depth (DA3Nested-Giant-Large , 1.40 B): every DA3-consuming method re-run on the DA3-g backbone, all other components unchanged. Bold =best per column. Best DA3-g mean: our WAFT +DA3-g +scale refiner +2pool with the visibility head ( 0.229 ), which §4.3 reports as matching, not exceeding, the best external DA3-g method, DELTA +DA3-g (0 .227). Every DA3-g configuration here remains below the DA3-l best (0 .256, Table 2), which is this table’s purpose. “OOM” =TAPIP3D adt out-of-memory. DA3-l counterpart: Table 2.
+
+Method (DA3-g) drivetrack pstudio adt mean 
+
+Published methods (external) 
+
+DELTA + DA3-g 0.164 0.194 0.324 0.227 DELTAv2 + DA3-g 0.159 0.171 0.319 0.216 SpatialTrackerV2 + DA3-g 0.043 0.184 0.170 0.132 TAPIP3D + DA3-g 0.110 0.148 OOM 0.129 
+
+Ours 
+
+SEA-RAFT + DA3-g (baseline) 0.136 0.175 0.269 0.193 WAFT + DA3-g (no refiner) 0.144 0.177 0.295 0.205 WAFT +DA3-g +vmamba3-2pool 0.152 0.207 0.307 0.222 
+
++ per-frame scale head 0.153 0.204 0.307 0.221 WAFT +DA3-g +deflicker (standalone) 0.119 0.181 0.300 0.200 WAFT +DA3-g +deflicker +vmamba3-2pool 0.163 0.203 0.306 0.224 WAFT +DA3-g +scale refiner +2pool 0.163 0.209 0.310 0.227 
+
++ visibility head 0.154 0.234 0.299 0.229 
+
+motion-capture (1–5 m), and adt is egocentric indoor motion (∼1 m). 
+
+4.2. Evaluation protocol 
+
+All methods are run by us on a single RTX 4080 Laptop GPU (12 GB) so that hardware is held constant; training the re-finer takes about 9 .5 h on this GPU. We report two families of metrics. The normalized 3D-AJ, TAPVid-3D’s standard track-ing metric, is the standard leaderboard metric, and it is forgiving of metric scale in two complementary ways. First, it rescales each prediction by a single global factor—the median ratio be-tween predicted and ground-truth depth. This is what removes the overall scale: it cancels any constant, scene-wide error; only the relative shape of the track is scored, not its size. Second, the correctness thresholds grow with each point’s depth rather than being fixed distances in meters, and a far point is there-fore allowed a proportionally larger error than a near one. This forgives errors that vary with depth, which the single global factor cannot correct (for instance depths that drift increasingly wrong with distance). Together the two make the metric reward relative structure while saying nothing about whether the re-covered depths are metrically correct. The absolute metric-AJ removes the median rescaling and scores at fixed metric thresh-olds {1, 4, 16 , 64 , 256 } cm; it therefore reflects real-world 3D er-ror in meters—the quantity a downstream metric application ac-tually needs, and the reason we report it alongside the standard leaderboard metric. We validate that our scorer is faithful: it reproduces SpatialTracker’s [12] published DriveTrack 3D-AJ to three decimals once the intrinsics convention is matched. We report results separately for two frozen Depth-Anything-3 [7] metric-depth backbones that di ff er by 4 × in pa-10 rameter count: DA3-l (DA3Metric-Large , 0 .35 B, used for all our primary results) and DA3-g (DA3Nested-Giant-Large ,1.40 B). We split the tables and figures for this reason alone: mixing two pipelines that di ff er 4 × in depth-backbone size into one ranking would compare unequal parameter budgets as if they were interchangeable. We therefore give each backbone its own pair of tables and figures (normalized then absolute) in §4.3; every ranking stays parameter-matched. The two backbones also fail in di ff erent, complementary ways, which is why the larger one does not simply dominate the smaller. 
+
+4.3. Evaluation results 4.3.1. DA3-l depth (0.35 B): leaderboard results 
+
+Table 1 reports the normalized metric. Here a strong depth baseline (SEA-RAFT + MegaSaM) and the feed-forward track-ers DELTA and its successor DELTAv2 lead; our learned vari-ants rank in the middle of the table on this metric. We state this plainly: we do not claim state of the art on the scale-invariant leaderboard. 4.3.2. DA3-l depth: absolute-metric results 
+
+Table 2 reports the absolute metric that a downstream 3D application actually needs. The ranking reverses relative to the leaderboard metric (Table 1): our best configuration (WAFT flow + DA3-l depth + the vmamba3 refiner) attains the highest mean metric-AJ, 0 .256 with the VSSD-2pool mixer and the flow-only visibility head of §3.10, 0 .255 with that mixer and the front-end’s forward–backward rule, and 0 .248 with one pool, and is best on two of three subsets, ahead of every external method evaluated under the same conditions. Relative to the DA3-l baseline the refiner lifts mean metric-AJ from 0 .147 to 0 .256 and roughly halves mean 3D error; relative to the best feed-forward external (DELTA, mean 0 .183; its successor DELTAv2 close behind at 0 .180) it is ahead overall, the DELTA family retaining only the Aria subset. 
+
+4.3.3. DA3-g depth (1.40 B): leaderboard results 
+
+Table 2 shows every DA3-l-based method—including ours—collapsing on far-field drivetrack (metric-AJ ≤ 0.141); §5.1 explains why. We therefore re-run every DA3-l-based method—external and ours—on the DA3-g backbone, re-caching depth and re-training our refiner from scratch on it, everything else unchanged. Table 3 reports the normalized metric on DA3-g. The ranking is essentially unchanged from DA3-l (Table 1): DELTA, DELTAv2, and the training-free baselines still lead this metric. 
+
+4.3.4. DA3-g depth: absolute-metric results 
+
+Table 4 reports the absolute metric on DA3-g. Drivetrack rises across the board relative to DA3-l (e.g. our refiner 0.141 → 0.163). Pstudio and adt, however, fall instead (our refiner 0 .285 → 0.203 and 0 .338 → 0.306), leaving every DA3-g pipeline below the DA3-l one. Two stages close the gap to the strongest external DA3-g method. Reading the depth map directly rather than through the tracker (the scale refiner of §3.9) takes the mean from 0 .224 to 0.227, and replacing the forward–backward visibility rule with the flow-only head of §3.10 takes it to 0 .229, against DELTA’s 0.227 (DELTAv2 behind at 0 .216). We report this as matching DELTA rather than exceeding it : the margin is 0 .0013, and two seeds of one of our own arms di ff er by 0 .0056; a gap this far inside a single arm’s run-to-run spread is not an ordering. The same substitution is what produces our best absolute figure on DA3-l, 0 .256 (Table 2). The visibility head is a genuine trade rather than an improvement at no cost, and the normalised tables show the other side of it: on DA3-g it moves the leaderboard metric from 0.091 to 0 .076 and on DA3-l from 0 .121 to 0 .102 (Tables 3, 1), losing on every subset of both backbones. Marking more points visible exposes more of them to the position test, and the normalised metric median-scales before thresholding, which makes its thresholds relative and much tighter. Areader optimising the leaderboard metric should keep the forward–backward rule; the absolute figures we report use the head. 
+
+4.4. Ablation 
+
+Tables 1–2 can also be read as an ablation on DA3-l depth, because their rows add one component at a time. Adding the plain Mamba-3 depth refiner (SEA-RAFT +DA3-l +mamba3) to the DA3-l baseline already improves absolute accuracy; conditioning it on DINOv3 and the local depth patch (the vmamba3 refiner, SEA-RAFT +DA3-l +vmamba3) adds a fur-ther large gain (mean metric-AJ 0 .147 → 0.225); swapping the SEA-RAFT front-end for WAFT (WAFT +DA3-l +vmamba3) lifts every subset again to 0 .248, and a second independently-read pool (VSSD-2pool, 3.2.2) adds 0 .007 more, reaching 0.255 for 38% more refiner parameters; the flow-only visibility head of §3.10 adds the final 0 .001, giving the 0 .256 reported above. Tables 3–4 add the same components in the same order on DA3-g depth: the vmamba3 refiner outperforms the no-refiner baseline (mean absolute metric-AJ 0 .205 → 0.222), and the two-stage de-flicker-then-refine pipeline (§3.9) adds a further increment, to 0 .224. The per-frame scale head does not: at two pools it moves the mean by −0.001; the de-flicker stage rather than the scale head is what addresses DA3-g’s per-frame scale drift. Reading the depth map directly instead of through the tracker (the scale refiner of §3.9) reaches 0 .227, and the flow-only visibility head takes the best DA3-g mean to 0 .229, which §4.3 reports as matching DELTA +DA3-g (0 .227) rather than exceeding it. Every DA3-g configuration remains below the DA3-l ceiling. Every number in this paper is a single training run, and we report no seed variance for any of them: these ladders are not repeated, and nothing here therefore bounds what a rerun would move. The smaller steps—the 0 .006 the second pool adds, and the −0.001 the scale head moves—should therefore be read as measurements rather than as demonstrated orderings. We treat the larger steps, such as the 0 .147 → 0.225 the appearance-conditioned refiner produces, as real rather than noise, because a gap of that size would be unusual for this kind of run-to-run variation; that is a judgement based on experience with similar 11 Table 5: Inference throughput on RTX 4080 (12 GB), measured on TAPVid-3D minival with the DA3-l depth backbone ( DA3Metric-Large , 0.35 B). Our lightweight SSM refiner adds modest overhead over the baseline while re-maining comparable in throughput to the DELTA family, 1 .6–2 × faster than TAPIP3D and SpatialTrackerV2, and two orders of magnitude faster than the video-di ff usion tracker TrackCraft3R; its learned module (0 .44 M, 0 .61 M with the two-pool mixer, 0 .79 M with the visibility head) is 40–3000 × smaller than the external trackers (25 .8 M–1 .3 B). External param counts are summed from the o ffi cial released checkpoints (no paper states them). Bold marks the best value in each column. Throughput is an end-to-end average over the evaluation run; a row whose figure is instead carried from another row, measured on one subset, or derived is marked in the note below. DA3-g counterpart: Table 6. Method fps trainable params 
+
+Published methods (external) 
+
+TAPIP3D ⋆ 3.1 25 .8 M SpatialTrackerV2 (s_wind = 60) 4.0 ≈1.23 B ‡
+
+DELTA (DenseTrack3D) ⋆ 7.7 59 .2 M DELTAv2 (DenseTrack3Dv2) ⋆ 6.9 51 .4 M TrackCraft3R § 0.06 1.3 B §
+
+Ours & training-free baselines 
+
+DA3-l depth (shared precompute) ⋆ 10 0
+
+SEA-RAFT + DA3-l (baseline) ⋆ 12.4 0
+
+WAFT + DA3-l ⋆ 7.7 0
+
+SEA-RAFT +DA3-l +mamba3 ⋆ 12.5 0.40 M SEA-RAFT +DA3-l +vmamba3 ⋆, † 7.7 0.44 M WAFT +DA3-l +vmamba3 ⋆ 6.3 0.44 M SEA-RAFT +DA3-l +vmamba3-2pool ⋆, †,¶ 7.7 0.61 M WAFT +DA3-l +vmamba3-2pool ⋆, ¶ 6.3 0.61 M 
+
++ visibility head ⋆, ¶,♮ 6.3 0.79 M 
+
+> ⋆
+
+Precomputed DA3-l depth from cache (not counted in fps); the preprocessing row is a one-time o ffl ine step shared by all such methods. 
+
+> †
+
+SEA-RAFT +DA3-l +vmamba3 throughput measured on the drivetrack subset only. ‡SpatialTrackerV2 trains end-to-end: a VGGT-style front-end [13] (1 .16 B, initialised from VGGT) plus a 69 M Track3D head. ¶The two-pool rows carry their one-pool counterpart’s throughput: the second pool adds 0.17 M refiner parameters, no frozen network, and 1–3% of throughput, within run-to-run variation. §TrackCraft3R is a pre-trained 1 .3 B video-di ff usion model (Wan2.1 DiT), LoRA fine-tuned; the 1 .3 B is the frozen backbone; throughput via windowed inference (see text). ♮The visibility head adds 0.17 M parameters beside a frozen 0 .35 B depth backbone and does not change throughput measurably; the row carries the preceding row’s fps. 
+
+training runs, not a claim established by repeats we have not run. 
+
+4.5. E ffi ciency 
+
+Table 5 reports throughput and trainable parameters on the DA3-l backbone. The refiner adds under 1 M parameters and keeps the pipeline at 6–12 fps: comparable in throughput to the DELTA family, 1 .6–2 × faster than TAPIP3D and Spatial-TrackerV2, and two orders of magnitude faster than the video-di ff usion tracker TrackCraft3R. §5 explains why the external methods score as low as Table 1 shows under this hardware budget. Table 6 repeats this comparison on the DA3-g backbone: inference throughput is unchanged, since depth is read from an offl ine cache either way, and the 3D refiner still trains under 1 M parameters, but every method’s total footprint rises by DA3-g’s 1 .40 B; the comparison therefore stays parameter-matched against the largest external trackers rather than obtained with an outsized model. 
+
+Table 6: Inference throughput and model size on the DA3-g pipeline (DA3Nested-Giant-Large , 1.40 B) — identical to Table 5 except for the depth backbone. Online fps is unchanged from the DA3-l table because depth is read from the o ffl ine cache; only the one-time depth precompute is slower for the giant backbone. Every method here reads the same 1 .40 B DA3-g depth, so that backbone is common to all of them and is not what separates them; what di ff ers is the trainable count, where ours ranges from 0 .44 M for the refiner alone to 1 .37 M with the scale refiner and visibility head added. Bold marks the best value in each column. Throughput is an end-to-end average over the eval-uation run; a row whose figure is instead carried from another row, measured on one subset, or derived is marked in the note below. Columns and external counts as in Table 5; TrackCraft3R could not be re-run on DA3-g (12 GB OOM) and is omitted here. Method fps trainable 
+
+Published methods (external) 
+
+TAPIP3D + DA3-g ⋆ 3.1 25 .8 M SpatialTrackerV2 (s_wind = 60) 4.0 ≈1.23 B ‡
+
+DELTA + DA3-g ⋆ 7.7 59 .2 M DELTAv2 + DA3-g ⋆ 6.9 51 .4 M 
+
+Ours & training-free baselines 
+
+DA3-g depth (shared precompute) † 2.5 0
+
+WAFT + DA3-g (no refiner) ⋆ 7.7 0
+
+WAFT +DA3-g +vmamba3 ⋆ 6.3 0.44 M WAFT +DA3-g +scale refiner +2pool ⋆,♮ 6.3 1.20 M 
+
++ visibility head ⋆,♮ 6.3 1.37 M 
+
+> ⋆
+
+Depth read from the shared o ffl ine cache; not counted in fps. †The DA3-g depth precompute is o ffl ine /one-time; the giant backbone has ≈4× the parameters of DA3-l and precomputes correspondingly slower; its figure is derived from the parameter ratio, not measured. ‡SpatialTrackerV2 trains end-to-end (VGGT-style 1 .16 B front-end + 69 M head; see Table 5); its own depth means it adds no DA3. TAPIP3D and DELTA consume the same shared DA3-g depth as our method; the comparison is therefore parameter-matched on the backbone and di ff ers only in what each method trains on top of it. ♮The scale refiner and visibility head add 0 .58 M and 0 .17 M parameters beside a frozen 1 .4 B depth backbone and do not change throughput measurably; these rows carry the preceding row’s fps. 
+
+4.6. Qualitative results 
+
+Figure 9 compares our best configuration — WAFT flow 
+
++ DA3-l + the VSSD-2pool vmamba3 refiner with the flow-only visibility head — against the closest similarly-sized exter-nal method, DELTA +DA3-l, on one clip from each subset. On 
+
+drivetrack , DELTA’s far-field predictions collapse toward the camera and leave the scene volume entirely—no solid track is visible in its panel—while ours stays on the ground truth; this is the single largest source of our absolute-metric-AJ advantage on this subset. On pstudio , our depth recovers the mid-range metric depth DELTA misses. On adt , DA3-l depth is already accurate at this near range; both methods therefore do well, and the two panels are hard to tell apart. This is the one subset of the three where DELTA is ahead of us (metric-AJ 0 .344 against our 0 .323, Table 2); our margins on drivetrack and pstudio are what carry the mean. 
+
+5. Discussion 
+
+5.1. DA3-l vs. DA3-g: far-field bias vs. flickering scale 
+
+Why does the 4 ×-larger, individually more metric-accurate DA3-g backbone not simply replace DA3-l? The two mod-els are metrically wrong in di ff erent, structurally distinct ways (Fig. 10), and only one of those errors is learnable. 12 DELTA +DA3-l Ours (WAFT +DA3-l +vmamba3-2pool + vis. head) (a) drivetrack 
+
+DELTA +DA3-l Ours (WAFT +DA3-l +vmamba3-2pool + vis. head) (b) pstudio 
+
+DELTA +DA3-l Ours (WAFT +DA3-l +vmamba3-2pool + vis. head) (c) adt Figure 9: 3D trajectory comparison, DELTA +DA3-l (left of each pair) against ours (right; the panel labels name the configuration), one clip per subset: (a) drivetrack, (b) pstudio, (c) adt. Both use the same DA3-l depth, which isolates the tracker. Solid = predicted, dashed = ground truth; a prediction that leaves the plotted volume simply does not appear. The red square marks the track our method improves the most over DELTA, the same one in both panels, and the inset shows that region at twice the size. The di ff erence is plain in (a) and (b) but hard to see in (c): adt is the one subset of the three where DELTA scores above us (Table 2). §4.6 discusses each subset. 
+
+13 (a) shape vs GT distance (b) per-frame vs per-clip scale                        
+
+> Figure 10: DA3-l vs. DA3-g depth error at ground-truth pixels, TAPVid-3D minival. Here scale is the single positive scalar sby which every depth in a frame (panel a) or a whole clip (panel b) is multiplied to best match ground truth in a least-squares sense; dividing it out isolates spatial shape error from any error in that one overall multiplier. DA3-g’s spatial shape is as good as or better than DA3-l’s, but unlike DA3-l, its scale flickers from frame to frame. Throughout, the y-axis is a scale-invariant log error, |log(scale ·pred /gt) |: 0 means the prediction exactly matches ground truth once a scale is removed, and larger values mean more error.
+> (a) Median spatial shape error vs. distance (per-frame scale removed): DA3-g (solid) matches or exceeds DA3-l (dashed) almost everywhere. (b) Mean error under per-frame vs. per-clip scale alignment. Read each backbone across the two alignments: per-frame ≈per-clip means the scale is temporally stable, and a large gap between them means the per-frame scale drifts. DA3-l barely changes, whereas DA3-g’s pstudio error rises 4 .3×when only one scale per clip is allowed, i.e. its per-frame scale drifts over time. The near-field defect is temporal scale instability, not spatial depth noise.
+
+5.1.1. DA3-l: a stable scale with a large far-field bias 
+
+DA3-l is a single monocular network (a DINOv2 ViT-L backbone with a plain DPT depth head) distilled from a synthetic-data teacher and made metric only by a deterministic 
+
+canonical-focal-length rescale. Distillation from a smooth synthetic teacher gives it low-variance, temporally stable depth 
+
+shape , but the rescale is a fixed formula rather than a fit; it therefore carries a global scale bias that grows with range: at ground-truth tracked pixels the median predicted /true depth ratio is 0 .56 on drivetrack overall and 0 .53 in the far field, against a near-unbiased 0 .98 on adt (Fig. 10(a)). This is precisely the drivetrack collapse in Table 2—not a tracking failure, but a meter-scale depth bias shared by every method that unprojects DA3-l depth directly. Because the bias is a smooth, systematic function of range, our refiner can partially learn it away (drivetrack metric-AJ 0 .005 → 0.141), but a single ray cannot fully recover a ∼ 2× error at 30–100 m. 
+
+5.1.2. DA3-g: an unbiased scale with a frame-to-frame flicker 
+
+DA3-g nests two branches with two di ff erent jobs: an “any-view” multi-view-geometry branch (a DINOv2 ViT-g backbone with cross-view attention, trained scale-invariant on noisier real multi-view reconstructions) estimates spatial shape , while met-ric scale is estimated only from the DA3-l branch. The fusion described next is DA3-g’s own, internal to the pretrained check-point; we use it as published and never modify it. Critically, it does not fuse the two depths point-by-point or copy DA3-l’s clean depth directly: it fits one global scalar s per frame by least squares so that the any-view branch’s shape best matches DA3-l’s depth, s = Pi aibi/ Pi b2 
+
+> i
+
+(a=DA3-l depth, b=any-view depth), then scales the any-view shape by that DA3-l-derived metric scalar and reports s×any-view depth. DA3-l’s own shape is discarded; only that one scalar survives from it. This fixes the far-field bias (median ratio 1 .06 on drivetrack, including the far field) but introduces a di ff erent defect: the scalar is re-solved 
+
+independently every frame with no coupling to the previous frame, and because it is a b2-weighted fit it is dominated by the largest (farthest) points visible in that frame. In a near-field in-door scene the “far” pixels are a sparse, occlusion-prone back-ground that changes frame to frame; the fitted scale therefore wobbles even though its DA3-l target is smooth—the fusion re-solves the scale each frame rather than inheriting DA3-l’s stability. We isolate this quantitatively at evaluation time only: the model is left untouched, and we instead remove a single scale from the depth it outputs, in two di ff erent ways. Per-frame 
+
+alignment (one scale per frame) exposes only spatial shape er-ror, while per-clip alignment (one scale for the whole clip) ad-ditionally exposes temporal drift; comparing the two separates the one from the other (Fig. 10(b)). DA3-l’s error is nearly iden-tical under both (pstudio 0 .029 → 0.041), confirming a tem-porally stable scale; DA3-g’s near-field error rises 4 .3× under the coarser per-clip alignment (pstudio 0 .031 → 0.132), even though its per-frame spatial shape matches or exceeds DA3-l’s on every subset (Fig. 10(a)). The defect is therefore a low-dimensional, one-scalar-per-frame flicker , not per-pixel noise. 
+
+5.1.3. Why the 3D refiner cannot repair the flicker 
+
+This also explains why our learned refiner, which halves DA3-l’s near-field depth error (pstudio median 0.732 → 0.348 m), barely moves DA3-g’s (0 .777 → 0.734 m) even though the two raw depths start at comparable error. A learned corrector can only undo error that is predictable 
+
+from its own inputs. Our refiner mixes information only along time , one track at a time; it never observes a quantity shared by all points in a frame, and cannot see—let alone correct—a per-frame, all-points-shared scalar. Oversampling the under-represented near-field training clips and the per-14 frame scale-stabilisation stages (Table 4) each recover part of this gap by giving the model either more near-field signal or an explicit within-frame aggregate to estimate the flickering scalar from, but neither fully closes it. Our full fix pools that shared quantity explicitly, ahead of the refiner rather than inside it—the two-stage de-flicker-then-refine pipeline of §3.9. 
+
+5.1.4. Consequence for backbone choice 
+
+DA3-l’s bias is systematic and hence learnable; DA3-g’s flicker is a genuine temporal instability that a per-track model cannot observe, and even the de-flicker stage only partly compensates for it: the de-flickered DA3-g pipeline (WAFT +DA3-g +de-flicker +vmamba3-2pool, mean absolute metric-AJ 0 .224) still trails plain DA3-l’s 0 .248, and the DA3-l ceiling rises further to 0 .255 once that mixer gains a second pool and to 0 .256 with the flow-only visibility head. That is why the smaller, biased DA3-l backbone remains our best 
+
+single -method ceiling even though DA3-g is individually more metric-accurate at range: the far-field gain DA3-g provides on drivetrack does not o ff set the near-field flicker it introduces on pstudio and adt. A depth backbone that combined DA3-l’s temporal stability with DA3-g’s far-field metric correctness would outperform both; we leave that fusion to future work. 
+
+5.2. Why external methods underperform under this hardware budget 
+
+The low external scores in Table 1 are genuine conse-quences of the single-commodity-GPU, pose-free, monocular budget, which we confirm rather than assume. SpatialTrack-erV2 needs a temporal window of 500 frames ( ∼40 GB) for its published accuracy; capped at 60 frames on our GPU it loses most of its accuracy to windowing drift. TAPIP3D aggregates tracks in a persistent world frame that requires camera-motion cancellation, which pose-free monocular depth cannot provide; its own offi cial evaluator reproduces our near-zero numbers on the egocentric subsets to three decimals. TrackCraft3R reports Sim(3)-aligned numbers in its paper; under the standard per-frame protocol on all 150 clips it scores far lower, and its video-di ff usion backbone runs ∼200 × slower than our baseline. In every case the gap is a property of the method under this budget, established with the competitor’s own tools, not an artefact of our evaluation. 
+
+6. Conclusion 
+
+We set out to track points in absolute metric 3D on a com-modity single GPU, and we reached that objective. By freezing optical flow and monocular metric depth and learning only the depth along each point’s fixed pixel ray—conditioned on DI-NOv3 appearance features and mixed along time by a compact non-causal state space module of under 1 M parameters—the tracker reaches the best absolute metric accuracy on TAPVid-3D minival among all methods evaluated under an identical single-GPU budget, mean metric-AJ 0 .256 against 0 .183 for the strongest external feed-forward tracker, while an accompanying reliability analysis, reproduced with competitors’ own evalua-tors, distinguishes genuine method limits from evaluation arte-facts. A depth-backbone analysis further shows that a 4 ×-larger metric-depth model (DA3-g) trades DA3-l’s learnable far-field bias for an unlearnable frame-to-frame scale flicker; it therefore improves only the far field and does not raise our single-method ceiling. That analysis motivated the two stages that precede re-finement: de-flicker, which estimates the per-frame scale from the tracked points, and the depth scale refiner, which estimates it from the depth map directly and reaches our best DA3-g ac-curacy, mean metric-AJ 0 .229. The non-causal state space op-erator the refiner is built from is a means to that result rather than a claim of its own. A concrete target for future work is a depth backbone that combines DA3-l’s temporal stability with DA3-g’s far-field cor-rectness. A second is a depth model built around vmamba3 from the start and trained on depth directly, rather than distilled into a frozen DA3: that would let the operator be evaluated on depth on its own terms, rather than as a swap inside a frozen pipeline. Replacing DINOv3 with vmamba3 as the tracker’s own feature-extraction backbone, and extending the non-causal cross-attention to full multi-view 3D tracking so that it can ob-serve the per-frame, all-points-shared quantities a per-track re-finer cannot, are natural next steps. More broadly, non-causal, linear-time attention over 2D and multi-view data is not spe-cific to point tracking; applying it to other spatiotemporal vi-sion tasks, such as 4D reconstruction, is a promising direction for future work. 
+
+Data availability 
+
+This study uses the publicly available TAPVid-3D, CIFAR-10, and ETH3D benchmarks; no new data were generated. The source code and trained models are released at 
+
+https://github.com/MasahiroOgawa/visionMamba3 
+
+(the vmamba3 operator) and https://github.com/ MasahiroOgawa/vmamba3-3Dpointtracker (the 3D point-tracking application); both repositories are made public on publication of this preprint. 
+
+Declaration of generative AI and AI-assisted technologies in the manuscript preparation process 
+
+During the preparation of this work the author(s) used Claude (Anthropic) in order to draft and edit the text and to write analysis and plotting code. After using this tool, the author(s) reviewed and edited the content as needed and take(s) full responsibility for the content of the published article. 
+
+Appendix A. Standalone behaviour of the non-causal oper-ator 
+
+§3.2 derives the non-causal Mamba-3 construction the re-finer’s mixer is a special case of, because the tracker depends on it. This appendix records how that operator behaves on its own, which the tracker does not depend on: the multi-directional 15 scans, the positional encodings and the rotary analysis below are machinery the pipeline never uses, and the refiners mix over time only. None of the operator is claimed as novel—Mamba-3 [9], the multi-directional scans [25] and the non-causal col-lapse [24] are all prior work. What is ours here is: 1. Their combination —a single operator in which Mamba-3’s three-term recurrence, multi-directional scanning and the non-causal collapse are composed and compared as interchangeable choices under one implementation and one protocol (3.2.2, Table A.1). 2. The extension to cross-attention and multi-view input :the query side supplies C while a separate key /value side supplies B and V, Eq. (8), which is what lets the opera-tor mix one track against features drawn from elsewhere rather than against itself (3.2.1). 3. VSSD-2pool , a second independently-read pool recover-ing the β-band capacity that the non-causal collapse de-stroys and that no single per-token vector can hold (3.2.2, construction (iv)). together with the measurements reported below. Every configu-ration is trained once, under one seed. Where a spread is quoted it is therefore across evaluation views, not across seeds, and it bounds what one scene can resolve rather than how much a re-run would move. 
+
+Appendix A.1. Four ways to remove causality 
+
+§3.2.2 states which construction the tracker uses and why. This subsection records the four we considered and compares them under one protocol (Table A.1). Constructions (i) and (ii) remove causality by scanning the sequence in several di-rections; (iii) and (iv) instead collapse the mask to a per-token vector and hold a state whose size does not grow with the se-quence. The tracker mixes along time only and therefore uses a collapse, (iv); the depth scale refiner is the one exception and uses (iii). (i) Bidirectional scans : run the SSD kernel over forward and reverse token orders and sum them, giving a symmetric 
+
+mask ˜Li j = L→ 
+
+> i j
+
++ L← 
+
+> i j
+
+that depends on |i − j| rather than sign( i − j) (Fig. 4(b)), i.e. non-causal linear attention at no extra parameters. Over a raster-flattened image this |i − j| decay still favours whichever axis the token order happens to serialize as adjacent—row-major puts same-row neighbours 1 apart but same-column neighbours W apart—and a single bidirectional pass is therefore dense yet direction-biased. (ii) Four-directional scans , following VMamba’s Cross-Scan [25]: sum a second bidirectional pair, scanned column-major, on top of the row-major pair of (i)—two symmetric masks added rather than one (Fig. 4(c)). This removes (i)’s direction bias at no extra parameters, at 2 × its compute: every pixel is now close, in scan order, to both its row and its column neighbours, not just one. LocalMamba [30] instead scans inside independent local windows rather than the whole image; we do not adopt it here, since its own ablations report only a small accuracy gain over plain cross-scanning. (iii) VSSD [24], which we write VSSD-1pool : the query-independent collapse of Eq. (6), whose T × T mask reduces to a single T -vector m with m j = 1/A j (Fig. 4(d)), cutting cost from 
+
+O(T 2(N + D)) to O(T ND ) with an O(ND ) state independent of 
+
+T . The original work names this operator simply VSSD; the 
+
+1pool su ffi x is ours and counts its independently-read pools, distinguishing it from the VSSD-2pool of (iv), which is not part of [24]. We name these operators by pool count rather than by the bands of Eq. (5) they were meant to carry, because neither correspondence is exact: m j = 1/A j reinterprets the state transi-tion rather than reproducing γ j = λ j∆ j, and (iv)’s second vector is freely learned, not constrained to β.(iv) VSSD-2pool is derived in §3.2.2, being the operator the tracker is built on. 
+
+Appendix A.2. Positional encoding 
+
+No part of the tracker uses a positional encoding (§3.6); the three below exist only for the operator comparison of Appendix A.3, which evaluates every combination of encoding and operator. Position information reaches the four operators asymmetrically, which is why the encoding is a separate choice rather than a fixed part of each. Bidirectional and four-directional scans (i) /(ii) retain an implicit, decay-based 
+
+|i − j| bias directly in the mask, with no extra mechanism required. VSSD-1pool (iii) and VSSD-2pool (iv) collapse the mask to a per-token vector, independent of the query index; on their own they carry no positional signal at all. We consider three encodings, and evaluate every combination of them against every operator in Table A.1: (i) 2-D RoPE : an ordinary, data-independent 2-D rotary po-sition embedding θr,c[n] = θrow [n] r + θcol [n] c, where n in-dexes the state channel pair being rotated. It is a function of the patch’s row and column on the image grid and therefore bounded by the image rather than by the sequence. In the depth-backbone study (Appendix A.5) this is whichever such embed-ding the pretrained Depth-Anything-3 blocks already carry, ap-plied identically whichever operator is swapped in. (ii) Rotary : Mamba-3’s own remedy for exactly the collapse above. Promoting At from a scalar to a 2 × 2 rotation is equiv-alent to a data-dependent rotary embedding on B, C [9], whose angle is a learned per-token increment accumulated along the sequence. It is o ff by default in our implementation. (iii) Pinned rotary : the same rotation with its angular spread pinned to n turns across the sequence, θ j = 2πn j /T , instead of accumulating. This exists because (ii) fails at long sequence length; Appendix A.4 gives the mechanism and the measure-ment. These encodings only tell a token where it is. Which tokens it can see is decided by (i)–(iv) of 3.2.2 alone. 
+
+Appendix A.3. Standalone validation: classification 
+
+We drop the operator into a ViT-Tiny skeleton trained on CIFAR-10 [31] at a matched parameter budget ( ≈ 2.7 M) and compare, under one fixed training protocol, against softmax at-tention and a CNN of equal size (Table A.1). At T =65 every vmamba3 variant falls within a few points of softmax attention (80 .9%), and the best configuration—four-directional with 2-D RoPE, 83 .3%—exceeds it by 2 .4, while a 16 Table A.1: CIFAR-10 from scratch, one fixed training protocol, single seed per cell, at T =65 (patch size 4) and T =1025 (patch size 1). Every operator is crossed with every positional encoding and their combinations, so that each encoding’s own e ff ect can be read separately. Enc. takes one of: “—” for no encoding; “2-D RoPE” for the data-independent 2-D rotary embedding on B, C (Appendix A.2); “rotary” for Mamba-3’s own data-dependent complex-SSM rotary; “1-turn rotary” for that same rotary with its angular spread pinned to one turn instead of growing with T ; and the two names joined by “ +” for the corresponding combination. The 1-turn rows are motivated at T =1025, where the growing form collapses (Appendix A.4), and are now measured at both lengths: pinning costs about five points at 
+
+T =65, where the growing rotary is still short enough to work, and gains about five at T =1025. Repeat runs of one configuration di ff ered by 0 .67 points; accuracy gaps below ∼0.7 are not meaningful; accuracy is therefore printed to one decimal. “n /a” marks the CNN’s T =1025 cells: a CNN has no notion of tokens and so no sequence length, and is reported at T =65 only. Latency and peak memory are a single forward pass at batch 128 on one RTX 4080, with the optimiser released, i.e. an inference footprint. 
+
+T =65 T =1025 Operator Enc. Params (M) Acc. (%) Lat. (ms) Mem (MiB) Acc. (%) Lat. (ms) Mem (MiB) CNN (ResNet) — 2.78 91.8 8.9 191 n/a n/a n/aSoftmax attention — 2.69 80.9 7.7 98 69.1 308.4 3592 2-dir SSD — 2.71 80.4 10.0 111 71.4 207.9 1306 rotary 2.74 81.6 11.6 135 67.5 198.2 1663 2-D RoPE 2.71 82.8 15.8 123 77.4 298.2 1498 rotary + 2-D RoPE 2.74 81.9 15.1 147 68.0 266.8 1855 4-dir SSD — 2.71 81.5 16.9 129 76.1 331.7 1589 rotary 2.74 82.3 15.6 153 82.2 342.9 1946 2-D RoPE 2.71 83.3 19.2 129 78.5 435.3 1589 rotary + 2-D RoPE 2.74 81.5 23.0 153 63.3 420.9 1946 VSSD-1pool — 2.71 75.8 9.1 97 63.9 167.4 1089 rotary 2.74 79.1 10.8 109 19.1 222.5 1261 1-turn rotary 2.74 70.6 9.3 126 59.0 216.1 1233 2-D RoPE 2.71 78.4 9.8 97 70.1 239.4 1089 rotary + 2-D RoPE 2.74 81.2 13.8 109 18.9 285.4 1261 1-turn rotary + 2-D RoPE 2.74 76.3 11.7 126 64.8 260.4 1233 VSSD-2pool — 2.93 75.1 11.2 105 66.9 213.4 1104 rotary 2.97 80.0 13.7 111 19.4 297.0 1263 1-turn rotary 2.97 70.7 12.3 128 59.7 315.5 1235 2-D RoPE 2.93 79.1 16.1 99 71.4 278.5 1090 rotary + 2-D RoPE 2.97 81.8 17.3 111 18.5 408.1 1263 1-turn rotary + 2-D RoPE 2.97 75.1 15.5 128 65.4 424.0 1236 100 120 140 160 180 Peak memory (MiB) 20 40 60 80 CIFAR-10 accuracy (%)  T = 65 
+
+1000 1500 2000 2500 3000 3500 Peak memory (MiB) 20 40 60 80 CIFAR-10 accuracy (%)  T = 1025 
+
+2-directional 4-directional VSSD-1pool VSSD-2pool (Ours) neither encoding rotary only 1-turn rotary 2-D RoPE only rotary + 2-D RoPE 1-turn rotary + 2-D RoPE CNN (ResNet) Softmax attention 
+
+Figure A.1: The same measurements as Table A.1, plotted against peak memory. Both panels share one accuracy axis so that heights are comparable across sequence lengths; the memory axes are independent, since peak memory di ff ers by roughly 20 × between them. At T =65 memory is nearly flat and the plot is e ff ectively an accuracy ranking; at T =1025 the state space operators separate from softmax attention horizontally, which is the advantage the linear-time recurrence provides. The CNN appears only at T =65—it does not tokenise and therefore has no token count to place it at on the right, and its memory does not lie on the same scaling curve. 
+
+17 Table A.2: Pinned rotary spread on CIFAR-10 at T =1025, under Table A.1’s protocol (patch size 1, 30 epochs, no 2-D RoPE, single seed per cell). n is the total angular spread in turns across the sequence, θ j = 2πn j /T . Bold marks the best pinned spread in each column. The last three rows are the corresponding cells of Table A.1, repeated for comparison: default rotary is Mamba-3’s own rotary left unmodified, whose angle accumulates to a spread of n ≈ 160 at this length (Appendix A.4); that is why it collapses both operators to near chance and is the reason this sweep exists. 
+
+angular spread VSSD-1pool VSSD-2pool 
+
+n = 0.1 66.0 65.4 
+
+n = 0.25 65.1 66.6 
+
+n = 0.5 64.7 64.8 
+
+n = 1 59.0 59.7 
+
+n = 2 58.8 59.9 
+
+n = 4 60.6 59.4 
+
+n = 10 60.7 59.7 default rotary 19.1 19.4 rotary o ff 63.9 66.9 2-D RoPE alone 70.1 71.4                                    
+
+> Table A.3: Metric depth on the held-out ETH3D [29] terrains scene at matched parameters ( ≈22 M): DA3-SMALL against the same network with only its self-attention mixer replaced. One training run per row, scored on the same twelve views. The three operator rows fall between 0 .051 and 0 .060 absolute relative error, a range narrower than the largest within-row standard deviation across the twelve evaluated views (0 .017); they are not separated by this scene and their ordering is not a ranking. Bold marks the best value in each column. Writing dfor predicted and d∗for ground-truth depth, and averaging over the valid pixels of an image and then over images: abs. rel.
+> =mean |d−d∗|/d∗, a relative error, under which a given metric error counts less at large depth; RMSE =(mean ( d−d∗)2)1/2in metres, which by squar-ing weights the worst pixels most; log 10 =mean |log 10 (d/d∗)|, which scores a factor-of-kerror equally at every depth; and δ< 1.25, the fraction of pixels with max( d/d∗,d∗/d)<1.25, i.e. an inlier rate rather than an error. Every row is median-aligned first— dis scaled so that its median matches d∗’s—because monocular depth is recovered only up to a global factor. The rows did not re-ceive the same training. DA3-SMALL is evaluated zero-shot, with no ETH3D training of any kind, whereas each vmamba3 row had a mixer distilled, a bridge trained and the depth head fine-tuned on ETH3D (Appendix A.5); their higher
+> δ< 1.25 follows from that extra training and is not evidence of a better back-bone.
+
+Mixer abs. rel. ↓
+
+RMSE (m) ↓ log 10 ↓ δ< 
+
+1.25 ↑
+
+softmax (DA3-SMALL) ⋆ 0.032 0.061 0.014 1.000 
+
+VSSD-2pool (iv) 0.051 0.101 0.022 0.996 bidirectional (i) 0.055 0.103 0.024 0.999 VSSD-1pool (iii) 0.060 0.118 0.026 0.976 
+
+> ⋆DA3-SMALL’s own attention, evaluated zero-shot with no ETH3D training of any kind, its backbone features taken through the same DualDPT path the students use — not DA3’s packaged multi-view inference, which additionally selects a reference view and estimates cameras and so does not isolate the mixer. Roman numerals index the non-causality constructions of Appendix A.1; every row runs with no positional encoding.
+
+well-tuned CNN remains the accuracy ceiling (91 .8%). That ceiling is an expected consequence of CIFAR-10’s 50 K train-ing images and weak augmentation favouring a CNN’s built-in locality and translation-equivariance over any global-mixing architecture [32], not evidence that global mixing generalises worse in principle. Four-directional scanning gives bidirec-tional’s largest plain-operator gain (80 .4 → 81 .5%) at roughly 1.7× its latency, consistent with summing twice as many scans. The 2 ×2 of encodings separates each encoding’s own e ff ect from the two together. Every operator improves under either encoding alone, and the two families di ff er only in the combi-nation: both VSSD operators are at their best with the rotary and 2-D RoPE on together (81 .2% and 81 .8%), while both scan operators are at their best with 2-D RoPE alone and gain noth-ing from adding the rotary on top (Table A.1). This is what Appendix A.2’s asymmetry predicts: the collapse carries no po-sitional signal of its own, and an explicit encoding is therefore worth more to it than to a scan operator, whose decay band al-ready supplies one. 
+
+Long-sequence e ffi ciency. The T =1025 half of Table A.1 is where the operators’ e ffi ciency advantage appears. Softmax at-tention needs 3592 MiB and still scores only 69 .1%; every state space configuration runs in 30–54% of that memory, and every one that trains at all exceeds it on accuracy. VSSD-2pool with 2-D RoPE reaches 71 .4% at 1090 MiB—above VSSD-1pool’s 70 .1% at the same 1089 MiB, which is the lowest memory in the table—while four-directional with the rotary is the most ac-curate row at 82 .2% for 1946 MiB. Together these are the state space operators’ O(T )-against-O(T 2) advantage over softmax attention, which is what matters at high resolution and is visi-ble as horizontal separation in Fig. A.1’s right panel. This is the property the tracking refiner relies on, since a per-track depth refiner must process clips hundreds of frames long at a constant per-step memory budget. One result does not carry over from T =65, and we report it rather than omit it: the rotary collapses both VSSD operators to 19 .1% and 19 .4%, barely above the 10% chance floor. The 1-turn rotary repairs the collapse (59 .0% and 59 .7%) but still does not reach simply leaving the rotary o ff (63 .9% and 66 .9%); at long sequence length we therefore use 2-D RoPE alone. Ap-pendix A.4 explains the mechanism and the repair. 
+
+Appendix A.4. Why a rotary fails at long sequence length, and the repair 
+
+The rotary tested here is Mamba-3’s own mechanism (Ap-pendix A.2, construction (ii)), run exactly as its accumulating angle defines it—not a variant we weakened for this compar-ison. At T =65 it helps both VSSD operators. At T =1025 it reduces them to chance: accuracy falls to 19 .1% and 19 .4%, barely above the 10% chance floor, while the same encoding makes four-directional the best row in the table (Table A.1). The failure is therefore specific to the collapse, and its cause is the pooled state the collapse creates, not a defect we introduced into the rotary itself. A rotary encodes position by rotating B and C by an angle that accumulates along the sequence. A scan operator forms the score C⊤ 
+
+> i
+
+Bj one pair at a time; the two absolute angles therefore cancel and only their di ff erence θi − θ j matters; that di ff erence does not grow with T . VSSD instead adds the keys into a single pooled state, P j m j R(θ j)Bj, before any query reads it. Vectors rotated by very di ff erent angles point in unrelated directions, 18 and adding them cancels them out. Because θ is a plain cu-mulative sum, the spread of angles grows with the sequence: about ten full turns at T =65, but about 160 at T =1025. At 160 turns the pooled state is already close to random before training begins, which is why accuracy remains at chance. The repair is to fix the total spread rather than let it accumu-late. Setting θ j = 2πn j /T makes the sequence span exactly n
+
+turns whatever T is, keeping neighbouring tokens distinguish-able while the sum no longer cancels. At n=1 both operators recover from chance to about 59%. One turn is not, however, the best choice. Sweeping n
+
+on both VSSD operators under Table A.1’s protocol gives Table A.2. The sweep establishes a threshold rather than a trend. For both operators every spread of one turn or more lies between 58 .8% and 60 .7%, while every spread of half a turn or less lies between 64 .7% and 66 .6%; the threshold replicates on both, which is what the pooled-state argument predicts. Two things the sweep does not establish are worth stating. Above one turn the order-ing does not replicate—VSSD-1pool is highest at ten turns and VSSD-2pool at two, across a range under 2 points wide—and the residual di ff erences there are within run-to-run variation. Below half a turn the two operators disagree about where the best value lies: VSSD-1pool continues to improve down to a tenth of a turn (66 .0%) while VSSD-2pool peaks at a quarter turn (66 .6%) and then declines. We therefore report only that the spread should be well below one turn, and do not recom-mend a particular n.Rescaling a rotary’s angle is not our idea: position interpo-lation [33] and YaRN [34] already do it. The di ff erence is why. They shrink the angle so that a model can run on sequences longer than the ones it was trained on. We shrink it at a fixed length, to stop the pooled sum from cancelling. Repairing the collapse does not make the rotary preferable. At its best pinned spread VSSD-1pool reaches 66 .0% against 63 .9% with the rotary switched o ff , and VSSD-2pool 66 .6% against 66 .9%: a small gain in one case and a tie in the other. Both stay well below 2-D RoPE alone (70 .1% and 71 .4%), whose angle depends on the patch’s row and column and is therefore bounded by the image rather than growing with the sequence. The tracking pipeline therefore uses no rotary of ei-ther kind. 
+
+Appendix A.5. Standalone validation: metric depth estimation 
+
+The second standalone task tests whether the operator can replace softmax attention inside a pretrained depth network. We take DA3-SMALL, replace only its self-attention mixer lay-ers with a vmamba3 operator at matched parameter count ( ≈
+
+22 M), and retain DA3’s own DualDPT depth head. The substitution requires one architectural addition, be-cause DA3’s depth head expects 2 dembed features from its concatenated local and global streams whereas our backbone emits a single dembed stream. Instead of duplicating that stream, we interpose a learnable bridge Rdembed → R2dembed , initialised to the duplication and trained during fine-tuning, which is what allows the pretrained head to be reused with a di ff erent mixer. Training proceeds in three stages, all on a 374-image, 10-scene subset of ETH3D [29], with the terrains scene held out for evaluation. The mixer is first distilled for 20 000 steps against the intermediate features of the frozen DA3-SMALL teacher at four backbone layers, under a combined L2 and co-sine objective. Depth is then supervised against ground truth for 500 steps with the head frozen, and for a further 1000 steps with the head unfrozen at a reduced learning rate and with augmen-tation enabled. The two depth stages are kept separate because the second begins from an already-adapted bridge. All three stages use AdamW [26] with weight decay 0 .05, under a co-sine schedule floored at a tenth of the peak learning rate rather than annealed to zero. Both operators are trained without po-sitional encoding; this configuration therefore di ff ers from the 2-D RoPE variant that Appendix A.3 identifies as preferable at long sequence length. Table A.3 reports all three non-causal operators against the DA3-SMALL baseline, every row trained and scored with the released code and all four scored by one evaluator. The three operators fall between 0 .051 and 0 .060 absolute relative error. That range is narrower than the largest within-row standard de-viation across the twelve evaluated views (0 .017, on VSSD-1pool); this scene does not separate them and their ordering is not a ranking: VSSD-2pool is best on absolute relative er-ror, RMSE and log 10 and bidirectional on the inlier rate, by margins this experiment cannot establish as real. All three are roughly 1 .6 to 1 .9 times DA3-SMALL’s error. That is the sub-stantive outcome: substituting the operator into a pretrained depth pipeline costs accuracy rather than improving it, and the adaptation described above recovers part but not all of what it costs. The comparison is not a controlled one, and it favours each side in a di ff erent respect. DA3-SMALL is evaluated zero-shot, with no ETH3D adaptation of any kind, whereas every vmamba3 row has had a mixer distilled, a bridge trained and a head fine-tuned on the evaluation dataset; their higher δ< 1.25 inlier rates are consequently not evidence of a superior back-bone. Conversely, DA3-SMALL benefits from the whole of DA3’s pretraining corpus, whereas our mixers are initialised randomly in their attention layers and trained on 374 images. The experiment therefore supports only a narrow claim: a non-causal state space mixer can be substituted for softmax self-attention within an already-pretrained depth pipeline at 1 .6 to 1.9 times its error (Table A.3). A stronger conclusion would require DA3-SMALL to be given the same adaptation budget, and our mixers to be pretrained at comparable scale; neither experiment has been performed. One limit is worth stating rather than leaving to be inferred: this is a single seed per row over twelve evaluated views of one held-out scene. The per-view spread above bounds what it can resolve, and every di ff erence between the three operators falls inside that bound. Separating them would need more scenes, more seeds, or both. 
+
+Appendix A.6. What the two standalone studies establish 
+
+CIFAR-10 and ETH3D are not the same kind of test and should not be read the same way, and only CIFAR-10 is a con-19 trolled one: it is unconstrained, with no bias toward either oper-ator, and every cell is trained under one fixed protocol. ETH3D is a drop-in-replacement test whose rows di ff er in adaptation as well as in operator (Appendix A.5), and its three operators fall within the per-view spread of one another; it therefore es-tablishes that the substitution is viable without ranking them. CIFAR-10 covers all four operators but at 32 × 32 resolution on a classification objective. The claim they support therefore rests on CIFAR-10: vmamba3 provides e ffi ciency and long-context scalability at accuracy parity. That is the property the tracker of §3 draws on, and the only one it needs. 
+
+References 
+
+[1] S. Koppula, I. Rocco, Y. Yang, J. Heyward, J. Carreira, A. Zisserman, G. Brostow, C. Doersch, TAPVid-3D: A Benchmark for Tracking Any Point in 3D, in: Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track, 2024. [2] Y. Xiao, J. Wang, N. Xue, N. Karaev, Y. Makarov, B. Kang, X. Zhu, H. Bao, Y. Shen, X. Zhou, SpatialTrackerV2: Advancing 3D Point Track-ing with Explicit Camera Motion, in: IEEE /CVF International Confer-ence on Computer Vision (ICCV), 2025. [3] B. Zhang, L. Ke, A. W. Harley, K. Fragkiadaki, TAPIP3D: Tracking Any Point in Persistent 3D Geometry, in: Advances in Neural Information Processing Systems (NeurIPS), 2025. [4] J. Nam, J. Koo, S. Son, J. Jung, H. An, J. Hur, S. Kim, TrackCraft3R: Repurposing Video Di ff usion Transformers for Dense 3D Tracking, arXiv preprint arXiv:2605.12587 (2026). [5] Y. Wang, L. Lipson, J. Deng, SEA-RAFT: Simple, E ffi cient, Accurate RAFT for Optical Flow, in: European Conference on Computer Vision (ECCV), 2024. [6] Y. Wang, J. Deng, WAFT: Warping-Alone Field Transforms for Optical Flow, in: International Conference on Learning Representations (ICLR), 2026. [7] H. Lin, S. Chen, J. Liew, D. Y. Chen, Z. Li, G. Shi, J. Feng, B. Kang, Depth Anything 3: Recovering the Visual Space from Any Views, in: International Conference on Learning Representations (ICLR), 2026. [8] O. Siméoni, H. V. Vo, M. Seitzer, F. Baldassarre, M. Oquab, C. Jose, V. Khalidov, M. Szafraniec, S. Yi, M. Ramamonjisoa, F. Massa, D. Haziza, L. Wehrstedt, J. Wang, T. Darcet, T. Moutakanni, L. Sen-tana, C. Roberts, A. Vedaldi, J. Tolan, J. Brandt, C. Couprie, J. Mairal, H. Jégou, P. Labatut, P. Bojanowski, DINOv3, arXiv preprint arXiv:2508.10104 (2025). [9] A. S. Lahoti, K. Li, B. Chen, C. Wang, A. Bick, Z. Kolter, T. Dao, A. Gu, Mamba-3: Improved Sequence Modeling using State Space Principles, in: International Conference on Learning Representations (ICLR), 2026. [10] A. Balasingam, J. Chandler, C. Li, Z. Zhang, H. Balakrishnan, Driv-eTrack: A Benchmark for Long-Range Point Tracking in Real-World Videos, in: IEEE /CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024. [11] T. D. Ngo, P. Zhuang, C. Gan, E. Kalogerakis, S. Tulyakov, H.-Y. Lee, C. Wang, DELTA: Dense E ffi cient Long-range 3D Tracking for Any Video, in: International Conference on Learning Representations (ICLR), 2025. [12] Y. Xiao, Q. Wang, S. Zhang, N. Xue, S. Peng, Y. Shen, X. Zhou, Spatial-Tracker: Tracking Any 2D Pixels in 3D Space, in: IEEE /CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2024. [13] J. Wang, M. Chen, N. Karaev, A. Vedaldi, C. Rupprecht, D. Novotny, VGGT: Visual Geometry Grounded Transformer, in: IEEE /CVF Confer-ence on Computer Vision and Pattern Recognition (CVPR), 2025. [14] T. D. Ngo, A. Mirzaei, G. Qian, H. Liang, C. Gan, E. Kalogerakis, P. Wonka, C. Wang, DELTAv2: Accelerating Dense 3D Tracking, arXiv preprint arXiv:2508.01170 (2025). [15] L. Mehl, J. Schmalfuss, A. Jahedi, Y. Nalivayko, A. Bruhn, Spring: A High-Resolution High-Detail Dataset and Benchmark for Scene Flow, Optical Flow and Stereo, in: IEEE /CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2023. [16] M. Menze, A. Geiger, Object Scene Flow for Autonomous Vehicles, in: IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2015. [17] D. J. Butler, J. Wul ff , G. B. Stanley, M. J. Black, A Naturalistic Open Source Movie for Optical Flow Evaluation, in: European Conference on Computer Vision (ECCV), 2012. [18] Z. Li, R. Tucker, F. Cole, Q. Wang, L. Jin, V. Ye, A. Kanazawa, A. Holyn-ski, N. Snavely, MegaSaM: Accurate, Fast and Robust Structure and Mo-tion from Casual Dynamic Videos, in: IEEE /CVF Conference on Com-puter Vision and Pattern Recognition (CVPR), 2025. [19] A. Gu, T. Dao, Mamba: Linear-Time Sequence Modeling with Selec-tive State Spaces, in: First Conference on Language Modeling (COLM), 2024. [20] L. Zhu, B. Liao, Q. Zhang, X. Wang, W. Liu, X. Wang, Vision Mamba: Effi cient Visual Representation Learning with Bidirectional State Space Model, in: International Conference on Machine Learning (ICML), 2024. [21] A. Hatamizadeh, J. Kautz, MambaVision: A Hybrid Mamba-Transformer Vision Backbone, in: IEEE /CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2025. [22] M. Yoshimura, T. Hayashi, Y. Hoshino, W.-Y. Wang, T. Ohashi, SF-Mamba: Rethinking State Space Model for Vision, in: International Con-ference on Machine Learning (ICML), 2026. [23] T. Dao, A. Gu, Transformers are SSMs: Generalized Models and E ffi -cient Algorithms Through Structured State Space Duality, in: Interna-tional Conference on Machine Learning (ICML), 2024. [24] Y. Shi, M. Dong, M. Li, C. Xu, VSSD: Vision Mamba with Non-Causal State Space Duality, in: IEEE /CVF International Conference on Com-puter Vision (ICCV), 2025. [25] Y. Liu, Y. Tian, Y. Zhao, H. Yu, L. Xie, Y. Wang, Q. Ye, J. Jiao, Y. Liu, VMamba: Visual State Space Model, in: Advances in Neural Information Processing Systems (NeurIPS), 2024. [26] I. Loshchilov, F. Hutter, Decoupled Weight Decay Regularization, in: In-ternational Conference on Learning Representations (ICLR), 2019. [27] H. Joo, H. Liu, L. Tan, L. Gui, B. Nabbe, I. Matthews, T. Kanade, S. Nobuhara, Y. Sheikh, Panoptic Studio: A Massively Multiview Sys-tem for Social Motion Capture, in: IEEE International Conference on Computer Vision (ICCV), 2015. [28] X. Pan, N. Charron, Y. Yang, S. Peters, T. Whelan, C. Kong, O. Parkhi, R. Newcombe, C. Y. Ren, Aria Digital Twin: A New Benchmark Dataset for Egocentric 3D Machine Perception, in: IEEE /CVF International Con-ference on Computer Vision (ICCV), 2023. [29] T. Schöps, J. L. Schönberger, S. Galliani, T. Sattler, K. Schindler, M. Pollefeys, A. Geiger, A Multi-View Stereo Benchmark with High-Resolution Images and Multi-Camera Videos, in: IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2017. [30] T. Huang, X. Pei, S. You, F. Wang, C. Qian, C. Xu, LocalMamba: Visual State Space Model with Windowed Selective Scan, in: European Confer-ence on Computer Vision Workshops (ECCVW), 2024. [31] A. Krizhevsky, Learning Multiple Layers of Features from Tiny Images, Tech. rep., University of Toronto (2009). [32] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Un-terthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly, J. Uszkoreit, N. Houlsby, An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale, in: International Conference on Learning Repre-sentations (ICLR), 2021. [33] S. Chen, S. Wong, L. Chen, Y. Tian, Extending Context Window of Large Language Models via Positional Interpolation, arXiv preprint arXiv:2306.15595 (2023). [34] B. Peng, J. Quesnelle, H. Fan, E. Shippole, YaRN: E ffi cient Context Win-dow Extension of Large Language Models, in: International Conference on Learning Representations (ICLR), 2024. 
+
+20

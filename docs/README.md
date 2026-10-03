@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-10-02</span>
+      <span class="dpr-home-dashboard-kicker">2026-10-03</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">共 22 篇</strong>
+    <strong class="dpr-home-dashboard-count">共 21 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>9</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>8</dd></div>
     <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>13</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-10-02 23:07:37 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-10-03 22:05:57 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,7 +69,7 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>2026-10-02 日报精选 22 篇论文，精读 9 篇、速读 13 篇，聚焦 4D 场景重建与生成式驾驶世界模型。最值得看的是满分综述《Reconstructing the Dynamic World》梳理的以表示为中心的 4D 重建视角，以及《HelloWorld》展示的生成式驾驶世界模型落地路径。普通读者可先读这两篇精读，再按兴趣浏览速读中的空间推理与 4D 高斯泼溅伪标注工作。</p>
+<p>2026-10-03 日报完成：共筛读 21 篇，精读 8 篇、速读 13 篇，重点覆盖 3D 场景理解与多智能体世界模型。最值得看的是两篇 9.0 分工作——SceneScaffold 用主动场景状态构建统一 3D 场景理解，MA-JEPA 把联合嵌入世界模型引入多智能体强化学习。普通读者可先读这两篇精读，再按兴趣追 TRACKGRAPH、ChronoFuseGS、GraphWrit3R 等 8.0 分速读方向。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -78,12 +78,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">精读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">9 篇</strong>
+    <strong class="dpr-home-dashboard-count">8 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Reconstructing the Dynamic World: A Representation-Centric View of 4D Scene Reconstruction">Reconstructing the Dynamic World: A Representation-Centric View of 4D Scene Reconstruction</span></li><li><span class="dpr-home-dashboard-paper-title" title="HelloWorld: Towards Practical Applications of Generative Driving World Models">HelloWorld: Towards Practical Applications of Generative Driving World Models</span></li><li><span class="dpr-home-dashboard-paper-title" title="ProDyGS: Dynamic Gaussian Splatting from a Single Static Monocular Camera">ProDyGS: Dynamic Gaussian Splatting from a Single Static Monocular Camera</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding">SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding</span></li><li><span class="dpr-home-dashboard-paper-title" title="MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning">MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning</span></li><li><span class="dpr-home-dashboard-paper-title" title="RoGSW4RLD: Feed-Forward 4D Gaussian Lifting for Robot World Model Rollouts">RoGSW4RLD: Feed-Forward 4D Gaussian Lifting for Robot World Model Rollouts</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">dr <strong>8</strong></span><span class="dpr-home-dashboard-tag">d-world <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">d-world <strong>4</strong></span><span class="dpr-home-dashboard-tag">dr <strong>3</strong></span><span class="dpr-home-dashboard-tag">spatial-ai <strong>1</strong></span></div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-skim-card">
   <div class="dpr-home-dashboard-header">
@@ -94,9 +94,9 @@
     <strong class="dpr-home-dashboard-count">13 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Seeing Is Not Measuring: Tool-Augmented Metric Spatial Reasoning for Vision-Language Models">Seeing Is Not Measuring: Tool-Augmented Metric Spatial Reasoning for Vision-Language Models</span></li><li><span class="dpr-home-dashboard-paper-title" title="Retrieve-to-Localize: Bridging Large Language Models and LiDAR Geometry for Spatial Grounding">Retrieve-to-Localize: Bridging Large Language Models and LiDAR Geometry for Spatial Grounding</span></li><li><span class="dpr-home-dashboard-paper-title" title="SplatLabel: Pseudo-Labelling through 4D Gaussian Splatting">SplatLabel: Pseudo-Labelling through 4D Gaussian Splatting</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="TRACKGRAPH: Online Open-Vocabulary 3D Scene Graphs via Image-Space Tracking">TRACKGRAPH: Online Open-Vocabulary 3D Scene Graphs via Image-Space Tracking</span></li><li><span class="dpr-home-dashboard-paper-title" title="ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat Persistence and Change Visualization">ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat Persistence and Change Visualization</span></li><li><span class="dpr-home-dashboard-paper-title" title="GraphWrit3R: End-to-End 3D Scene Graph Writing">GraphWrit3R: End-to-End 3D Scene Graph Writing</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">d-world <strong>5</strong></span><span class="dpr-home-dashboard-tag">dr <strong>4</strong></span><span class="dpr-home-dashboard-tag">spatial-ai <strong>4</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-ai <strong>8</strong></span><span class="dpr-home-dashboard-tag">d-world <strong>4</strong></span><span class="dpr-home-dashboard-tag">dr <strong>1</strong></span></div>
 </section>
 </div>
 

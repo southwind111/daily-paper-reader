@@ -1,0 +1,1420 @@
+Reliability-Regulated Trajectory Optimization for Progressive
+COLMAP-Free 3D Gaussian Splatting
+Zijian Wu1, Jinliang Wang2,3, Zidian Lin1, Ying Song1
+Ziqian Lu1, Hanjie Ma1, Zhen Ye4,5, and Mingfeng Jiang1,6
+1School of Computer Science and Technology, Zhejiang Sci-Tech University
+2School of Biomedical Engineering, Tsinghua University
+3CardioCloud Medical Technology (Beijing) Co., Ltd.
+4Lishui University
+5State Key Laboratory of Blockchain and Data Security, Zhejiang University
+6College of Artificial Intelligence, Jiaxing University
+Abstract
+COLMAP-free 3D Gaussian Splatting (3DGS) bypasses computationally expensive structure-
+from-motion (SfM) pipelines, yet progressive camera pose tracking remains fundamentally vul-
+nerable to error compounding—early pairwise tracking inaccuracies both corrupt subsequent
+frame initializations and remain permanently frozen in the scene representation. Rather than
+relying on heavyweight external neural priors or treating progressive tracking through iso-
+lated heuristic fixes, we propose a unified reliability-regulated trajectory optimization frame-
+work for progressive COLMAP-free 3DGS. At its core, our framework establishes an intrinsic,
+self-supervised bidirectional cycle-consistency mechanism that systematically regulates progres-
+sive camera trajectory estimation across two complementary temporal horizons: (1) Forward
+Motion Propagation, where the online reliability signal adaptively gates first-order kinematic
+warm-starts of rigid motion into upcoming pairwise registrations, supplying informed direc-
+tional search priors while safely intercepting untrusted transitions; and (2) Retrospective Tra-
+jectory Correction, where the same reliability signal dynamically weights relative-pose consis-
+tency constraints within a sliding window of neighboring camera poses.
+By governing both
+prospective state initialization and retrospective trajectory consolidation through a unified
+reliability regulator, our self-contained framework resolves progressive drift without external
+priors or offline preprocessing.
+Extensive evaluations on Tanks and Temples and CO3D-V2
+benchmarks show that our method substantially improves camera trajectory accuracy and
+novel-view rendering quality, outperforming existing unposed baselines. Code is available at
+https://github.com/Zijian1026/RRTO-CF3DGS.
+Keywords: 3D Gaussian Splatting, COLMAP-free, Camera Trajectory Optimization, Novel-View
+Synthesis.
+1
+Introduction
+High-fidelity 3D scene reconstruction and novel-view synthesis have experienced significant progress,
+largely driven by the evolution from implicit Neural Radiance Fields (NeRFs) [1] to explicit 3D
+Gaussian Splatting (3DGS) [2]. While NeRFs model scenes through volumetric ray-marching via
+implicit neural networks, 3DGS introduces an explicit point-based scene representation parame-
+terized by 3D Gaussians. Coupled with a fast, differentiable rasterization pipeline, 3DGS achieves
+1
+arXiv:2609.30865v1  [cs.CV]  25 Sep 2026
+
+
+real-time rendering speeds and faster optimization while preserving fine-grained geometric and pho-
+tometric details. Consequently, 3DGS has rapidly established itself as a cornerstone paradigm for
+interactive 3D rendering and digital twin applications [1,3–7].
+Despite its efficiency, conventional 3DGS relies heavily on pre-computed, accurate camera poses,
+typically extracted via Structure-from-Motion (SfM) pipelines like COLMAP [8]. In practice, ob-
+taining reliable poses through SfM involves heavy computational overheads—such as feature match-
+ing and global bundle adjustment—and is highly sensitive to challenging conditions characterized
+by weak textures, repetitive patterns, or large-baseline camera movements [9–13]. Crucially, when
+SfM completely fails to establish feature correspondences, the downstream 3DGS pipeline cannot
+even be initialized. Even when SfM successfully yields sub-optimal or noisy poses, the subsequent
+Gaussian optimization easily degenerates, leading to severe visual artifacts and geometric distor-
+tion. Addressing this bottleneck requires pose-free reconstruction frameworks capable of jointly
+estimating scene geometry and camera motion directly from unposed image sequences [14,15].
+Earlier efforts to remove SfM constraints predominantly focused on NeRFs, such as BARF [16]
+and Nope-NeRF [17], which jointly optimize neural fields and camera embeddings. However, the
+implicit nature of NeRFs renders pose optimization indirect and highly susceptible to local min-
+ima. Recently, CF-3DGS [18] marked a key milestone in this line of research. By leveraging the
+explicit point-cloud structure of 3DGS, CF-3DGS transforms camera estimation into direct rigid
+SE(3) transformations on 3D Gaussians. Through a progressive local-to-global sequential frame
+integration scheme, CF-3DGS not only eliminates the time-consuming SfM pre-processing step but
+also significantly outperforms previous NeRF-based pose-free methods [19, 20] in both novel-view
+synthesis quality and trajectory estimation.
+Nevertheless, the strictly sequential design of CF-3DGS leaves its trajectory optimization vul-
+nerable to error accumulation. Because each newly registered frame relies transitively on previ-
+ously estimated poses, localized relative transformation errors can gradually cascade over extended
+sequences, increasing the risk of unconstrained trajectory drift.
+This instability is further ex-
+acerbated under sparse observations or texture-scarce regions where photometric guidance alone
+provides insufficient optimization bounds. Furthermore, optimizing newly added frames indepen-
+dently fails to enforce temporal smoothness constraints among adjacent views, frequently causing
+physically implausible motion jitter even when localized image alignment appears photometrically
+sound. Crucially, a foundational vulnerability that remains unexplored in existing progressive 3DGS
+frameworks [21–25] is the deceptive nature of pure photometric alignment during sequential pose
+registration. Through a deeper geometric analysis, we observe that localized photometric resid-
+uals often collapse into shallow local minima in textureless or repetitive regions, where incorrect
+camera poses can still render deceptive, low-error images by sacrificing structural sanity. When
+these noisy relative measurements are transitively committed, progressive pipelines inevitably suffer
+from a severe geometry-pose degeneracy coupling—where the 3D Gaussian geometry deforms to
+absorb camera tracking errors, making subsequent joint optimization incapable of recovering true
+trajectories.
+To overcome these fundamental challenges without resorting to external priors [26, 27], we
+propose a unified reliability-regulated trajectory optimization framework for progressive COLMAP-
+free 3DGS. Rather than presenting fragmented heuristic modifications, our central insight is that
+progressive trajectory optimization must be systematically regulated across two distinct temporal
+horizons—prospective forward propagation and retrospective trajectory correction. Specifically, to
+regulate forward motion propagation and overcome initialization blindness without compounding
+errors along the sequence, we extrapolate the preceding relative transformation as a first-order
+kinematic warm-start for upcoming pairwise registrations, using our bidirectional cycle-consistency
+metric as a dynamic gate that intercepts untrusted transitions and falls back to identity.
+To
+2
+
+
+PSNR 19.26
+PSNR 22.01
+CF-3DGS
+Ours
+Figure 1: Qualitative comparison on novel-view synthesis and camera trajectory esti-
+mation. Our reliability-regulated trajectory optimization prevents local error compounding along
+the sequence and eliminates trajectory drift relative to CF-3DGS.
+regulate retrospective trajectory correction and eliminate accumulated drift while strictly avoiding
+geometry-pose degeneracy coupling, we freeze all 3D Gaussian parameters and periodically optimize
+neighboring camera poses within a sliding window. Poses are jointly constrained by multi-view
+photometric rasterization and a scale-normalized relative pose consistency term weighted by the
+same cycle-consistency reliability score.
+Crucially, both horizons are governed by an online forward–backward cycle-consistency veri-
+fication. Unlike single-view photometric residuals, which can remain misleadingly small in flat,
+textureless regions and produce false confidence, evaluating the dual-direction SE(3) cycle consis-
+tency between independent forward and backward Gaussian registrations yields a genuine geometric
+self-consistency proxy. This shared reliability score serves as an intrinsic regulator: it acts as a gate
+to prevent corrupted motion priors from contaminating new registrations, and acts as a dynamic
+loss weight that prevents noisy pairwise measurements from distorting retrospective window opti-
+mization.
+Our framework preserves the progressive, real-time, and SfM-free merits of 3DGS while re-
+maining entirely self-contained. Across extensive evaluations on Tanks and Temples and CO3D-V2
+benchmarks, our approach yields smoother, highly accurate camera trajectories and delivers supe-
+rior novel-view rendering quality. The main contributions are summarized as follows:
+• We identify and analyze the fundamental geometry-pose degeneracy coupling in progressive
+3
+
+
+Cam 
+Trajectory
+�0
+��
+��−1
+��+1
+Gated Motion Initialization
+��−1
+��
+��+1
+Local-Window Joint Pose Refinement
+�1
+...
+...
+Monocular Depth
+Progressive Growing
+Initialize
+3DGS
+Confidence-weighted 
+Relative Pose Consistency
+Multi-View Rendering 
+Optimization
+Bidirectional Confidence
+Figure 2: Overview of the proposed reliability-regulated trajectory optimization frame-
+work.
+Given an unposed image sequence, our framework establishes an intrinsic bidirectional
+cycle-consistency signal to systematically regulate progressive camera estimation across two com-
+plementary temporal phases: (a) Forward Motion Propagation, where tracking confidence
+adaptively gates first-order kinematic extrapolation on SE(3) to supply an informed warm-start
+while intercepting corrupted priors; and (b) Retrospective Trajectory Correction, where cam-
+era poses within a sliding window are jointly optimized under fixed Gaussian geometry, constrained
+by multi-view photometric alignment and confidence-weighted relative pose consistency. Shared
+cycle reliability ensures that noisy transitions neither corrupt future registrations nor distort local
+window trajectory refinement.
+3DGS, proposing a unified reliability-regulated trajectory optimization framework that re-
+solves progressive drift without external neural priors.
+• We introduce an intrinsic bidirectional cycle-consistency metric on SE(3) that acts as a unified
+geometric reliability regulator.
+• We formulate a confidence-gated kinematic warm-start to govern forward motion propagation,
+alongside a fixed-geometry local window refinement scheme governed by confidence-weighted
+consistency to steer retrospective trajectory correction, effectively breaking the geometry-pose
+degeneracy loop.
+• We demonstrate through extensive quantitative and qualitative evaluations that our frame-
+work substantially outperforms existing unposed baselines in both trajectory recovery accu-
+racy and novel-view rendering fidelity.
+2
+Related Work
+2.1
+Novel View Synthesis
+Novel view synthesis aims to generate photorealistic images from unobserved camera viewpoints.
+NeRF [1] revolutionized this field by parameterizing continuous 3D scenes using Multi-Layer Per-
+ceptrons (MLPs) optimized via volume rendering. While NeRF and its multi-scale variants [28–33]
+4
+
+
+achieve remarkable rendering fidelity, their implicit formulation requires dense ray-marching sam-
+pling, leading to extremely high computational overheads and slow rendering speeds.
+To address these limitations, 3DGS [2] introduced an explicit point-based scene representation.
+By parameterizing scenes as a collection of learnable 3D Gaussians paired with a fast, tile-based
+differentiable rasterization pipeline, 3DGS achieves real-time rendering alongside significantly faster
+optimization times. Subsequent research has extended 3DGS across various domains, including
+scene compression [34–36], anti-aliasing [37, 38], dynamic tracking [39–41], and large-scale urban
+reconstruction [5,42]. However, standard 3DGS remains tightly coupled with pre-computed camera
+poses and initial point clouds generated by SfM pipelines. When SfM fails or produces noisy poses,
+3DGS optimization degrades severely, motivating the pursuit of pose-free paradigms.
+2.2
+Pose-Free 3D Reconstruction and Neural Rendering
+Relaxing the requirement for pre-computed SfM camera poses has attracted significant interest in
+recent years. Early efforts primarily focused on jointly optimizing implicit NeRF representations
+and camera pose parameters without SfM preprocessing [43–45]. NeRFmm [19] introduced simulta-
+neous optimization of NeRF parameters and camera pose embeddings, though it remains restricted
+to forward-facing scenes. BARF [16] proposed a coarse-to-fine positional encoding mechanism to
+stabilize joint optimization, enabling robust pose alignment under complex motions provided a
+reasonable pose initialization.
+Nope-NeRF [17] incorporated monocular depth priors to resolve
+scale ambiguity and relative pose drift during NeRF optimization. Nevertheless, optimizing poses
+within implicit representations relies indirectly on backpropagating gradients through implicit ray
+casting, leaving NeRF-based methods computationally expensive and prone to local minima under
+wide-baseline motions.
+The explicit representation of 3DGS offers new opportunities for joint pose and geometry esti-
+mation, as SE(3) rigid transformations can be directly applied to 3D Gaussian centers. Existing
+pose-free 3DGS approaches target fundamentally distinct application scenarios. On the one hand,
+feed-forward generalizable models, such as FreeSplatter [46] and SPFSplat [47], are specifically tai-
+lored for sparse-view 3D reconstruction from wide-baseline, unposed image pairs or triplets. By
+leveraging large transformer backbones pre-trained on massive datasets, they directly predict cam-
+era poses and 3D Gaussian primitives in a single pass [48]. While effective for rapid sparse-view
+interpolation, their application scope is strictly bounded by pre-training distributions and cannot
+handle continuous video streams or long sequential inputs.
+On the other hand, test-time pro-
+gressive tracking frameworks are designed for continuous image sequences and video trajectories,
+performing test-time optimization without offline pre-training. CF-3DGS [18] marked a milestone
+in this sequential paradigm by incrementally estimating relative poses between adjacent frames
+using local 3DGS models to progressively expand global scene geometry. To enhance sequential
+stability, subsequent methods incorporate auxiliary learned priors; for instance, HT-3DGS [22] uses
+Video Frame Interpolation (VFI) neural networks to merge local segments, while PCR-GS [23] in-
+corporates DINO [49] feature reprojection and wavelet frequency constraints to regularize relative
+camera poses.
+However, progressive tracking methods remain fundamentally vulnerable to cumulative trajec-
+tory drift over extended sequences, while recent attempts to mitigate this issue rely heavily on
+external neural models or multi-stage offline preprocessing [26, 50]. In contrast, our framework
+directly addresses the intrinsic trajectory estimation bottlenecks of progressive 3DGS in continuous
+sequence reconstruction. By exploiting first-order kinematic continuity for forward warm-starting
+and enforcing fixed-geometry local window multi-view consistency, unified by intrinsic forward–
+backward cycle consistency, our approach establishes a self-contained and drift-resilient progressive
+5
+
+
+trajectory optimization pipeline without external priors or multi-stage training.
+3
+Method
+Our framework establishes a unified trajectory optimization pipeline for progressive COLMAP-free
+3DGS. As illustrated in Fig. 2, the pipeline operates across two alternating phases, connected by a
+shared bidirectional tracking confidence that serves as a dynamic reliability signal. In the first phase,
+described in Sec. 3.3, short-term kinematic continuity on SE(3) is leveraged to provide an informed
+warm-start for newly added frames. This extrapolation is gated by the tracking confidence of the
+preceding transition to prevent untrusted motion priors from corrupting upcoming registration.
+In the second phase, detailed in Sec. 3.4, camera poses within a sliding temporal window are
+periodically unfrozen and jointly updated under fixed 3D Gaussian geometry. Within each window,
+poses are constrained by multi-view photometric alignment alongside a relative pose consistency
+loss weighted by the cached confidence scores. The following subsections detail our representation
+preliminaries, the bidirectional reliability evaluation, and how this shared signal systematically
+regulates both forward propagation and retrospective correction.
+3.1
+Preliminaries
+3.1.1
+3D Gaussian Splatting
+3DGS [2] represents a scene as a set of explicit 3D Gaussian primitives:
+Gj =
+ µj, Σj, αj, fj
+
+,
+(1)
+where µj, Σj, αj, and fj denote the center, covariance, opacity, and appearance features of the j-th
+Gaussian, respectively. The covariance is parameterized by a rotation matrix Rj and a diagonal
+scaling matrix Sj:
+Σj = RjSjST
+j RT
+j .
+(2)
+Given a camera pose, the Gaussians are projected onto the image plane and rendered by differ-
+entiable alpha compositing:
+bC(p) =
+M
+X
+j=1
+Tj(p)αj(p)cj,
+(3)
+where cj is the projected color and Tj(p) is the accumulated transmittance of preceding Gaus-
+sians. Although this representation supports efficient optimization and high-quality rendering, it is
+sensitive to camera-pose errors, which can impair both geometric consistency and rendering quality.
+3.1.2
+COLMAP-Free 3D Gaussian Splatting
+Conventional 3DGS pipelines usually rely on camera poses obtained from a SfM system such as
+COLMAP. CF-3DGS [18] removes the dependence on externally estimated camera poses by progres-
+sively estimating camera motion and reconstructing the Gaussian scene. Given an image sequence
+{Ik}N−1
+k=0 , CF-3DGS first constructs a local Gaussian representation from a reference image us-
+ing monocular depth prediction. The pose of a target image is then optimized by differentiable
+rendering against this local representation.
+Let Pk ∈SE(3) denote the world-to-camera transformation of frame k. The first frame defines
+the initial coordinate system:
+P0 = I.
+(4)
+6
+
+
+For a newly observed frame k, CF-3DGS estimates the relative transformation ∆k−1→k between
+frames k −1 and k. The global camera pose is updated by
+Pk = ∆k−1→kPk−1.
+(5)
+The relative transformation is estimated through differentiable rendering:
+∆∗
+k−1→k = arg
+min
+∆∈SE(3) Lphoto (R (Gk−1, ∆) , Ik) ,
+(6)
+where Gk−1 denotes the local Gaussian representation constructed from the reference frame, R(·)
+denotes the differentiable rendering operation, and Lphoto denotes the photometric reconstruction
+loss.
+Once the camera pose Pk is committed, CF-3DGS executes a frame replay step to update the
+Gaussian scene representation.
+3.2
+Bidirectional Cycle-Consistency Evaluation
+In progressive pose estimation, tracking reliability can fluctuate significantly across frames due
+to texture scarcity, motion blur, or rapid perspective changes. To obtain an online self-supervised
+reliability proxy for each relative motion without ground-truth poses or external sensors, we perform
+bidirectional cycle-consistency verification.
+Specifically, when registering an incoming target frame k against its preceding reference frame
+k −1, forward differentiable tracking yields a predicted relative pose b∆k−1→k using the depth-lifted
+local Gaussian model constructed from frame k −1. Immediately following forward registration,
+we independently estimate a backward relative transformation b∆k→k−1 by tracking frame k −1
+against the local Gaussian model constructed from frame k. Thus, the two directions are indepen-
+dently optimized renderer-based registrations rather than analytic inverses of the same estimate.
+For an ideal, geometrically consistent motion, their bidirectional composition should satisfy cycle
+consistency:
+Ck−1,k = b∆k→k−1 b∆k−1→k ≈I.
+(7)
+We evaluate the translational residual ek
+t and rotational geodesic residual ek
+R from the cycle
+transformation Ck−1,k:
+ek
+t = ∥t(Ck−1,k)∥2 ,
+(8)
+ek
+R = arccos
+
+clip
+tr(R(Ck−1,k)) −1
+2
+, −1, 1
+
+.
+(9)
+To eliminate scale dependency in monocular translation, we normalize ek
+t by the forward translation
+magnitude:
+ek
+t =
+ek
+t
+max
+t(b∆k−1→k)
+
+2 , ϵ
+,
+(10)
+where ϵ is a small positive constant (ϵ = 1.0×10−3) that guarantees numerical stability and prevents
+denominator singularity during near-static frames or pure-rotational camera motions. Under pure
+rotational movements where translation magnitude approaches zero, the denominator is bounded
+by ϵ, and the cycle metric is predominantly steered by the rotational residual ek
+R.
+7
+
+
+These bidirectional error metrics are mapped into a motion tracking confidence score ck ∈(0, 1]
+via a smooth exponential decay formulation:
+ck = exp
+
+−1
+2
+
+ek
+t + ek
+R
+θ0
+
+,
+(11)
+where θ0 is the physically grounded scale constant for rotational deviation. The exponential map-
+ping provides a smooth, bounded gradient that smoothly attenuates the influence of uncertain
+frames.
+This confidence is computed on the fly during progressive registration and cached with its cor-
+responding relative-pose measurement. It serves as an intrinsic, self-supervised reliability proxy
+that measures the dual-manifold reversibility of differentiable Gaussian tracking without requir-
+ing ground-truth poses. Importantly, forward–backward agreement is not treated as an absolute
+guarantee of global accuracy: in ambiguous or repetitive textures, mutually consistent yet biased
+tracking may occur.
+Hence, our framework does not replace photometric loss with confidence;
+rather, confidence acts as a safety gate for motion propagation (Sec. 3.3) and an adaptive soft
+anchor during window refinement (Sec. 3.4).
+3.3
+Forward Motion Propagation with Kinematic Priors
+Camera trajectories in real-world capturing possess short-term kinematic continuity, where adjacent
+frame-to-frame relative transformations exhibit smoothness in their Lie algebra velocity represen-
+tation. However, standard progressive pipelines such as CF-3DGS initialize the pose optimization
+of every new frame with an identity transformation I. Consequently, under texture-scarce or wide-
+baseline conditions, differentiable rasterization lacks a directional search prior, rendering it highly
+prone to local photometric minima.
+To provide an informed optimization trajectory, we formulate a kinematic motion warm-start
+strategy. Assuming local first-order continuity in the camera’s relative motion tangent space se(3),
+the relative transformation from frame k −2 to k −1 serves as a first-order extrapolation prior for
+the incoming transformation from k −1 to k:
+ξ(0)
+k−1→k ≈ξk−2→k−1 =⇒∆(0)
+k−1→k = b∆k−2→k−1.
+(12)
+However, indiscriminately applying motion extrapolation is perilous: when the camera abruptly
+changes direction or when the preceding tracking is corrupted, extrapolating a bad estimate com-
+pounds trajectory errors catastrophically.
+To eliminate this vulnerability, we gate the motion
+extrapolation using the cached forward–backward confidence ck−1:
+∆(0)
+k−1→k =
+(b∆k−2→k−1,
+if ck−1 ≥τc,
+I,
+otherwise,
+(13)
+where τc is a preset confidence threshold. When the preceding transition exhibits verified dual-
+direction geometric consistency (ck−1 ≥τc), the kinematic extrapolation is adopted as an informed
+warm start; if tracking is deemed untrusted (ck−1 < τc), the initialization safely falls back to the
+zero-bias identity transformation I. This design ensures that motion extrapolation accelerates and
+guides convergence in well-behaved segments while remaining fail-safe against abrupt trajectory
+perturbations.
+8
+
+
+Ground Truth
+CF-3DGS
+HT-3DGS
+PCR-GS
+Ours
+Figure 3: Qualitative novel-view synthesis results on the Tanks and Temples benchmark.
+We compare our method against unposed baselines. While existing methods exhibit severe blurring,
+missing structures, and geometric distortion due to noisy or drifted pose estimates, our approach
+produces photorealistic renderings with fine-grained textures and sharp edges. Inset red and green
+boxes highlight key detailed regions.
+3.4
+Retrospective Trajectory Correction via Joint Refinement
+Existing progressive COLMAP-free 3DGS methods typically adopt a strictly sequential “commit-
+and-freeze” paradigm, where each camera pose is frozen permanently after its initial pairwise
+registration.
+Under this scheme, localized tracking errors accumulate unchecked across frames,
+precipitating severe trajectory drift.
+A naive adaptation of classical Bundle Adjustment (jointly optimizing 3D Gaussians and camera
+poses) fails fundamentally due to the extreme geometric plasticity of 3DGS. Because 3D Gaussians
+can freely alter their positions, scales, and opacities, jointly updating scene geometry and camera
+parameters allows the Gaussians to deform and absorb camera pose errors, permanently baking
+trajectory drift into distorted scene geometry.
+To overcome this, we establish a fixed-geometry local window joint refinement scheme. We
+periodically unfreeze a temporal sliding window of consecutive camera poses W = {s, s + 1, . . . , e}
+while strictly freezing all 3D Gaussian scene parameters. By fixing scene geometry, error gradi-
+ents derived from multi-view differentiable rendering are forced to flow entirely into camera pose
+parameters ξi ∈se(3), breaking the geometry-pose degeneracy loop.
+The sliding window operates with a size of |W| frames, advancing by one frame upon each
+newly registered image. Consequently, each camera pose is iteratively co-optimized across multiple
+overlapping window configurations, achieving temporal consensus. Within each window, the anchor
+pose Ps is fixed to establish a stable reference gauge, while the remaining poses {Pi}e
+i=s+1 are
+jointly refined using two complementary objectives: multi-view photometric alignment and scale-
+normalized, confidence-weighted relative pose consistency.
+3.4.1
+Photometric Joint Alignment
+Rather than optimizing each view independently against a single reference frame, we enforce local
+multi-view geometric consistency by jointly rendering all frames in the window against the current
+9
+
+
+Table 1: Quantitative novel view synthesis results on the Tanks and Temples benchmark with stride
+5. Held-out test views are evaluated using PSNR ↑, SSIM ↑, and LPIPS ↓. Best results are bolded.
+Scene
+Nope-NeRF [17]
+CF-3DGS [18]
+HT-3DGS [22]
+PCR-GS [23]
+Ours
+PSNR SSIM LPIPS PSNR SSIM LPIPS PSNR SSIM LPIPS PSNR SSIM LPIPS
+PSNR
+SSIM LPIPS
+Ballroom
+24.43
+0.71
+0.28
+24.92
+0.83
+0.12
+25.62
+0.85
+0.11
+25.16
+0.83
+0.12
+28.16
+0.91
+0.07
+Barn
+23.00
+0.61
+0.40
+19.26
+0.57
+0.38
+20.33
+0.56
+0.35
+19.00
+0.53
+0.46
+22.01
+0.67
+0.27
+Church
+23.01
+0.65
+0.37
+26.83
+0.87
+0.14
+27.80
+0.89
+0.12
+27.31
+0.89
+0.13
+27.53
+0.89
+0.12
+Family
+24.59
+0.71
+0.35
+25.03
+0.85
+0.16
+27.80
+0.89
+0.12
+27.15
+0.90
+0.12
+28.31
+0.91
+0.11
+Francis
+23.01
+0.66
+0.43
+23.90
+0.74
+0.27
+24.31
+0.72
+0.26
+24.77
+0.73
+0.26
+25.96
+0.77
+0.25
+Horse
+19.53
+0.67
+0.36
+17.56
+0.60
+0.28
+17.81
+0.61
+0.28
+17.86
+0.61
+0.28
+21.84
+0.72
+0.21
+Ignatius
+21.68
+0.53
+0.45
+21.76
+0.69
+0.21
+22.47
+0.77
+0.16
+21.98
+0.70
+0.20
+21.82
+0.69
+0.21
+Museum
+21.39
+0.65
+0.34
+16.19
+0.52
+0.44
+17.48
+0.54
+0.42
+18.40
+0.50
+0.39
+23.09
+0.73
+0.22
+Mean
+22.580 0.649
+0.373
+21.931 0.709
+0.250
+22.953 0.729
+0.228
+22.704 0.711
+0.245
+24.840 0.786 0.183
+Gaussian representation. The window-level photometric alignment objective is formulated as:
+Lwindow
+photo
+=
+1
+|W|
+X
+i∈W
+Lphoto (R(G, Pi), Ii) ,
+(14)
+where R(G, Pi) denotes the differentiable rasterization of the current Gaussian model G under
+camera pose Pi. Joint optimization over multi-view image observations supplies local photometric
+evidence that can resolve ambiguities not addressed by a single reference view. The relative-pose
+consistency term defined next uses the reliability information associated with earlier sequential
+tracking measurements.
+3.4.2
+Confidence-Weighted Relative-Pose Consistency
+Photometric optimization alone can be under-constrained in texture-scarce regions or wide-baseline
+frame transitions. To stabilize the proposed local window joint refinement, we introduce a scale-
+normalized, confidence-weighted relative-pose consistency term. Each cached relative motion is
+treated as a reliability-aware soft measurement during local refinement rather than as a uniform
+pose-smoothness constraint: its influence is inherited from the bidirectional verification performed
+when that exact motion was estimated.
+Let ∆pred
+i−1→i = PiP −1
+i−1 denote the relative pose implied by the current window trajectory. We
+penalize deviations between ∆pred
+i−1→i and the initial tracked measurement b∆i−1→i using a confidence-
+weighted loss:
+Lcons =
+Pe
+i=s+1 ci
+ Li
+R + Li
+t
+
+max
+ Pe
+i=s+1 ci, ϵ
+ ,
+(15)
+where Li
+R penalizes rotational discrepancy and Li
+t penalizes scale-normalized translational discrep-
+ancy. To ensure numerical stability and avoid gradient singularities near identity rotations, the
+rotational loss Li
+R is defined as the element-wise mean squared error:
+Li
+R = mean
+"
+Rpred
+i−1→i
+
+bRi−1→i
+T
+−I
+2#
+,
+(16)
+and the translational loss is formulated with a scale-normalized Smooth-L1 objective:
+Li
+t = SmoothL1
+ 
+tpred
+i−1→i
+si
+t
+,
+bti−1→i
+si
+t
+!
+,
+where
+si
+t = max
+bti−1→i
+
+2 , ϵ
+
+.
+(17)
+10
+
+
+GT
+HT-3DGS
+PCR-GS
+Ours
+Figure 4: Qualitative comparison on challenging 360-degree object-centric sequences
+from CO3D-V2. On the displayed sequences with wide baselines and continuous rotational tra-
+jectories, competing methods exhibit trajectory deviations and rendering artifacts such as floaters
+and blurriness. Our reliability-regulated framework produces more accurate trajectory estimates
+and higher-fidelity Gaussian reconstructions.
+The normalization by si
+t scales the translational residual using the magnitude of its cached
+relative-motion measurement, avoiding dependence on its absolute monocular translation scale. By
+anchoring the window-refined trajectory to high-confidence tracking measurements while down-
+weighting low-consistency transitions (small ci), this term preserves reliable temporal evidence
+without forcing ambiguous measurements to dominate the local photometric objective. Thus, the
+same forward–backward reliability score that gates motion-guided initialization also determines the
+strength of the corresponding constraint during local trajectory correction.
+3.5
+Overall Optimization Objectives
+Our framework harmonizes forward motion propagation and retrospective trajectory correction
+through the following objectives. Crucially, the confidence ci used in the retrospective window
+loss is the exact same reliability score that regulates forward kinematic propagation in Eq. 13,
+embodying a cohesive, dual-horizon trajectory regulation mechanism.
+Photometric Loss.
+Given a rendered view bI and target ground-truth view I, the photometric
+loss Lphoto combines L1 and D-SSIM reconstruction terms:
+Lphoto(bI, I) = (1 −λdssim)L1(bI, I) + λdssimLD−SSIM(bI, I).
+(18)
+During the progressive registration phase, Lphoto drives both local relative pose tracking and the
+subsequent sequential update of 3D Gaussian attributes.
+11
+
+
+Table 2: Average novel view synthesis results on the CO3D-V2 dataset. Test views are evaluated
+using PSNR ↑, SSIM ↑, and LPIPS ↓. Best results are bolded.
+Method
+PSNR ↑
+SSIM ↑
+LPIPS ↓
+CF-3DGS [18]
+26.11
+0.782
+0.270
+HT-3DGS [22]
+26.59
+0.800
+0.260
+PCR-GS [23]
+26.16
+0.785
+0.272
+Ours
+27.71
+0.819
+0.239
+Window Refinement Loss.
+During the retrospective window refinement phase, the camera
+poses within window W are jointly refined by minimizing the multi-task window loss:
+Lwindow = Lwindow
+photo
++ λconsLcons,
+(19)
+Together with Eq. 13, this objective realizes our unified reliability regulation: gating prospective
+motion propagation before a new pose is estimated and weighting retrospective trajectory correction
+when neighboring poses are revisited.
+Table 3: Quantitative camera pose estimation results on the Tanks and Temples benchmark with
+stride 5. Trajectories are evaluated using RPEt ↓(×102), RPEr ↓(◦), and ATE ↓. Best results are
+bolded.
+Scene
+Nope-NeRF [17]
+CF-3DGS [18]
+HT-3DGS [22]
+PCR-GS [23]
+Ours
+RPEt
+RPEr
+ATE
+RPEt
+RPEr
+ATE
+RPEt
+RPEr
+ATE
+RPEt
+RPEr
+ATE
+RPEt
+RPEr
+ATE
+Ballroom
+0.127
+0.247
+0.002
+0.279
+0.048
+0.006
+0.279
+0.047
+0.006
+0.295
+0.059
+0.006
+0.122
+0.026
+0.002
+Barn
+1.343
+0.403
+0.033
+2.409
+0.585
+0.065
+2.252
+0.574
+0.057
+3.379
+1.074
+0.118
+0.576
+0.314
+0.011
+Church
+0.490
+0.127
+0.044
+0.081
+0.095
+0.004
+0.081
+0.095
+0.004
+0.070
+0.092
+0.005
+0.053
+0.087
+0.003
+Family
+0.119
+0.052
+0.003
+0.775
+0.294
+0.011
+0.203
+0.118
+0.004
+0.483
+0.187
+0.006
+0.455
+0.181
+0.006
+Francis
+2.941
+1.515
+0.079
+0.814
+0.916
+0.021
+0.733
+0.878
+0.016
+0.714
+0.816
+0.015
+0.416
+0.747
+0.015
+Horse
+6.588
+1.537
+0.028
+2.152
+0.686
+0.024
+2.183
+0.691
+0.024
+2.312
+0.709
+0.027
+1.229
+0.415
+0.024
+Ignatius
+0.099
+0.026
+0.002
+0.290
+0.123
+0.009
+0.289
+0.122
+0.009
+0.289
+0.120
+0.009
+0.287
+0.129
+0.008
+Museum
+0.741
+1.134
+0.026
+3.814
+2.809
+0.055
+3.809
+2.807
+0.055
+3.979
+1.709
+0.139
+0.735
+0.873
+0.009
+Mean
+1.556
+0.630
+0.027
+1.327
+0.695
+0.024
+1.229
+0.667
+0.022
+1.440
+0.596
+0.041
+0.484
+0.347
+0.010
+Table 4: Average camera pose estimation results on the CO3D-V2 dataset. Trajectories are evalu-
+ated using RPEt ↓(×102), RPEr ↓(◦), and ATE ↓. Best results are bolded.
+Method
+RPEt ↓
+RPEr ↓
+ATE ↓
+CF-3DGS [18]
+0.579
+0.548
+0.023
+HT-3DGS [22]
+0.545
+0.511
+0.022
+PCR-GS [23]
+0.658
+0.842
+0.032
+Ours
+0.352
+0.382
+0.014
+4
+Experiments
+4.1
+Experimental Setup
+4.1.1
+Datasets
+We evaluate our method on two challenging benchmarks: Tanks and Temples [51] and CO3D-
+V2 [52].
+For Tanks and Temples, in order to better simulate the drastic camera motions, we
+12
+
+
+subsampling frames with a stride of 5. For CO3D-V2, we evaluate on circular object-centric se-
+quences across six diverse categories (apple, ball, book, hydrant, suitcase, and teddybear). In both
+benchmarks, every eighth frame is reserved as a held-out view for testing, while the remaining
+frames are used for training.
+4.1.2
+Baselines
+We benchmark our approach against representative state-of-the-art pose-free baselines: the coordinate-
+based implicit model Nope-NeRF [17], the original sequential CF-3DGS baseline [18], the multi-level
+training framework HT-3DGS [22], and the co-regularized variant PCR-GS [23].
+4.1.3
+Evaluation Metrics
+We evaluate both camera pose estimation and novel view synthesis. For camera trajectory estima-
+tion, we report the Absolute Trajectory Error (ATE) and the Relative Pose Errors for translation
+(RPEt, ×102) and rotation (RPEr, in degrees) [16, 17]. For novel view synthesis on held-out test
+views, we measure visual quality using standard metrics: Peak Signal-to-Noise Ratio (PSNR),
+Structural Similarity (SSIM) [53], and Learned Perceptual Image Patch Similarity (LPIPS) [54].
+4.1.4
+Implementation Details
+Our method is implemented in PyTorch using the 3DGS rasterization pipeline. Camera poses are
+parameterized as Lie algebra elements ξ ∈se(3) and optimized with Adam at a learning rate of
+1.0 × 10−3. When registering a new frame, the local reference Gaussian model is fitted for 1,000
+iterations, followed by 300 iterations each for forward and backward relative pose tracking. In the
+cycle-consistency verification that defines the shared forward–backward confidence, we set θ0 = 5◦,
+ϵ = 1.0 × 10−3, and use a motion-initialization confidence threshold of τc = 0.85. The relative-pose
+consistency weight is set to λcons = 0.1, and the photometric loss uses λdssim = 0.2. The sliding
+window has a size of |W| = 5 frames with an overlap of 4 frames (stride of 1). Local window joint
+pose refinement is optimized for Njoint = 100 iterations on CO3D-V2 (30 on Tanks and Temples).
+4.2
+Novel View Synthesis Evaluation
+We first evaluate novel view synthesis quality on held-out test viewpoints across both Tanks and
+Temples (Table 1) and CO3D-V2 (Table 2).
+On Tanks and Temples, our approach achieves substantial average visual-fidelity gains. Com-
+pared with CF-3DGS, it improves mean PSNR from 21.93 dB to 24.84 dB (+2.91 dB), raises SSIM
+from 0.709 to 0.786, and reduces LPIPS from 0.250 to 0.183. It also exceeds HT-3DGS and PCR-
+GS by more than 1.88 dB in mean PSNR, with particularly large margins on Museum (+4.69 dB
+over PCR-GS) and Horse (+3.98 dB over PCR-GS). Figure 3 illustrates corresponding improve-
+ments in detail preservation and structural coherence on representative scenes. On CO3D-V2, the
+proposed method obtains the highest average rendering quality among the compared methods,
+reaching 27.71 dB PSNR and 0.819 SSIM. Together with the camera trajectory estimation results,
+these substantial visual fidelity gains directly validate the synergistic design of our two-horizon
+trajectory optimization framework.
+4.3
+Camera Pose Estimation Evaluation
+We next evaluate camera pose recovery accuracy on Tanks and Temples (Table 3) and CO3D-
+V2 (Table 4).
+Consistent with the evaluation protocol, estimated trajectories are aligned with
+13
+
+
+(A)
+(B)
+(C)
+(D)
+Figure 5: Reliability verification of bidirectional cycle-consistency confidence. We vi-
+sualize the temporal trajectory error against the estimated cycle-consistency confidence ci across
+representative sequences from Tanks and Temples (A: Family, B: Horse) and CO3D-V2 (C: Apple,
+D: Book). For each sequence, the upper subplot shows the frame-wise bidirectional confidence ci,
+while the lower subplot displays the corresponding translational error and rotational discrepancy.
+ground-truth camera poses via Sim(3) Umeyama alignment, and evaluated using RPEt, RPEr, and
+ATE.
+As shown in Table 3, our method substantially reduces average trajectory estimation errors on
+Tanks and Temples. It achieves a mean ATE of 0.010, compared with 0.024 for CF-3DGS, 0.022
+for HT-3DGS, 0.027 for Nope-NeRF, and 0.041 for PCR-GS. It also reduces mean RPEt to 0.484
+(a 63.5% reduction relative to CF-3DGS) and mean RPEr to 0.347◦(a 50.0% reduction relative to
+CF-3DGS). The largest improvements occur on Barn and Museum, where our reliability-regulated
+framework maintains RPEt below 0.74 while CF-3DGS and PCR-GS exceed 2.4.
+On CO3D-V2 (Table 4), where consecutive frames involve rapid circular rotations around com-
+pact objects, our method obtains the lowest average errors: mean RPEt of 0.352, RPEr of 0.382◦,
+and ATE of 0.014. These values correspond to reductions of 39.2% in RPEt, 30.3% in RPEr, and
+39.1% in ATE relative to CF-3DGS, supporting the benefit of our reliability-regulated optimization
+on the evaluated object-centric trajectories.
+4.3.1
+Reliability Verification of Bidirectional Confidence
+To empirically validate whether our forward–backward cycle-consistency confidence ci serves as a
+faithful, online proxy for pairwise tracking reliability, we visualize the temporal alignment between
+estimated confidence scores and true camera pose errors across representative sequences in Fig. 5.
+14
+
+
+Table 5: Ablation study and reliability calibration on Tanks and Temples. We evaluate
+the impact of motion-guided initialization (MP), confidence gating (Gate), window joint refinement
+(WJ), and forward–backward (F–B) consistency weighting. RPEt is reported in ×102 and RPEr
+in degrees.
+Variant
+Controls
+Loss Weight
+Rendering quality
+Pose accuracy
+MP
+Gate
+WJ
+PSNR↑
+SSIM↑
+LPIPS↓
+RPEt ↓
+RPEr ↓
+ATE ↓
+CF-3DGS (sequential)
+×
+–
+×
+–
+21.93
+0.709
+0.250
+1.327
+0.695
+0.024
+WJ, photometric only
+×
+–
+✓
+–
+22.56
+0.724
+0.247
+1.047
+0.623
+0.022
+WJ + Uniform loss weight
+×
+–
+✓
+Uniform
+22.74
+0.726
+0.242
+0.998
+0.618
+0.021
+WJ + F–B loss weight
+×
+–
+✓
+F–B
+22.97
+0.729
+0.237
+0.920
+0.610
+0.019
+Ungated MP
+✓
+×
+×
+–
+23.58
+0.752
+0.210
+0.714
+0.476
+0.016
+Confidence-gated MP
+✓
+✓
+×
+–
+24.26
+0.780
+0.187
+0.513
+0.360
+0.011
+Full model (Uniform weighted)
+✓
+✓
+✓
+Uniform
+24.51
+0.781
+0.187
+0.502
+0.355
+0.011
+Full model (F–B weighted)
+✓
+✓
+✓
+F–B
+24.84
+0.786
+0.183
+0.484
+0.347
+0.010
+As demonstrated across sequences from both Tanks and Temples and CO3D-V2, the estimated
+cycle confidence exhibits a strong inverse correlation with tracking inaccuracy. Specifically, sharp
+drops in confidence ci consistently coincide with local error spikes in translation and rotation. This
+strong temporal alignment confirms that cycle-consistency evaluation successfully isolates unreliable
+motion estimates without requiring ground-truth trajectory supervision.
+We note that slight conservatism can occasionally occur in edge cases; for instance, around
+frame 14 of the Book sequence (Fig. 5D), the confidence drops despite a relatively low instantaneous
+pose error. Rather than a flaw, this conservative behavior acts as a desirable safety filter: when
+frame-to-frame geometric alignment is under-constrained, tracking consistency cannot be rigorously
+guaranteed, making it safer to fall back to identity initialization than to risk propagating potentially
+corrupted motion priors. Overall, across the vast majority of frame transitions, our bidirectional
+confidence acts as an exceptionally accurate and dependable ranker of real-time pose tracking
+quality.
+4.4
+Ablation Study
+To thoroughly dissect the working mechanisms and validate the empirical designs of our framework,
+we conduct extensive ablation experiments on the Tanks and Temples benchmark. Table 5 reports
+both novel view synthesis and camera pose estimation metrics across carefully controlled baseline
+variants, where MP denotes the Motion-Guided Initialization prior, Gate represents our confidence-
+gated fallback mechanism, and WJ signifies local window joint pose refinement.
+Efficacy of Kinematic Warm-Start and Confidence Gating.
+Comparing sequential track-
+ing against motion-guided configurations demonstrates the critical necessity of an informed search
+prior. Naive sequential CF-3DGS yields only 21.93 dB PSNR and 0.024 ATE due to initialization
+blindness. Incorporating ungated motion extrapolation (Ungated motion propagation) dramati-
+cally improves tracking convergence (23.58 dB PSNR, 0.016 ATE). However, blindly propagating
+preceding motion causes overshoot when the camera alters direction or when previous tracking
+was noisy. Adding our forward–backward confidence gate (Confidence-gated motion propagation)
+effectively filters out these degenerate priors, elevating PSNR to 24.26 dB and reducing ATE to
+0.011. This confirms that confidence gating is essential to prevent error compounding along physi-
+cal trajectories.
+15
+
+
+Necessity of Confidence-Weighted Relative Pose Regularization.
+Within local window
+joint refinement, relying exclusively on multi-view photometric alignment (WJ, photometric only)
+provides modest improvements over standard CF-3DGS (22.56 dB PSNR, 0.022 ATE), because
+multi-view photometric rasterization remains ill-posed in textureless or low-parallax viewpoints.
+Enforcing a uniform relative pose constraint (WJ + Uniform loss weight) mitigates unconstrained
+drift (22.74 dB PSNR, 0.021 ATE). Weighting these relative-pose constraints by our bidirectional
+cycle consistency (WJ + F–B loss weight) further anchors the optimization against photometric
+ambiguities, reducing ATE to 0.019. Crucially, when integrated into the full pipeline, our dynamic
+F–B loss weighting (Full model, F–B weighted) outperforms unweighted equal loss weighting (Full
+model, Uniform weighted) by +0.33 dB in PSNR (24.84 dB vs. 24.51 dB) and achieves the overall
+lowest trajectory error (0.010 ATE, 0.484 RPEt). This confirms that F–B confidence weighting
+successfully downweights noisy pairwise measurements during joint window pose refinement.
+5
+Conclusion
+In this work, we presented a unified reliability-regulated trajectory optimization framework for
+progressive COLMAP-free 3D Gaussian Splatting. Rather than applying disconnected heuristic
+additions or relying on external learned priors, our framework establishes an intrinsic bidirectional
+cycle-consistency mechanism that systematically regulates camera trajectory estimation across two
+complementary temporal horizons: (1) forward motion propagation, where tracking reliability adap-
+tively gates first-order kinematic warm-starts into upcoming frame registrations to avoid initial-
+ization blindness without compounding errors; and (2) retrospective trajectory correction, where
+the same reliability signal dynamically weights relative-pose consistency during local window op-
+timization under fixed Gaussian geometry, strictly preventing geometry-pose degeneracy coupling.
+By tying prospective state initialization and retrospective trajectory refinement through a shared,
+self-supervised reliability regulator, our approach prevents local error accumulation and eliminates
+trajectory drift in sequential pose-free reconstruction. Extensive evaluations on challenging real-
+world benchmarks, including Tanks and Temples and CO3D-V2, demonstrate that our method
+significantly improves camera trajectory accuracy and novel-view rendering quality, outperforming
+existing unposed NeRF and 3DGS baselines.
+References
+[1] Ben Mildenhall, Pratul P Srinivasan, Matthew Tancik, Jonathan T Barron, Ravi Ramamoor-
+thi, and Ren Ng.
+Nerf: Representing scenes as neural radiance fields for view synthesis.
+Communications of the ACM, 65(1):99–106, 2021.
+[2] Bernhard Kerbl, Georgios Kopanas, Thomas Leimk¨uhler, and George Drettakis. 3d gaussian
+splatting for real-time radiance field rendering. ACM Trans. Graph., 42(4):139–1, 2023.
+[3] Yanqi Bao, Tianyu Ding, Jing Huo, Yaoli Liu, Yuxin Li, Wenbin Li, Yang Gao, and Jiebo Luo.
+3d gaussian splatting: Survey, technologies, challenges, and opportunities. IEEE Transactions
+on Circuits and Systems for Video Technology, 35(7):6832–6852, 2025.
+[4] Zhiyin Qian, Shaofei Wang, Marko Mihajlovic, Andreas Geiger, and Siyu Tang. 3dgs-avatar:
+Animatable avatars via deformable 3d gaussian splatting. In Proceedings of the IEEE/CVF
+conference on computer vision and pattern recognition, pages 5020–5030, 2024.
+16
+
+
+[5] Yang Liu, Chuanchen Luo, Lue Fan, Naiyan Wang, Junran Peng, and Zhaoxiang Zhang.
+Citygaussian: Real-time high-quality large-scale scene rendering with gaussians. In European
+Conference on Computer Vision, pages 265–282. Springer, 2024.
+[6] Stanislaw Szymanowicz, Chrisitian Rupprecht, and Andrea Vedaldi. Splatter image: Ultra-fast
+single-view 3d reconstruction. In Proceedings of the IEEE/CVF conference on computer vision
+and pattern recognition, pages 10208–10217, 2024.
+[7] Jiadong Tang, Yu Gao, Dianyi Yang, Liqi Yan, Yufeng Yue, and Yi Yang. Dronesplat: 3d gaus-
+sian splatting for robust 3d reconstruction from in-the-wild drone imagery. In 2025 IEEE/CVF
+Conference on Computer Vision and Pattern Recognition (CVPR), pages 833–843, 2025.
+[8] Johannes L. Sch¨onberger and Jan-Michael Frahm. Structure-from-motion revisited. In 2016
+IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 4104–4113,
+2016.
+[9] Zhisheng Huang, Peng Wang, Jingdong Zhang, Yuan Liu, Xin Li, and Wenping Wang. 3r-gs:
+Best practice in optimizing camera poses along with 3dgs. arXiv preprint arXiv:2504.04294,
+2025.
+[10] Jiahe Li, Jiawei Zhang, Xiao Bai, Jin Zheng, Xin Ning, Jun Zhou, and Lin Gu. Dngaussian:
+Optimizing sparse-view 3d gaussian radiance fields with global-local depth normalization. In
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages
+20775–20785, 2024.
+[11] Zehao Zhu, Zhiwen Fan, Yifan Jiang, and Zhangyang Wang. Fsgs: Real-time few-shot view
+synthesis using gaussian splatting. In European conference on computer vision, pages 145–163.
+Springer, 2024.
+[12] Meijun Guo, Yongliang Shi, Caiyun Liu, Yixiao Feng, Ming Ma, Tinghai Yan, Weining Lu, and
+Bin Liang. Robust and high-fidelity 3d gaussian splatting: Fusing pose priors and geometry
+constraints for texture-deficient outdoor scenes. In 2025 IEEE/RSJ International Conference
+on Intelligent Robots and Systems (IROS), pages 4414–4420. IEEE, 2025.
+[13] Changkun Liu, Shuai Chen, Yash Bhalgat, Siyan HU, Ming Cheng, Zirui Wang, Victor
+Prisacariu, and Tristan Braud.
+Gs-cpr: Efficient camera pose refinement via 3d gaussian
+splatting. In Y. Yue, A. Garg, N. Peng, F. Sha, and R. Yu, editors, International Conference
+on Learning Representations, volume 2025, pages 76761–76780, 2025.
+[14] Jianyuan Wang, Minghao Chen, Nikita Karaev, Andrea Vedaldi, Christian Rupprecht, and
+David Novotny. Vggt: Visual geometry grounded transformer. In 2025 IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR), pages 5294–5306. IEEE, 2025.
+[15] Xianze Fang, Jingnan Gao, Zhe Wang, Zhuo Chen, Xingyu Ren, Jiangjing Lyu, Qiao-Mu
+Ren, Zhonglei Yang, Xiaokang Yang, Yichao Yan, et al. Dens3r: A foundation model for 3d
+geometry prediction. In International Conference on Learning Representations, volume 2026,
+pages 80604–80634, 2026.
+[16] Chen-Hsuan Lin, Wei-Chiu Ma, Antonio Torralba, and Simon Lucey. Barf: Bundle-adjusting
+neural radiance fields.
+In 2021 IEEE/CVF International Conference on Computer Vision
+(ICCV), pages 5721–5731, 2021.
+17
+
+
+[17] Wenjing Bian, Zirui Wang, Kejie Li, and Jia-Wang Bian. Nope-nerf: Optimising neural radi-
+ance field with no pose prior. In 2023 IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR), pages 4160–4169, 2023.
+[18] Yang Fu, Sifei Liu, Amey Kulkarni, Jan Kautz, Alexei A. Efros, and Xiaolong Wang. Colmap-
+free 3d gaussian splatting. In Proceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition (CVPR), pages 20796–20805, June 2024.
+[19] Zirui Wang, Shangzhe Wu, Weidi Xie, Min Chen, and Victor Adrian Prisacariu. Nerf–: Neural
+radiance fields without known camera parameters, 2022.
+[20] Yoonwoo Jeong, Seokjun Ahn, Christopher Choy, Anima Anandkumar, Minsu Cho, and Jaesik
+Park. Self-calibrating neural radiance fields. In Proceedings of the IEEE/CVF International
+Conference on Computer Vision (ICCV), pages 5846–5854, October 2021.
+[21] Wei Sun, Xiaosong Zhang, Fang Wan, Yanzhao Zhou, Yuan Li, Qixiang Ye, and Jian-
+bin Jiao.
+Correspondence-guided sfm-free 3d gaussian splatting for nvs.
+arXiv preprint
+arXiv:2408.08723, 2024.
+[22] Bo Ji and Angela Yao.
+Sfm-free 3d gaussian splatting via hierarchical training.
+In 2025
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 21654–
+21663. IEEE, 2025.
+[23] Yu Wei, Jiahui Zhang, Xiaoqin Zhang, Ling Shao, and Shijian Lu. Pcr-gs: Colmap-free 3d
+gaussian splatting via pose co-regularizations. In 2025 IEEE/CVF International Conference
+on Computer Vision (ICCV), pages 26499–26508. IEEE, 2025.
+[24] Yu Chen, Rolandos Alexandros Potamias, Evangelos Ververas, Jifei Song, Jiankang Deng, and
+Gim Hee Lee. Zerogs: Training 3d gaussian splatting from unposed images. arXiv preprint
+arXiv:2411.15779, 2024.
+[25] Bohao Liao, Wei Zhai, Zengyu Wan, Zhixin Cheng, Wenfei Yang, Yang Cao, Tianzhu Zhang,
+and Zheng-Jun Zha. Ef-3dgs: Event-aided free-trajectory 3d gaussian splatting. In D. Belgrave,
+C. Zhang, H. Lin, R. Pascanu, P. Koniusz, M. Ghassemi, and N. Chen, editors, Advances in
+Neural Information Processing Systems, volume 38, Main Conference, pages 86307–86338.
+Curran Associates, Inc., 2025.
+[26] Zhiwen Fan, Wenyan Cong, Kairun Wen, Kevin Wang, Jian Zhang, Xinghao Ding, Danfei Xu,
+Boris Ivanovic, Marco Pavone, Georgios Pavlakos, et al. Instantsplat: Sparse-view gaussian
+splatting in seconds. arXiv preprint arXiv:2403.20309, 2024.
+[27] Shreeya Venkatraman, Yuvan Raj Krishna, et al. Vggt-based colmap-free initialization for
+sparse-view 3d gaussian splatting. In 2026 International Conference on Signal Processing and
+Communications (SPCOM), pages 1–5. IEEE, 2026.
+[28] Jonathan T Barron, Ben Mildenhall, Matthew Tancik, Peter Hedman, Ricardo Martin-Brualla,
+and Pratul P Srinivasan. Mip-nerf: A multiscale representation for anti-aliasing neural radiance
+fields. In Proceedings of the IEEE/CVF international conference on computer vision, pages
+5855–5864, 2021.
+[29] Jonathan T Barron, Ben Mildenhall, Dor Verbin, Pratul P Srinivasan, and Peter Hedman.
+Mip-nerf 360: Unbounded anti-aliased neural radiance fields. In Proceedings of the IEEE/CVF
+conference on computer vision and pattern recognition, pages 5470–5479, 2022.
+18
+
+
+[30] Alex Yu, Vickie Ye, Matthew Tancik, and Angjoo Kanazawa. pixelnerf: Neural radiance fields
+from one or few images. In Proceedings of the IEEE/CVF conference on computer vision and
+pattern recognition, pages 4578–4587, 2021.
+[31] Dor Verbin, Peter Hedman, Ben Mildenhall, Todd Zickler, Jonathan T. Barron, and Pratul P.
+Srinivasan. Ref-nerf: Structured view-dependent appearance for neural radiance fields. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+pages 5491–5500, June 2022.
+[32] Shuangkang Fang, I Shen, Takeo Igarashi, Yufeng Wang, ZeSheng Wang, Yi Yang, Wenrui
+Ding, Shuchang Zhou, et al. Nerf is a valuable assistant for 3d gaussian splatting. In Proceedings
+of the IEEE/CVF International Conference on Computer Vision, pages 26230–26240, 2025.
+[33] Anpei Chen, Zexiang Xu, Fuqiang Zhao, Xiaoshuai Zhang, Fanbo Xiang, Jingyi Yu, and
+Hao Su.
+Mvsnerf: Fast generalizable radiance field reconstruction from multi-view stereo.
+In Proceedings of the IEEE/CVF international conference on computer vision, pages 14124–
+14133, 2021.
+[34] Jiating Qian, Yiming Yan, Fengjiao Gao, Baoyu Ge, Maosheng Wei, Boyi Shangguan, and
+Guangjun He. C3dgs: Compressing 3d gaussian model for surface reconstruction of large-scale
+scenes based on multiview uav images. IEEE Journal of Selected Topics in Applied Earth
+Observations and Remote Sensing, 18:4396–4409, 2025.
+[35] Saswat Subhajyoti Mallick, Rahul Goel, Bernhard Kerbl, Markus Steinberger, Francisco Vi-
+cente Carrasco, and Fernando De La Torre. Taming 3dgs: High-quality radiance fields with
+limited resources. In SIGGRAPH Asia 2024 Conference Papers, pages 1–11, 2024.
+[36] Yu-Ting Zhan, Cheng-Yuan Ho, He-Bi Yang, Yi-Hsin Chen, Jui Chiu Chiang, Yu-Lun Liu, and
+Wen-Hsiao Peng. Cat-3dgs: A context-adaptive triplane approach to rate-distortion-optimized
+3dgs compression. In Y. Yue, A. Garg, N. Peng, F. Sha, and R. Yu, editors, International
+Conference on Learning Representations, volume 2025, pages 26312–26334, 2025.
+[37] Zehao Yu, Anpei Chen, Binbin Huang, Torsten Sattler, and Andreas Geiger. Mip-splatting:
+Alias-free 3d gaussian splatting. In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition (CVPR), pages 19447–19456, June 2024.
+[38] Mulin Yu, Tao Lu, Linning Xu, Lihan Jiang, Yuanbo Xiangli, and Bo Dai. Gsdf: 3dgs meets sdf
+for improved neural rendering and reconstruction. Advances in Neural Information Processing
+Systems, 37:129507–129530, 2024.
+[39] Guanjun Wu, Taoran Yi, Jiemin Fang, Lingxi Xie, Xiaopeng Zhang, Wei Wei, Wenyu Liu,
+Qi Tian, and Xinggang Wang. 4d gaussian splatting for real-time dynamic scene rendering.
+In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition
+(CVPR), pages 20310–20320, June 2024.
+[40] Zhiyang Guo, Wengang Zhou, Li Li, Min Wang, and Houqiang Li. Motion-aware 3d gaus-
+sian splatting for efficient dynamic scene reconstruction. IEEE Transactions on Circuits and
+Systems for Video Technology, 35(4):3119–3133, 2025.
+[41] Zeyu Yang, Hongye Yang, Zijie Pan, and Li Zhang. Real-time photorealistic dynamic scene rep-
+resentation and rendering with 4d gaussian splatting. In International Conference on Learning
+Representations (ICLR), 2024.
+19
+
+
+[42] Guofeng Feng, Siyan Chen, Rong Fu, Zimu Liao, Yi Wang, Tao Liu, Boni Hu, Linning Xu,
+Zhilin Pei, Hengjie Li, et al. Flashgs: Efficient 3d gaussian splatting for large-scale and high-
+resolution rendering. In Proceedings of the IEEE/CVF Conference on Computer Vision and
+Pattern Recognition, pages 26652–26662, 2025.
+[43] Chen Yang, Peihao Li, Zanwei Zhou, Shanxin Yuan, Bingbing Liu, Xiaokang Yang, Weichao
+Qiu, and Wei Shen. Nerfvs: Neural radiance fields for free view synthesis via geometry scaffolds.
+In 2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages
+16549–16558. IEEE, 2023.
+[44] Qi Zhang, Chi Huang, Qian Zhang, Nan Li, and Wei Feng. Learning geometry consistent neural
+radiance fields from sparse and unposed views. In Proceedings of the 32nd ACM International
+Conference on Multimedia, MM ’24, page 8508–8517, New York, NY, USA, 2024. Association
+for Computing Machinery.
+[45] Peng Wang, Yuan Liu, Zhaoxi Chen, Lingjie Liu, Ziwei Liu, Taku Komura, Christian Theobalt,
+and Wenping Wang. F2-nerf: Fast neural radiance field training with free camera trajectories.
+CVPR, 2023.
+[46] Jiale Xu, Shenghua Gao, and Ying Shan. Freesplatter: Pose-free gaussian splatting for sparse-
+view 3d reconstruction. In Proceedings of the IEEE/CVF International Conference on Com-
+puter Vision (ICCV), pages 25442–25452, October 2025.
+[47] Ranran Huang and Krystian Mikolajczyk. No pose at all: Self-supervised pose-free 3d gaussian
+splatting from sparse views. In Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 27947–27957, October 2025.
+[48] David Charatan, Sizhe Lester Li, Andrea Tagliasacchi, and Vincent Sitzmann. pixelsplat: 3d
+gaussian splats from image pairs for scalable generalizable 3d reconstruction. In Proceedings
+of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages
+19457–19467, June 2024.
+[49] Maxime Oquab, Timoth´ee Darcet, Theo Moutakanni, Huy V. Vo, Marc Szafraniec, Vasil
+Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa, Alaaeldin El-Nouby, Russell
+Howes, Po-Yao Huang, Hu Xu, Vasu Sharma, Shang-Wen Li, Wojciech Galuba, Mike Rabbat,
+Mido Assran, Nicolas Ballas, Gabriel Synnaeve, Ishan Misra, Herve Jegou, Julien Mairal,
+Patrick Labatut, Armand Joulin, and Piotr Bojanowski.
+Dinov2: Learning robust visual
+features without supervision, 2023.
+[50] Chong Cheng, Zijian Wang, Sicheng Yu, Yu Hu, Nanjie Yao, and Hao Wang. Unposed 3dgs
+reconstruction with probabilistic procrustes mapping. arXiv preprint arXiv:2507.18541, 2025.
+[51] Arno Knapitsch, Jaesik Park, Qian-Yi Zhou, and Vladlen Koltun. Tanks and temples: bench-
+marking large-scale scene reconstruction. ACM Trans. Graph., 36(4), July 2017.
+[52] Jeremy Reizenstein, Roman Shapovalov, Philipp Henzler, Luca Sbordone, Patrick Labatut,
+and David Novotny. Common objects in 3d: Large-scale learning and evaluation of real-life
+3d category reconstruction. In Proceedings of the IEEE/CVF International Conference on
+Computer Vision (ICCV), pages 10901–10911, October 2021.
+[53] Zhou Wang, A. C. Bovik, H. R. Sheikh, and E. P. Simoncelli. Image quality assessment: from
+error visibility to structural similarity. Trans. Img. Proc., 13(4):600–612, April 2004.
+20
+
+
+[54] Richard Zhang, Phillip Isola, Alexei A. Efros, Eli Shechtman, and Oliver Wang.
+The un-
+reasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition (CVPR), June 2018.
+21

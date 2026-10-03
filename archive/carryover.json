@@ -1,191 +1,12 @@
 {
-  "generated_at": "2026-10-02T23:02:33.394708+00:00",
-  "updated_date": "20261002",
+  "generated_at": "2026-10-03T22:00:27.059080+00:00",
+  "updated_date": "20261003",
   "carryover_days": 9,
   "tag_states": {
     "dr": {
-      "updated_date": "20261002",
+      "updated_date": "20261003",
       "carryover_days": 9,
       "items": [
-        {
-          "id": "2610.01742v1",
-          "source": "arxiv",
-          "title": "World Motion Models: Flexible Sequence Modeling of SE(3) Trajectories",
-          "abstract": "Equipping artificial agents with spatial intelligence requires a comprehensive generative prior over the dynamic 3D world. We propose World Motion Models (WMMs) that capture \"what was, is, and will be where across time\" via sparse SE(3) pose trajectories. WMMs are built on the observation that elements of dynamic scenes can be well approximated by a set of rigid SE(3) trajectories, a minimal yet expressive primitive for 4D modeling. This representation unifies articulated objects, human bodies, hand-object interactions, piecewise-rigid scene dynamics, camera motion, and even robot states and actions into a single shared space. Given this representation, we cast the joint distribution of these entities as a flexible sequence modeling problem, utilizing flow-matching with per-token noise levels. Coupled with a context token mechanism for non-sequential conditioning, this formulation supports any-to-any marginal conditioning across an arbitrary number of entities and time steps. Tasks such as future prediction, motion infilling, model-predictive control, inverse kinematics, cross-embodiment retargeting, and policy learning all reduce to the application of different masks over the same network. Experiments on 6 diverse applications of 3D vision and robotics demonstrate the versatility and flexibility of WMMs with strong performance.",
-          "authors": [
-            "Jiahui Lei",
-            "Qianqian Wang",
-            "Trevor Darrell",
-            "Angjoo Kanazawa"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.CV"
-          ],
-          "published": "2026-10-01T14:13:24+00:00",
-          "link": "https://arxiv.org/pdf/2610.01742v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "sparse SE(3) pose trajectories for 4D modeling of dynamic scenes",
-          "llm_evidence_cn": "用稀疏SE(3)轨迹建模动态场景的四维表示",
-          "llm_evidence": "用稀疏SE(3)轨迹建模动态场景的四维表示",
-          "canonical_evidence": "用稀疏SE(3)轨迹建模动态场景的四维表示",
-          "llm_tldr_en": "World Motion Models represent dynamic scenes as sparse SE(3) pose trajectories, a minimal yet expressive primitive for 4D modeling that unifies articulated objects, humans, hand-object interaction, and camera motion into one shared space, cast as flexible sequence modeling.",
-          "llm_tldr_cn": "该文指出为智能体赋予空间智能需要关于动态三维世界的生成先验，提出世界运动模型，用稀疏SE(3)位姿轨迹刻画动态场景中什么在何时何处，作为四维建模的最小而富有表达力的基元。该表示统一了关节物体、人体、手-物交互、分段刚体场景动力学、相机运动乃至机器人状态与动作，并把它们的联合分布建模为灵活的序列建模问题。这为动态三维重建与世界模型提供了共享的时空表示框架。",
-          "llm_tldr": "该文指出为智能体赋予空间智能需要关于动态三维世界的生成先验，提出世界运动模型，用稀疏SE(3)位姿轨迹刻画动态场景中什么在何时何处，作为四维建模的最小而富有表达力的基元。该表示统一了关节物体、人体、手-物交互、分段刚体场景动力学、相机运动乃至机器人状态与动作，并把它们的联合分布建模为灵活的序列建模问题。这为动态三维重建与世界模型提供了共享的时空表示框架。",
-          "llm_tags": [
-            "query:dr"
-          ],
-          "matched_query_tag": "query:dr",
-          "matched_query_text": "four-dimensional reconstruction of dynamic geometry over time",
-          "matched_requirement_id": "req-1",
-          "selection_source": "carryover_cache",
-          "paper_id": "2610.01742v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.34035v1",
-          "source": "arxiv",
-          "title": "3D Point Tracking with State Space Models",
-          "abstract": "Tracking any point of a dynamic scene in metric 3D - in absolute meters, not up to an unknown scale - underpins 3D and 4D reconstruction, robot navigation, and autonomous driving, where decisions are made in meters, not pixels. Our objective is a 3D point tracker accurate in those absolute terms and operating within a single commodity GPU, pose-free, monocular budget. Our method rests on one observation: once a point's 2D image trajectory is fixed, the quantity that governs its metric accuracy is the depth along its pixel ray. Rather than learning tracking end-to-end, we therefore compose two frozen front-ends - dense optical flow for 2D correspondence and a monocular metric-depth network for the third dimension - and learn only the residual they cannot supply: that depth, refined by a compact state space model (Mamba-3) conditioned on appearance features (DINOv3). A state space model rather than the transformers the strongest 3D trackers adopt is what makes a single-GPU budget attainable: it summarises a track in a fixed-size recurrent state whose memory cost is constant in the number of frames, whereas attention requires a key-value cache that grows linearly with them. On the TAPVid-3D minival benchmark our best configuration attains the highest absolute metric accuracy among methods evaluated under identical conditions (mean metric Average Jaccard, 0.256), exceeding strong feed-forward trackers, while a companion analysis, reproduced with each competitor's own evaluator, explains why several published trackers lose most of their accuracy under this budget.",
-          "authors": [
-            "Masahiro Ogawa",
-            "Qi An",
-            "Atsushi Yamashita"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.LG",
-            "cs.RO"
-          ],
-          "published": "2026-09-27T23:56:35+00:00",
-          "link": "https://arxiv.org/pdf/2609.34035v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "tracking any point of a dynamic scene in metric 3D for 4D reconstruction",
-          "llm_evidence_cn": "动态场景的度量三维点跟踪支撑四维重建",
-          "llm_evidence": "动态场景的度量三维点跟踪支撑四维重建",
-          "canonical_evidence": "动态场景的度量三维点跟踪支撑四维重建",
-          "llm_tldr_en": "Tracking points of a dynamic scene in absolute metric 3D underpins 4D reconstruction and robotics. This work composes frozen optical flow and monocular metric-depth front-ends and learns only the residual depth, yielding a pose-free single-GPU 3D tracker.",
-          "llm_tldr_cn": "在绝对米制尺度下跟踪动态场景中的任意三维点，是四维重建、机器人导航与自动驾驶的关键，但现有方法往往依赖位姿或缺乏度量精度。本文提出在单张消费级GPU、无位姿、单目条件下运行的度量三维点跟踪器，其核心观察是点轨迹的度量精度取决于沿像素射线的深度，因此冻结光流与单目度量深度两个前端，仅学习二者无法提供的深度残差。该方法为动态场景的时序几何恢复提供了实用且准确的工具。",
-          "llm_tldr": "在绝对米制尺度下跟踪动态场景中的任意三维点，是四维重建、机器人导航与自动驾驶的关键，但现有方法往往依赖位姿或缺乏度量精度。本文提出在单张消费级GPU、无位姿、单目条件下运行的度量三维点跟踪器，其核心观察是点轨迹的度量精度取决于沿像素射线的深度，因此冻结光流与单目度量深度两个前端，仅学习二者无法提供的深度残差。该方法为动态场景的时序几何恢复提供了实用且准确的工具。",
-          "llm_tags": [
-            "query:dr"
-          ],
-          "matched_query_tag": "query:dr",
-          "matched_query_text": "papers on dynamic 3D reconstruction that recover time varying geometry from video or sensor sequences",
-          "matched_requirement_id": "req-7",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.34035v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.36875v1",
-          "source": "arxiv",
-          "title": "S4VY: Segment Anything in Feed-Forward 4D Visual Geometry",
-          "abstract": "Accurate instance segmentation in dynamic scenes is important for downstream applications such as robotics and autonomous driving. Existing Segment Anything models operate primarily on 2D image or video masks and preserve identity through sequential memory, while promptable 4D instance segmentation built upon feed-forward visual geometry remains underexplored. We introduce S4VY, a Segment Anything model built on feed-forward 4D visual geometry. From a set of RGB observations, S4VY transforms shared visual-geometric features into an exhaustive set of class-agnostic 4D instance masks through a space-time query decoder, with each persistent object query binding one entity across all observations. This representation supports prompt-independent segmentation as well as point- and box- conditioned selection, without requiring a seed mask or temporal ordering. We further develop an agentic harness for natural-language grounding in the large observation space of a 4D scene. Active tree search identifies relevant frames without scanning every fixed window; a dual-stream grounder combines fine-grained VLM visual priors with geometry-consistent instance features through complementary bounding-box prediction and object-query matching; and an independent critic selects the final 4D instance mask from their predictions. Extensive experiments demonstrate state-of-the-art 4D instance segmentation and strong language-guided grounding performance under a unified evaluation spanning static and dynamic scenes.",
-          "authors": [
-            "Jingdong Zhang",
-            "Xin Li",
-            "Jan Kautz",
-            "Wenping Wang",
-            "Chris Choy"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-09-29T07:09:48+00:00",
-          "link": "https://arxiv.org/pdf/2609.36875v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "promptable 4D instance segmentation on feed-forward visual geometry",
-          "llm_evidence_cn": "前馈四维视觉几何上的实例分割",
-          "llm_evidence": "前馈四维视觉几何上的实例分割",
-          "canonical_evidence": "前馈四维视觉几何上的实例分割",
-          "llm_tldr_en": "4D instance segmentation on feed-forward visual geometry is underexplored. S4VY transforms shared visual-geometric features from RGB observations into class-agnostic 4D instance masks via a space-time query decoder, binding each object across all observations.",
-          "llm_tldr_cn": "动态场景中的准确实例分割对机器人和自动驾驶等下游任务十分重要，但现有分割一切模型主要作用于二维图像或视频掩码，并通过序列记忆保持身份，基于前馈四维视觉几何的可提示四维实例分割仍鲜有探索。本文提出S4VY，从一组RGB观测中将共享的视觉几何特征通过时空查询解码器转换为穷举的类别无关四维实例掩码，每个持久物体查询在所有观测中绑定同一实体。该表示同时支持免提示分割，为动态场景理解提供了统一的四维几何分割方案。",
-          "llm_tldr": "动态场景中的准确实例分割对机器人和自动驾驶等下游任务十分重要，但现有分割一切模型主要作用于二维图像或视频掩码，并通过序列记忆保持身份，基于前馈四维视觉几何的可提示四维实例分割仍鲜有探索。本文提出S4VY，从一组RGB观测中将共享的视觉几何特征通过时空查询解码器转换为穷举的类别无关四维实例掩码，每个持久物体查询在所有观测中绑定同一实体。该表示同时支持免提示分割，为动态场景理解提供了统一的四维几何分割方案。",
-          "llm_tags": [
-            "query:dr"
-          ],
-          "matched_query_tag": "query:dr",
-          "matched_query_text": "four-dimensional reconstruction of dynamic geometry over time",
-          "matched_requirement_id": "req-1",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.36875v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2610.02160v1",
-          "source": "arxiv",
-          "title": "4Director: Controlling Video World Models with Rigid 3D Geometry",
-          "abstract": "Precise control over camera and object motion is essential for professional video production. Existing methods control objects only coarsely, through image-plane cues that are ambiguous in depth and rotation or through 3D tracks and blobs that lack complete geometry and lose consistency across viewpoint changes. We introduce 4Director, a video world model conditioned on an explicit 4D scene representation: each object is reconstructed once from the input image as a canonical mesh and moved by one prescribed rigid transformation per frame. This representation provides an intuitive 3D control interface and prevents unobserved geometry from being regenerated independently in every frame. We render the controlled scene as a depth video and introduce a Motion Adapter that transforms this geometric scaffold into video while synthesizing view-consistent appearance, illumination, and non-rigid dynamics. For training, we construct RealCOD-Rigid, a new dataset of 20,774 clips annotated with rigid 3D scenes by our automatic pipeline. We further introduce Identity-Gated IoU (IG-IoU), which jointly evaluates adherence to prescribed object motion and preservation of object identity. Experiments demonstrate that 4Director consistently outperforms prior methods in visual quality and in camera and object control.",
-          "authors": [
-            "Wei Cao",
-            "Hao Zhang",
-            "Vikram Voleti",
-            "Yuqun Wu",
-            "Mallikarjun B R",
-            "Shimon Vainer",
-            "Mark Boss",
-            "Yaoyao Liu"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-10-01T17:52:58+00:00",
-          "link": "https://arxiv.org/pdf/2610.02160v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "video world model conditioned on explicit 4D scene representation with per-frame rigid motion",
-          "llm_evidence_cn": "以显式四维场景表示与逐帧刚体运动为条件的视频世界模型",
-          "llm_evidence": "以显式四维场景表示与逐帧刚体运动为条件的视频世界模型",
-          "canonical_evidence": "以显式四维场景表示与逐帧刚体运动为条件的视频世界模型",
-          "llm_tldr_en": "4Director controls camera and object motion in video world models, where image-plane cues are depth-ambiguous and 3D tracks lack geometry. It conditions on an explicit 4D scene representation, reconstructing each object as a canonical mesh moved by rigid transforms.",
-          "llm_tldr_cn": "视频生成中精确控制相机与物体运动很困难，基于图像平面的线索在深度和旋转上存在歧义，而三维轨迹又缺乏完整几何。本文提出4Director，将视频世界模型条件化于显式四维场景表示：每个物体从输入图像重建为规范网格，并逐帧施加刚体变换。该表示提供直观的三维控制接口并保持跨视角一致性，实验表明其生成结果运动更可控、几何更稳定。",
-          "llm_tldr": "视频生成中精确控制相机与物体运动很困难，基于图像平面的线索在深度和旋转上存在歧义，而三维轨迹又缺乏完整几何。本文提出4Director，将视频世界模型条件化于显式四维场景表示：每个物体从输入图像重建为规范网格，并逐帧施加刚体变换。该表示提供直观的三维控制接口并保持跨视角一致性，实验表明其生成结果运动更可控、几何更稳定。",
-          "llm_tags": [
-            "query:dr"
-          ],
-          "matched_query_tag": "query:dr",
-          "matched_query_text": "four-dimensional reconstruction of dynamic geometry over time",
-          "matched_requirement_id": "req-1",
-          "selection_source": "carryover_cache",
-          "paper_id": "2610.02160v1",
-          "carry_days": 1
-        },
         {
           "id": "2609.36024v2",
           "source": "arxiv",
@@ -215,13 +36,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "reconstructing deformable curves surfaces and volumes into sim-ready 3D scenes",
-          "llm_evidence_cn": "重建可变形曲线曲面体等仿真就绪三维场景",
-          "llm_evidence": "重建可变形曲线曲面体等仿真就绪三维场景",
-          "canonical_evidence": "重建可变形曲线曲面体等仿真就绪三维场景",
-          "llm_tldr_en": "CoDimRecon is an agentic framework that reconstructs editable, simulation-ready scenes with rigid, articulated and deformable objects from multi-view RGB observations, using scene priors and generated meshes to fill the deformable reconstruction gap.",
-          "llm_tldr_cn": "从真实观测重建可仿真三维场景对机器人、游戏与沉浸式应用至关重要，但现有方法大多假设物体为刚体，忽略了可变形物体——其可仿真几何依赖维度（曲线、曲面或体）且行为可能超出弹性模型。本文提出CoDimRecon智能体框架，从多视图RGB观测重建包含刚体、铰接体与可变形物体的可编辑场景，利用场景级几何先验确定尺度与布局，物体级生成网格引导智能体得到精细紧凑几何，并分解铰接刚体，填补了可变形仿真就绪重建的空白。",
-          "llm_tldr": "从真实观测重建可仿真三维场景对机器人、游戏与沉浸式应用至关重要，但现有方法大多假设物体为刚体，忽略了可变形物体——其可仿真几何依赖维度（曲线、曲面或体）且行为可能超出弹性模型。本文提出CoDimRecon智能体框架，从多视图RGB观测重建包含刚体、铰接体与可变形物体的可编辑场景，利用场景级几何先验确定尺度与布局，物体级生成网格引导智能体得到精细紧凑几何，并分解铰接刚体，填补了可变形仿真就绪重建的空白。",
+          "llm_evidence_en": "agentic reconstruction of deformable curves, surfaces and volumes from multi-view RGB",
+          "llm_evidence_cn": "从多视角RGB重建可形变曲线、曲面与体积的智能体框架",
+          "llm_evidence": "从多视角RGB重建可形变曲线、曲面与体积的智能体框架",
+          "canonical_evidence": "从多视角RGB重建可形变曲线、曲面与体积的智能体框架",
+          "llm_tldr_en": "CoDimRecon addresses simulation-ready 3D scene reconstruction for deformable objects, using an agentic framework with scene-level geometric priors and object-level generated meshes to recover rigid, articulated and deformable geometry.",
+          "llm_tldr_cn": "论文指出现有仿真就绪三维场景重建方法大多假设物体为刚体，忽视了可形变物体在曲线、曲面、体积等不同维度下的几何与行为建模需求。为此提出CoDimRecon智能体框架，从多视角RGB观测重建包含刚体、铰接体与可形变体的可编辑场景，利用场景级几何先验确定尺度与布局，并用物体级生成网格引导智能体获得紧凑细节几何。该工作为非刚性可形变三维重建与仿真应用之间架起桥梁。",
+          "llm_tldr": "论文指出现有仿真就绪三维场景重建方法大多假设物体为刚体，忽视了可形变物体在曲线、曲面、体积等不同维度下的几何与行为建模需求。为此提出CoDimRecon智能体框架，从多视角RGB观测重建包含刚体、铰接体与可形变体的可编辑场景，利用场景级几何先验确定尺度与布局，并用物体级生成网格引导智能体获得紧凑细节几何。该工作为非刚性可形变三维重建与仿真应用之间架起桥梁。",
           "llm_tags": [
             "query:dr"
           ],
@@ -258,13 +79,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "reconstructing dynamic driving scenes from recorded sensor data over time",
-          "llm_evidence_cn": "从传感器数据重建动态驾驶场景",
-          "llm_evidence": "从传感器数据重建动态驾驶场景",
-          "canonical_evidence": "从传感器数据重建动态驾驶场景",
-          "llm_tldr_en": "DyRAD reconstructs dynamic driving scenes for radar novel-view synthesis, modeling static background reflectors and dynamic objects while properly exploiting Doppler velocity to render correctly under viewpoint change.",
-          "llm_tldr_cn": "从记录传感器数据重建动态驾驶场景可支持自动驾驶系统的闭环评测，但现有雷达新视角合成未能利用多普勒测速：处理动态场景的方法仅重建距离-方位张量，而渲染多普勒的方法假设场景静态。作者提出DyRAD，用静态背景反射体与动态目标建模驾驶场景，并解决雷达反射在多箱中扩散被误吸收进几何的问题。实验表明DyRAD能在视角移动时正确渲染动态场景，为动态驾驶场景的雷达新视角合成提供有效方案。",
-          "llm_tldr": "从记录传感器数据重建动态驾驶场景可支持自动驾驶系统的闭环评测，但现有雷达新视角合成未能利用多普勒测速：处理动态场景的方法仅重建距离-方位张量，而渲染多普勒的方法假设场景静态。作者提出DyRAD，用静态背景反射体与动态目标建模驾驶场景，并解决雷达反射在多箱中扩散被误吸收进几何的问题。实验表明DyRAD能在视角移动时正确渲染动态场景，为动态驾驶场景的雷达新视角合成提供有效方案。",
+          "llm_evidence_en": "dynamic scene reconstruction and novel view synthesis for driving",
+          "llm_evidence_cn": "面向驾驶的动态场景重建与新视角合成",
+          "llm_evidence": "面向驾驶的动态场景重建与新视角合成",
+          "canonical_evidence": "面向驾驶的动态场景重建与新视角合成",
+          "llm_tldr_en": "DyRAD reconstructs dynamic driving scenes for radar novel-view synthesis, modeling static background reflectors and dynamic targets while exploiting Doppler radial velocity.",
+          "llm_tldr_cn": "针对现有雷达新视角合成未能利用多普勒径向速度、动态方法仅重建距离-方位张量而渲染多普勒的方法假设静态场景的问题，本文提出DyRAD。该方法利用静态背景反射体与动态目标对动态驾驶场景进行建模，并显式处理雷达反射在多普勒单元间的扩散，避免其被错误吸收进场景几何。实验支持从记录传感器数据重建动态驾驶场景并合成原轨迹之外的观测，为自动驾驶系统闭环评估提供了有力工具。",
+          "llm_tldr": "针对现有雷达新视角合成未能利用多普勒径向速度、动态方法仅重建距离-方位张量而渲染多普勒的方法假设静态场景的问题，本文提出DyRAD。该方法利用静态背景反射体与动态目标对动态驾驶场景进行建模，并显式处理雷达反射在多普勒单元间的扩散，避免其被错误吸收进场景几何。实验支持从记录传感器数据重建动态驾驶场景并合成原轨迹之外的观测，为自动驾驶系统闭环评估提供了有力工具。",
           "llm_tags": [
             "query:dr"
           ],
@@ -278,57 +99,9 @@
       ]
     },
     "spatial-ai": {
-      "updated_date": "20261002",
+      "updated_date": "20261003",
       "carryover_days": 9,
       "items": [
-        {
-          "id": "2610.02091v1",
-          "source": "arxiv",
-          "title": "GeoLatent: Geometry-Guided Latent Structuring with Routed Optimization for 3D Reasoning",
-          "abstract": "Despite progress in vision-language models, 3D spatial reasoning from 2D images remains challenging. Text-based methods describe intermediate geometry with discrete tokens, limiting fidelity for continuous spatial relations. Continuous latents offer richer representations, but a single latent type does not explicitly separate the cues needed across spatial tasks. Decomposed spatial latents address this by representing position, direction, and global geometry separately under geometric supervision. Yet the geometry representation can still collapse toward one dominant direction, and unrestricted attention can leave the latents underused during answer learning. We introduce GeoLatent, combining Common--Residual Geometry Alignment (CR-GEO) with routed optimization to structure the geometry states while promoting latent-mediated answer learning. CR-GEO separates shared from residual teacher geometry; routed optimization jointly trains geometry and language, temporarily directs visual answer learning through the latents, and restores full attention with geometry supervision. In controlled comparisons, CR-GEO raises geometry effective rank from 1.00 to 3.87, while blocking latent readout at the bottleneck lowers direction accuracy from 89.1% to 25.8% on 128 fixed questions. After recovery, the differentiated geometry representation and latent-mediated visual route remain available alongside direct image access. GeoLatent achieves 73.0% on SPAR-Bench and 72.1% on SPBench, outperforming previously reported methods on both.",
-          "authors": [
-            "Yakun Zhu",
-            "Yi Bin",
-            "Yujuan Ding",
-            "Zheng Wang",
-            "Pengpeng Zeng",
-            "Duo Peng",
-            "Jingkuan Song",
-            "Heng Tao Shen"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV",
-            "cs.AI"
-          ],
-          "published": "2026-10-01T17:22:40+00:00",
-          "link": "https://arxiv.org/pdf/2610.02091v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "geometry-guided latent structuring for 3D spatial reasoning from 2D images",
-          "llm_evidence_cn": "几何引导的隐空间结构化用于二维图像的3D空间推理",
-          "llm_evidence": "几何引导的隐空间结构化用于二维图像的3D空间推理",
-          "canonical_evidence": "几何引导的隐空间结构化用于二维图像的3D空间推理",
-          "llm_tldr_en": "GeoLatent addresses 3D spatial reasoning from 2D images in vision-language models by structuring decomposed spatial latents under geometric supervision, separating position, direction and global geometry to improve continuous spatial relation inference.",
-          "llm_tldr_cn": "针对视觉语言模型从二维图像进行三维空间推理时离散标记难以刻画连续空间关系的问题，本文提出GeoLatent方法。该方法通过几何监督对位置、方向和全局几何等空间线索进行分解式隐表示，并引入共同-残差几何对齐与路由优化，缓解几何表示坍缩和隐变量未被充分利用的问题。实验表明该方法提升了连续空间关系推理的保真度。该工作为多模态模型的空间关系推断提供了结构化隐表示方案。",
-          "llm_tldr": "针对视觉语言模型从二维图像进行三维空间推理时离散标记难以刻画连续空间关系的问题，本文提出GeoLatent方法。该方法通过几何监督对位置、方向和全局几何等空间线索进行分解式隐表示，并引入共同-残差几何对齐与路由优化，缓解几何表示坍缩和隐变量未被充分利用的问题。实验表明该方法提升了连续空间关系推理的保真度。该工作为多模态模型的空间关系推断提供了结构化隐表示方案。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "spatial reasoning and spatial relation inference",
-          "matched_requirement_id": "req-12",
-          "selection_source": "carryover_cache",
-          "paper_id": "2610.02091v1",
-          "carry_days": 1
-        },
         {
           "id": "2609.39588v1",
           "source": "arxiv",
@@ -367,13 +140,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "benchmark probing large-scale spatial intelligence and spatial reasoning in VLMs",
-          "llm_evidence_cn": "评估视觉语言模型大规模空间智能与空间推理的基准",
-          "llm_evidence": "评估视觉语言模型大规模空间智能与空间推理的基准",
-          "canonical_evidence": "评估视觉语言模型大规模空间智能与空间推理的基准",
-          "llm_tldr_en": "KilometerVision introduces a benchmark for large-scale spatial intelligence in VLMs, testing geographical layout understanding from real-world videos spanning up to 1km and revealing that models rely on 2D recognition rather than true spatial reasoning.",
-          "llm_tldr_cn": "针对视觉语言模型在大范围空间智能上的能力评估缺失问题，本文提出首个探测地理布局理解的大规模基准。该基准基于真实世界视频，覆盖可达一公里的距离，并借鉴认知科学按人类空间认知层级（地标锚定、路径连接、全局心理地图整合）设计评测。实验揭示当前AI模型处理空间信息的方式存在根本分歧：它们几乎完全依赖二维视觉识别与文本匹配，而非真正的路径积分或几何测绘知识。该工作为空间智能研究提供了诊断性评测工具。",
-          "llm_tldr": "针对视觉语言模型在大范围空间智能上的能力评估缺失问题，本文提出首个探测地理布局理解的大规模基准。该基准基于真实世界视频，覆盖可达一公里的距离，并借鉴认知科学按人类空间认知层级（地标锚定、路径连接、全局心理地图整合）设计评测。实验揭示当前AI模型处理空间信息的方式存在根本分歧：它们几乎完全依赖二维视觉识别与文本匹配，而非真正的路径积分或几何测绘知识。该工作为空间智能研究提供了诊断性评测工具。",
+          "llm_evidence_en": "large-scale spatial intelligence benchmark for VLMs",
+          "llm_evidence_cn": "面向视觉语言模型的大规模空间智能基准",
+          "llm_evidence": "面向视觉语言模型的大规模空间智能基准",
+          "canonical_evidence": "面向视觉语言模型的大规模空间智能基准",
+          "llm_tldr_en": "KilometerVision probes geographical layout understanding in VLMs from real videos spanning 1km, testing landmark anchoring, route connecting and global mental map integration.",
+          "llm_tldr_cn": "视觉语言模型在公里级地理布局理解上的空间智能尚不清楚。本文受认知科学启发，提出首个基于真实视频、跨度可达1公里的大规模空间智能基准，按人类空间认知层次评估模型：地标锚定、路径连接与全局心理地图整合。实验发现模型主要依赖2D视觉识别与文本匹配，而非真正的路径积分与几何测量知识。该工作揭示了当前模型空间智能的根本局限，为大规模空间推理研究提供了基准。",
+          "llm_tldr": "视觉语言模型在公里级地理布局理解上的空间智能尚不清楚。本文受认知科学启发，提出首个基于真实视频、跨度可达1公里的大规模空间智能基准，按人类空间认知层次评估模型：地标锚定、路径连接与全局心理地图整合。实验发现模型主要依赖2D视觉识别与文本匹配，而非真正的路径积分与几何测量知识。该工作揭示了当前模型空间智能的根本局限，为大规模空间推理研究提供了基准。",
           "llm_tags": [
             "query:spatial-ai"
           ],
@@ -382,147 +155,6 @@
           "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
           "paper_id": "2609.39588v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.33982v1",
-          "source": "arxiv",
-          "title": "Test-Time Spatial Reasoning for Robot Manipulation Using Generative Real-to-Sim",
-          "abstract": "Spatial reasoning is fundamental to general robot intelligence, as it enables robots to complete long-horizon tasks involving multi-object interaction. We introduce Simify, a training-free, test-time framework that performs explicit spatial reasoning via massively parallel physics simulation. From a single RGB-D image of a scene, Simify reconstructs simulation-ready assets leveraging 3D generative models and vision-language models. Then given a task specified by a reward function (e.g., build the tallest tower), Simify launches thousands of parallel rollouts in simulation and performs an evolutionary search to optimize object arrangements, typically converging within seconds. We conduct quantitative experiments on real-robot hardware to demonstrate the ability of our framework to execute complex object rearrangement tasks end-to-end with previously unseen objects. Results show that our framework outperforms prior work on foundation models for spatial reasoning by effectively exploiting large-scale parallel simulation during inference, and also highlight the importance of complete and accurate geometry for successful sim-to-real transfer.",
-          "authors": [
-            "Ivan Kapelyukh",
-            "Yafei Hu",
-            "Ran Gong",
-            "Brandon May",
-            "Tushar Kusnur",
-            "Laura Herlant",
-            "Karl Schmeckpeper",
-            "Edward Johns",
-            "Xiaohan Zhang"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.CV"
-          ],
-          "published": "2026-09-27T22:28:10+00:00",
-          "link": "https://arxiv.org/pdf/2609.33982v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "test-time spatial reasoning for robot manipulation via generative real-to-sim",
-          "llm_evidence_cn": "面向机器人操作的测试时空间推理与生成式真实到仿真",
-          "llm_evidence": "面向机器人操作的测试时空间推理与生成式真实到仿真",
-          "canonical_evidence": "面向机器人操作的测试时空间推理与生成式真实到仿真",
-          "llm_tldr_en": "Simify is a training-free test-time framework that reconstructs simulation-ready assets from a single RGB-D image and performs explicit spatial reasoning via thousands of parallel physics rollouts and evolutionary search for robot manipulation tasks.",
-          "llm_tldr_cn": "针对空间推理是通用机器人智能基础、机器人需完成多物体交互长时程任务的问题，本文提出免训练测试时框架Simify。方法从单张RGB-D图像出发，借助3D生成模型与视觉语言模型重建可仿真的场景资产，再根据奖励函数指定的任务启动数千次并行物理仿真，并用进化搜索优化物体布局。实验表明该过程通常数秒内收敛，并在真实机器人硬件上完成定量验证。该工作通过生成式真实到仿真实现显式空间推理，为机器人长时程操作提供新范式。",
-          "llm_tldr": "针对空间推理是通用机器人智能基础、机器人需完成多物体交互长时程任务的问题，本文提出免训练测试时框架Simify。方法从单张RGB-D图像出发，借助3D生成模型与视觉语言模型重建可仿真的场景资产，再根据奖励函数指定的任务启动数千次并行物理仿真，并用进化搜索优化物体布局。实验表明该过程通常数秒内收敛，并在真实机器人硬件上完成定量验证。该工作通过生成式真实到仿真实现显式空间推理，为机器人长时程操作提供新范式。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "embodied spatial intelligence for agents",
-          "matched_requirement_id": "req-15",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.33982v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.33518v1",
-          "source": "arxiv",
-          "title": "SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding",
-          "abstract": "Recent 3D large multimodal models (3D-LMMs) rely on a visual bottleneck to compress complex 3D scene evidence into a limited number of visual tokens compatible with large language models (LLMs). Current visual bottlenecks, however, often passively compress heterogeneous 3D evidence into a homogeneous object-centric token sequence, leaving the spatial organization of the scene under-represented. This under-representation forces the LLM to recover spatial relations from a flattened token sequence, leading to unstable reasoning in relation-intensive and spatially ambiguous scenes. To address this issue, we propose SceneScaffold, an active scene-state construction framework for unified 3D scene understanding. SceneScaffold reformulates the visual bottleneck from a passive feature compressor into an active scene organizer, constructing a role-aware spatial scaffold before language reasoning. Specifically, SceneScaffold organizes superpoint-level visual evidence into scene-state components with distinct structural roles: entity states preserve core object semantics, scene-frame states maintain spatial references via boundary and region anchors, relation states encode object-environment interaction cues, and a global summary provides compact context. Through this role-aware construction, SceneScaffold provides the LLM with a spatially organized scene representation before language reasoning. Experiments on unified 3D scene understanding tasks, including 3D visual grounding, question answering, and dense captioning, demonstrate the effectiveness of SceneScaffold, while diagnostic results further show its applicability to relation-intensive and spatially ambiguous cases. Code is available at https://github.com/lixiangqi707/SceneScaffold.",
-          "authors": [
-            "Xiangqi Li",
-            "Libo Huang",
-            "Jiarui Zhao",
-            "Weilun Feng",
-            "Chuanguang Yang",
-            "Zhulin An",
-            "Yongjun Xu"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-09-27T12:39:53+00:00",
-          "link": "https://arxiv.org/pdf/2609.33518v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "unified 3D scene understanding with spatial organization",
-          "llm_evidence_cn": "统一三维场景理解与空间组织",
-          "llm_evidence": "统一三维场景理解与空间组织",
-          "canonical_evidence": "统一三维场景理解与空间组织",
-          "llm_tldr_en": "3D-LMMs compress 3D evidence into object-centric tokens, under-representing spatial organization and causing unstable reasoning. SceneScaffold actively constructs a scene state to preserve spatial structure for unified 3D scene understanding.",
-          "llm_tldr_cn": "当前三维大语言多模态模型依赖视觉瓶颈，将复杂三维证据被动压缩为同质的以物体为中心的词元序列，导致场景空间组织表达不足，使关系密集和空间歧义场景中的推理不稳定。本文提出SceneScaffold主动场景状态构建框架，重新组织视觉瓶颈以显式保留空间结构与关系信息。该工作提升了统一三维场景理解在空间关系推理上的稳定性与准确性。",
-          "llm_tldr": "当前三维大语言多模态模型依赖视觉瓶颈，将复杂三维证据被动压缩为同质的以物体为中心的词元序列，导致场景空间组织表达不足，使关系密集和空间歧义场景中的推理不稳定。本文提出SceneScaffold主动场景状态构建框架，重新组织视觉瓶颈以显式保留空间结构与关系信息。该工作提升了统一三维场景理解在空间关系推理上的稳定性与准确性。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "3D scene understanding and reconstruction",
-          "matched_requirement_id": "req-13",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.33518v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.38864v1",
-          "source": "arxiv",
-          "title": "AdaOcc: Adaptive 3D Occupancy Prediction for Embodied Tasks",
-          "abstract": "Embodied tasks demand accurate, flexible, and semantically rich 3D scene representations. 3D semantic occupancy is well suited to this requirement, as it can model holistic 3D spaces by encoding geometric occupancy along with semantic categories. However, existing occupancy prediction methods struggle to meet practical deployment requirements, such as adapting to varying computing budgets, sensor setups, and observation views. In this paper, we propose a point-based Adaptive 3D Occupancy Prediction method, called AdaOcc, tailored for embodied scenarios. To accommodate heterogeneous sensor inputs, AdaOcc uses an adaptive geometry-guided dual-branch encoder that can support RGB images in various numbers of views with (estimated) depth maps or LiDAR scans. AdaOcc represents occupied regions via sparse semantic points trained with a progressive query learning strategy, allowing the prediction computational budget to be flexibly adjusted through query point numbers and decoder layers. To facilitate high-fidelity geometric modeling for lightweight point-based occupancy learning, we further propose a novel containment loss that regularizes predicted points to reside within valid occupied regions. Extensive experiments show that our method achieves a new state-of-the-art on Occ-ScanNet with considerable performance improvements over previous methods. Moreover, our framework demonstrates strong practical applicability as an adaptive 3D perception module in real-world embodied systems.",
-          "authors": [
-            "Jinglong Wang",
-            "Yunjie Wang",
-            "Zhiyang Zhang",
-            "Jiawei He",
-            "Ye Yuan",
-            "Bo Qiu",
-            "Jing Zhang"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-09-30T03:18:59+00:00",
-          "link": "https://arxiv.org/pdf/2609.38864v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "3D semantic occupancy for holistic 3D scene representation in embodied tasks",
-          "llm_evidence_cn": "面向具身任务的三维语义占据场景表示",
-          "llm_evidence": "面向具身任务的三维语义占据场景表示",
-          "canonical_evidence": "面向具身任务的三维语义占据场景表示",
-          "llm_tldr_en": "Embodied tasks need accurate, flexible, semantically rich 3D scene representations, but occupancy predictors struggle with varying compute, sensors and views. AdaOcc uses a geometry-guided dual-branch encoder supporting varied RGB, depth or LiDAR inputs for adaptive 3D occupancy.",
-          "llm_tldr_cn": "具身任务需要准确、灵活且语义丰富的三维场景表示，而现有占据预测方法难以适应变化的算力预算、传感器配置与观测视角。本文提出基于点的自适应三维占据预测方法AdaOcc，采用几何引导的双分支编码器，支持不同视角的RGB图像、深度图或激光雷达输入，并据此构建整体三维语义占据表示。实验表明该方法在异构传感器条件下保持良好性能，为具身场景提供可部署的三维语义占据表示。",
-          "llm_tldr": "具身任务需要准确、灵活且语义丰富的三维场景表示，而现有占据预测方法难以适应变化的算力预算、传感器配置与观测视角。本文提出基于点的自适应三维占据预测方法AdaOcc，采用几何引导的双分支编码器，支持不同视角的RGB图像、深度图或激光雷达输入，并据此构建整体三维语义占据表示。实验表明该方法在异构传感器条件下保持良好性能，为具身场景提供可部署的三维语义占据表示。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "3D scene understanding and reconstruction",
-          "matched_requirement_id": "req-13",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.38864v1",
           "carry_days": 1
         },
         {
@@ -551,13 +183,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "relative-position reasoning and spatial relation inference in VLMs",
-          "llm_evidence_cn": "视觉语言模型中的相对位置推理与空间关系推断",
-          "llm_evidence": "视觉语言模型中的相对位置推理与空间关系推断",
-          "canonical_evidence": "视觉语言模型中的相对位置推理与空间关系推断",
-          "llm_tldr_en": "High instance-level accuracy can mask inconsistencies in spatial reasoning when objects swap positions or roles. This work uses activation patching across three VLMs to trace a staged progression from source to query-object to answer representations and establishes causal links.",
-          "llm_tldr_cn": "高实例级准确率可能掩盖物体位置交换或角色反转时空间推理的不一致，相对位置推理的内部表征尚不清楚。本文研究追踪输入中物体位置与表征查询角色两个环节，通过激活修补在三个VLM及其语言模型主干上揭示了从早期源表征、中层查询物体表征到后期答案状态的阶段性进程，并通过针对性干预建立因果联系。结果有助于理解视觉语言模型空间关系推理的机制，为提升空间推理一致性提供依据。",
-          "llm_tldr": "高实例级准确率可能掩盖物体位置交换或角色反转时空间推理的不一致，相对位置推理的内部表征尚不清楚。本文研究追踪输入中物体位置与表征查询角色两个环节，通过激活修补在三个VLM及其语言模型主干上揭示了从早期源表征、中层查询物体表征到后期答案状态的阶段性进程，并通过针对性干预建立因果联系。结果有助于理解视觉语言模型空间关系推理的机制，为提升空间推理一致性提供依据。",
+          "llm_evidence_en": "spatial evidence and role binding in relative-position reasoning",
+          "llm_evidence_cn": "相对位置推理中的空间证据与角色绑定",
+          "llm_evidence": "相对位置推理中的空间证据与角色绑定",
+          "canonical_evidence": "相对位置推理中的空间证据与角色绑定",
+          "llm_tldr_en": "The paper traces internal representations and role binding in VLM relative-position reasoning, showing a staged progression from source to answer states.",
+          "llm_tldr_cn": "实例级准确率高可能掩盖空间推理中的不一致，尤其当物体交换位置或查询角色反转时。本文研究相对位置推理的两个环节：输入中物体位置的追踪与查询角色的表示。通过对三个视觉语言模型及其语言主干进行激活修补与干预，作者揭示了从早期源表示、经中间查询物体表示到晚期答案状态的阶段性过程。研究为理解并改进模型空间推理提供了机制性证据。",
+          "llm_tldr": "实例级准确率高可能掩盖空间推理中的不一致，尤其当物体交换位置或查询角色反转时。本文研究相对位置推理的两个环节：输入中物体位置的追踪与查询角色的表示。通过对三个视觉语言模型及其语言主干进行激活修补与干预，作者揭示了从早期源表示、经中间查询物体表示到晚期答案状态的阶段性过程。研究为理解并改进模型空间推理提供了机制性证据。",
           "llm_tags": [
             "query:spatial-ai"
           ],
@@ -566,49 +198,6 @@
           "matched_requirement_id": "req-12",
           "selection_source": "carryover_cache",
           "paper_id": "2609.35486v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.33462v2",
-          "source": "arxiv",
-          "title": "SphMind: Towards Robust, Training-Free VLM-based Spatial Reasoning with a 360 Camera",
-          "abstract": "Omnidirectional or 360 cameras provide embodied AI agents with a holistic, wide field-of-view (FoV) view of their surroundings, motivating the use of Multi-modal Large Language Models (MLLMs) for omnidirectional spatial reasoning. However, most MLLMs are trained on conventional 2D perspective images and struggle with the severe distortions and wrap-around discontinuities induced by spherical geometry. Enabling them to generalize to non-Euclidean 3D spaces without retraining therefore remains challenging. We propose SphMind, a training-free, plug-and-play framework that decouples semantic perception from geometric reasoning. Rather than requiring MLLMs to learn spherical geometry internally, SphMind preserves their semantic capabilities while handling geometry externally. We introduce a Spherical Harmonics-based Spatial Graph (SHSG) that models spatial relationships through equivariant transformations on the sphere, together with Inference-Time Geometric Grounding (IGG), a model-agnostic closed-loop optimization process that aligns MLLM representations with spherical geometric constraints during inference. Experiments on three benchmarks show that SphMind achieves over 21.4% average improvement in directional reasoning on MP3D and Stanford2D-3D, outperforms prompt-engineering baselines by 8.7% on the real-world ODI-Bench, and improves rotational invariance by 5.9% under panorama rotations, without additional training or dataset-specific tuning. In-the-wild evaluations further show that SphMind resolves directional reasoning queries that baseline vision-language models fail to answer correctly.",
-          "authors": [
-            "Shriram Damodaran",
-            "Soumyaratna Debnath",
-            "Cheston Tan",
-            "Lin Wang"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-09-27T11:15:05+00:00",
-          "link": "https://arxiv.org/pdf/2609.33462v2",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "omnidirectional spatial perception and geometric reasoning with 360 camera",
-          "llm_evidence_cn": "基于360相机的全向空间感知与几何推理",
-          "llm_evidence": "基于360相机的全向空间感知与几何推理",
-          "canonical_evidence": "基于360相机的全向空间感知与几何推理",
-          "llm_tldr_en": "MLLMs trained on perspective images struggle with spherical distortions in 360 cameras. SphMind is a training-free, plug-and-play framework that decouples semantic perception from geometric reasoning, enabling robust omnidirectional spatial reasoning without retraining.",
-          "llm_tldr_cn": "全景或360相机为具身智能体提供宽广视野，但多数多模态大模型基于传统二维透视图像训练，难以应对球面几何带来的严重畸变与环绕不连续。本文提出SphMind，一种免训练、即插即用的框架，将语义感知与几何推理解耦，在保留MLLM语义能力的同时实现球面空间推理。实验表明该方法无需重训练即可提升全向空间推理的稳健性，为具身智能体的全景环境感知提供可行方案。",
-          "llm_tldr": "全景或360相机为具身智能体提供宽广视野，但多数多模态大模型基于传统二维透视图像训练，难以应对球面几何带来的严重畸变与环绕不连续。本文提出SphMind，一种免训练、即插即用的框架，将语义感知与几何推理解耦，在保留MLLM语义能力的同时实现球面空间推理。实验表明该方法无需重训练即可提升全向空间推理的稳健性，为具身智能体的全景环境感知提供可行方案。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "spatial perception and environment modeling",
-          "matched_requirement_id": "req-16",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.33462v2",
           "carry_days": 1
         },
         {
@@ -640,13 +229,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "confidence-aware grounded spatial reasoning in vision-language models",
-          "llm_evidence_cn": "视觉语言模型中置信度感知的具身空间推理",
-          "llm_evidence": "视觉语言模型中置信度感知的具身空间推理",
-          "canonical_evidence": "视觉语言模型中置信度感知的具身空间推理",
-          "llm_tldr_en": "SpatialCORE is a post-training framework that uses a model's own confidence to ground spatial reasoning, preventing correct answers that are not based on confidently localized objects.",
-          "llm_tldr_cn": "大型视觉语言模型在空间推理上表现薄弱，现有方法只优化最终答案正确性，可能奖励并未基于可靠定位的正确答案。本文提出SpatialCORE后训练框架，借助模型自身置信度进行带定位的空间推理，促使模型依据高置信目标对象作答。该方案提升了空间关系推理的可靠性，为视觉语言模型的空间智能提供新训练范式。",
-          "llm_tldr": "大型视觉语言模型在空间推理上表现薄弱，现有方法只优化最终答案正确性，可能奖励并未基于可靠定位的正确答案。本文提出SpatialCORE后训练框架，借助模型自身置信度进行带定位的空间推理，促使模型依据高置信目标对象作答。该方案提升了空间关系推理的可靠性，为视觉语言模型的空间智能提供新训练范式。",
+          "llm_evidence_en": "confidence-aware grounded spatial reasoning in LVLMs",
+          "llm_evidence_cn": "视觉语言模型中的置信度感知空间推理",
+          "llm_evidence": "视觉语言模型中的置信度感知空间推理",
+          "canonical_evidence": "视觉语言模型中的置信度感知空间推理",
+          "llm_tldr_en": "SpatialCORE is a post-training framework that makes large vision-language models reason from confidently localized objects, improving spatial reasoning reliability over answer-only optimization.",
+          "llm_tldr_cn": "大型视觉语言模型在视觉空间推理上仍存在明显短板，现有方法往往只优化最终答案正确性，即使模型未基于高置信定位的物体也能获得奖励。本文提出SpatialCORE后训练框架，将模型自身对任务相关物体的定位置信度纳入推理轨迹的优化过程。实验表明该方法能促使模型基于可靠定位进行推理，提升空间推理的可靠性。该工作为视觉语言模型的空间推理提供了置信度感知的grounding训练范式。",
+          "llm_tldr": "大型视觉语言模型在视觉空间推理上仍存在明显短板，现有方法往往只优化最终答案正确性，即使模型未基于高置信定位的物体也能获得奖励。本文提出SpatialCORE后训练框架，将模型自身对任务相关物体的定位置信度纳入推理轨迹的优化过程。实验表明该方法能促使模型基于可靠定位进行推理，提升空间推理的可靠性。该工作为视觉语言模型的空间推理提供了置信度感知的grounding训练范式。",
           "llm_tags": [
             "query:spatial-ai"
           ],
@@ -655,53 +244,6 @@
           "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
           "paper_id": "2609.38716v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.34687v1",
-          "source": "arxiv",
-          "title": "VCN-Bench: A Video-Contextualized Navigation Benchmark for Spatial Reasoning over Prior Visual Experience",
-          "abstract": "Spatial reasoning is fundamental to embodied agents, yet it remains unclear whether spatial understanding can be carried forward to guide sequential interactions. Existing spatial-reasoning benchmarks typically terminate at offline predictions, while navigation benchmarks evaluate spatial reasoning as part of instruction following and exploration. We introduce VCN-Bench, a \\textbf{V}ideo-\\textbf{C}ontextualized \\textbf{N}avigation benchmark for probing closed-loop spatial reasoning over prior visual experience in MLLMs. Given a prior video covering both the initial location and destination, the agent is tasked with reasoning out the instruction-specified target and navigating toward it with the inferred spatial context. Built on Matterport3D, VCN-Bench contains five instruction types, 100k training episodes, and 1,250 evaluation episodes. Navigation serves as the primary evaluation, while diagnostic goal identification helps distinguish destination-resolution errors from subsequent navigation failures. We further propose MV-DualVLN, a planning-oriented baseline that jointly leverages prior video and in-episode observations. Experiments reveal limited navigation performance, a substantial destination-resolution-to-navigation gap, and frequent navigation failures even after correct destination identification.",
-          "authors": [
-            "Siqi Zhang",
-            "Meng Wei",
-            "Chenyang Wan",
-            "Shaohao Zhu",
-            "Shufan Shen",
-            "Xihui Liu",
-            "Zhihua Wei",
-            "Tai Wang",
-            "Jiangmiao Pang"
-          ],
-          "primary_category": "cs.AI",
-          "categories": [
-            "cs.AI"
-          ],
-          "published": "2026-09-28T09:12:56+00:00",
-          "link": "https://arxiv.org/pdf/2609.34687v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "navigation benchmark probing closed-loop spatial reasoning",
-          "llm_evidence_cn": "探测闭环空间推理的导航基准",
-          "llm_evidence": "探测闭环空间推理的导航基准",
-          "canonical_evidence": "探测闭环空间推理的导航基准",
-          "llm_tldr_en": "This paper introduces VCN-Bench, a video-contextualized navigation benchmark that probes whether embodied agents can carry prior spatial understanding into closed-loop spatial reasoning and sequential navigation.",
-          "llm_tldr_cn": "现有空间推理基准多止步于离线预测，难以检验智能体能否把空间理解延续到顺序交互中。本文提出VCN-Bench视频情境导航基准，要求智能体依据覆盖起点与终点的先验视频推理目标并导航抵达。基准以闭环方式评测多模态大模型的空间推理与导航能力。该工作将空间理解与具身导航评测统一起来，凸显先验视觉经验对空间推理的价值。",
-          "llm_tldr": "现有空间推理基准多止步于离线预测，难以检验智能体能否把空间理解延续到顺序交互中。本文提出VCN-Bench视频情境导航基准，要求智能体依据覆盖起点与终点的先验视频推理目标并导航抵达。基准以闭环方式评测多模态大模型的空间推理与导航能力。该工作将空间理解与具身导航评测统一起来，凸显先验视觉经验对空间推理的价值。",
-          "llm_tags": [
-            "query:spatial-ai"
-          ],
-          "matched_query_tag": "query:spatial-ai",
-          "matched_query_text": "spatial reasoning and spatial relation inference",
-          "matched_requirement_id": "req-12",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.34687v1",
           "carry_days": 1
         },
         {
@@ -732,13 +274,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "3D spatial relation segmentation and spatial relation inference in feed-forward multi-view setting",
-          "llm_evidence_cn": "前馈多视图下的三维空间关系分割与关系推理",
-          "llm_evidence": "前馈多视图下的三维空间关系分割与关系推理",
-          "canonical_evidence": "前馈多视图下的三维空间关系分割与关系推理",
-          "llm_tldr_en": "RelationVGGT formulates 3D spatial relation segmentation in a feed-forward, pose-free multi-view setting, fusing visual foundation semantic features with geometry foundation representations to segment relation targets across views without category names.",
-          "llm_tldr_cn": "现有三维重建已从逐场景优化走向前馈推理，语义场景理解也同步发展，但方法仍局限于以物体为中心的感知，忽略了物体间的空间关系。本文提出RelationVGGT，在无位姿多视图前馈设定下，融合视觉基础模型的语义特征与三维几何基础模型的几何表示，通过关系变换器实现空间关系分割。该方法在给定主体与关系文本查询时跨视图分割目标，无需类别名称，拓展了场景理解对空间关系的建模能力。",
-          "llm_tldr": "现有三维重建已从逐场景优化走向前馈推理，语义场景理解也同步发展，但方法仍局限于以物体为中心的感知，忽略了物体间的空间关系。本文提出RelationVGGT，在无位姿多视图前馈设定下，融合视觉基础模型的语义特征与三维几何基础模型的几何表示，通过关系变换器实现空间关系分割。该方法在给定主体与关系文本查询时跨视图分割目标，无需类别名称，拓展了场景理解对空间关系的建模能力。",
+          "llm_evidence_en": "3D spatial relation segmentation with relational text query",
+          "llm_evidence_cn": "基于关系文本查询的三维空间关系分割",
+          "llm_evidence": "基于关系文本查询的三维空间关系分割",
+          "canonical_evidence": "基于关系文本查询的三维空间关系分割",
+          "llm_tldr_en": "RelationVGGT formulates feed-forward, pose-free 3D spatial relation segmentation, fusing semantic features with geometry-aware representations to segment a target given a relational text query.",
+          "llm_tldr_cn": "针对现有三维场景理解只做物体中心感知、忽视物体间空间关系的问题，本文提出 RelationVGGT，将三维空间关系分割形式化为无位姿前馈任务。方法融合视觉基础模型语义特征与三维几何基础模型表征，并借助关系Transformer跨视角分割由关系文本指定的目标。实验表明无需类别名称也能完成关系级分割，推动了空间关系推理与三维场景理解。",
+          "llm_tldr": "针对现有三维场景理解只做物体中心感知、忽视物体间空间关系的问题，本文提出 RelationVGGT，将三维空间关系分割形式化为无位姿前馈任务。方法融合视觉基础模型语义特征与三维几何基础模型表征，并借助关系Transformer跨视角分割由关系文本指定的目标。实验表明无需类别名称也能完成关系级分割，推动了空间关系推理与三维场景理解。",
           "llm_tags": [
             "query:spatial-ai"
           ],
@@ -775,13 +317,59 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "learning spatial cognition from visual experience for embodied agents",
-          "llm_evidence_cn": "从视觉经验中学习具身空间认知",
-          "llm_evidence": "从视觉经验中学习具身空间认知",
-          "canonical_evidence": "从视觉经验中学习具身空间认知",
-          "llm_tldr_en": "Uruqi tackles two atomic spatial abilities VLMs lack, self-motion tracking and mapping the world during motion, via dense multi-turn supervision over interleaved capabilities synthesized at scale.",
-          "llm_tldr_cn": "具身智能体需在移动中保持对世界的一致理解，但视觉语言模型在自运动追踪与运动中世界映射两方面仍存在不足。本文提出Uruqi，通过多轮密集监督交织训练这两项原子空间能力，模拟连续运动智能体边观察边推理的视觉经验，并合成大规模训练数据加以扩展。结果表明该监督显著提升模型的空间认知能力，为具身空间智能训练提供了新范式。",
-          "llm_tldr": "具身智能体需在移动中保持对世界的一致理解，但视觉语言模型在自运动追踪与运动中世界映射两方面仍存在不足。本文提出Uruqi，通过多轮密集监督交织训练这两项原子空间能力，模拟连续运动智能体边观察边推理的视觉经验，并合成大规模训练数据加以扩展。结果表明该监督显著提升模型的空间认知能力，为具身空间智能训练提供了新范式。",
+          "llm_evidence_en": "embodied spatial intelligence and spatial cognition from visual experience",
+          "llm_evidence_cn": "从视觉经验学习具身空间智能与空间认知",
+          "llm_evidence": "从视觉经验学习具身空间智能与空间认知",
+          "canonical_evidence": "从视觉经验学习具身空间智能与空间认知",
+          "llm_tldr_en": "Spatial intelligence requires an agent to update object locations and relations as it moves, yet VLMs struggle to track self-motion and map the world. Uruqi provides dense multi-turn supervision over interleaved atomic spatial capabilities to train embodied spatial cognition.",
+          "llm_tldr_cn": "空间智能要求具身智能体在移动中保持对世界的一致理解，利用自身运动解释观测变化并更新物体位置与空间关系，但视觉语言模型在自运动跟踪与运动建图这两项原子能力上仍然薄弱。该文提出Uruqi，在每个训练回合内对交错的原子能力提供密集多轮监督，模拟连续移动智能体的视觉经验，并合成大规模数据加以扩展。结果显示该方法提升了模型跟踪自运动与映射周围世界的能力。这为具身空间智能的训练提供了可扩展的监督范式。",
+          "llm_tldr": "空间智能要求具身智能体在移动中保持对世界的一致理解，利用自身运动解释观测变化并更新物体位置与空间关系，但视觉语言模型在自运动跟踪与运动建图这两项原子能力上仍然薄弱。该文提出Uruqi，在每个训练回合内对交错的原子能力提供密集多轮监督，模拟连续移动智能体的视觉经验，并合成大规模数据加以扩展。结果显示该方法提升了模型跟踪自运动与映射周围世界的能力。这为具身空间智能的训练提供了可扩展的监督范式。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "embodied spatial intelligence for agents",
+          "matched_requirement_id": "req-15",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.39195v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.38717v1",
+          "source": "arxiv",
+          "title": "Soft Spatial Reasoning",
+          "abstract": "Large Vision-Language Models (LVLMs) commonly perform spatial reasoning through chain-of-thought (CoT), encoding intermediate reasoning as autoregressive sequences of discrete language tokens. Such hard thinking requires committing to a single token at each step, even when the correct spatial interpretation remains uncertain. This early commitment constitutes premature discretization: an incorrect token selection can propagate errors through subsequent reasoning. We propose Soft Spatial Reasoning, a post-training framework that introduces soft thinking for spatial tasks in LVLMs. At each intermediate reasoning step, the LVLM forms a continuous soft state by mixing token embeddings rather than selecting a single token, allowing multiple candidate continuations to influence the next step. The appropriate degree of softness, however, can vary across reasoning steps: retaining multiple candidates may preserve a useful spatial interpretation, but if those candidates imply conflicting spatial relations, mixing them may interfere with subsequent reasoning. At the core of Soft Spatial Reasoning is AdaptSoft, a controller that uses the current hidden state and predictive uncertainty to adapt the degree of softness at each reasoning step. To train AdaptSoft, we introduce a gradient-alignment learning objective that provides a step-specific learning signal for softness control without intermediate reasoning supervision. Across diverse spatial benchmarks, Soft Spatial Reasoning outperforms hard and fixed-soft CoT baselines using the same backbone, as well as a range of existing LVLMs. The source code is available at https://github.com/rafiibnsultan/Soft_Spatial_Reasoning",
+          "authors": [
+            "Rafi Ibn Sultan",
+            "Md. Sajid Alam Chowdhury",
+            "Saleh Zare Zade",
+            "Chengyin Li",
+            "Prashant Khanduri",
+            "Marco Brocanelli",
+            "Dongxiao Zhu"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.AI"
+          ],
+          "published": "2026-09-30T00:51:48+00:00",
+          "link": "https://arxiv.org/pdf/2609.38717v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "soft thinking for spatial reasoning in LVLMs",
+          "llm_evidence_cn": "面向空间推理的软思维后训练框架",
+          "llm_evidence": "面向空间推理的软思维后训练框架",
+          "canonical_evidence": "面向空间推理的软思维后训练框架",
+          "llm_tldr_en": "Soft Spatial Reasoning addresses premature discretization in LVLM chain-of-thought by mixing token embeddings into continuous soft states, letting multiple candidate spatial interpretations influence each reasoning step.",
+          "llm_tldr_cn": "大型视觉语言模型在进行空间推理时常采用链式思维，但每一步都必须选定单个离散词元，一旦选择错误便会传播误差。本文提出软空间推理后训练框架，让模型在中间推理步以混合词元嵌入形成连续软状态，使多个候选延续共同影响下一步。该方法缓解了过早离散化带来的空间理解错误，为视觉语言模型的空间关系推断提供了更稳健的推理机制。",
+          "llm_tldr": "大型视觉语言模型在进行空间推理时常采用链式思维，但每一步都必须选定单个离散词元，一旦选择错误便会传播误差。本文提出软空间推理后训练框架，让模型在中间推理步以混合词元嵌入形成连续软状态，使多个候选延续共同影响下一步。该方法缓解了过早离散化带来的空间理解错误，为视觉语言模型的空间关系推断提供了更稳健的推理机制。",
           "llm_tags": [
             "query:spatial-ai"
           ],
@@ -789,15 +377,338 @@
           "matched_query_text": "spatial intelligence and spatial reasoning",
           "matched_requirement_id": "req-11",
           "selection_source": "carryover_cache",
-          "paper_id": "2609.39195v1",
+          "paper_id": "2609.38717v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.38620v1",
+          "source": "arxiv",
+          "title": "HIGS: Hierarchical Implicit Grids for Joint Geometric and Semantic Scene Understanding",
+          "abstract": "Neural implicit representations have had a significant impact on scene reconstruction by enabling robots to build continuous, differentiable, and high-fidelity 3D maps. Most existing works focus on geometric reconstruction and lack semantic information for high-level spatial understanding and task planning. Also, as the scale and complexity of the environment increase, neural representations face the challenge of maintaining computational efficiency in back-end optimization. To resolve these two challenges, we introduce a hierarchical neural field that leverages multiresolution submaps to achieve an efficient and scalable implicit representation, and a unified query and decoding mechanism to support both geometric and semantic features. More specifically, the learnable map features can be converted to the output with the query and decoding process for both training and inference. For large-scale representation, we decompose a scene into overlapping submaps and do hierarchical optimization within each local submap, thus enabling scalable computation. To further improve efficiency, we design feature encoders that predict initial hierarchical grid features to substantially reduce the time needed to optimize the submap features from scratch. To correct estimation drift among submaps, we align and fuse them entirely within the implicit feature space, leading to substantial acceleration by avoiding the need to decode the final output. Building upon this efficient hierarchical representation, we embed both geometric features and vision-language latent features into the map, and demonstrate it on both Signed Distance Field (SDF) construction and open-vocabulary object grounding. Our approach significantly improves computation and memory efficiency, maintains high estimation accuracy, and endows the robot with spatial awareness on large-scale real-world benchmarks.",
+          "authors": [
+            "Hanwen Cao",
+            "Wenqiang Wu",
+            "Kuang-Ting Tu",
+            "Mathias Otnes",
+            "Jeffrey Delmerico",
+            "Rui Wang",
+            "Yulun Tian",
+            "Nikolay Atanasov"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.RO"
+          ],
+          "published": "2026-09-29T22:22:49+00:00",
+          "link": "https://arxiv.org/pdf/2609.38620v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "hierarchical implicit field for geometric and semantic 3D scene understanding",
+          "llm_evidence_cn": "用于几何与语义三维场景理解的层次隐式场",
+          "llm_evidence": "用于几何与语义三维场景理解的层次隐式场",
+          "canonical_evidence": "用于几何与语义三维场景理解的层次隐式场",
+          "llm_tldr_en": "HIGS introduces a hierarchical neural field with multiresolution submaps and a unified query-decoding mechanism to jointly support scalable geometric reconstruction and semantic understanding for robot mapping and planning.",
+          "llm_tldr_cn": "神经隐式表示推动了机器人高保真三维建图，但多数工作只做几何重建，缺乏高层空间理解所需的语义信息，且环境规模增大时后端优化效率下降。本文提出HIGS层次神经场，利用多分辨率子图实现高效可扩展的隐式表示，并用统一查询与解码机制同时支持几何与语义特征。该方法兼顾精度与效率，服务于三维场景理解与任务规划。",
+          "llm_tldr": "神经隐式表示推动了机器人高保真三维建图，但多数工作只做几何重建，缺乏高层空间理解所需的语义信息，且环境规模增大时后端优化效率下降。本文提出HIGS层次神经场，利用多分辨率子图实现高效可扩展的隐式表示，并用统一查询与解码机制同时支持几何与语义特征。该方法兼顾精度与效率，服务于三维场景理解与任务规划。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "models for 3D scene understanding and spatial perception",
+          "matched_requirement_id": "req-19",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.38620v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2610.01999v1",
+          "source": "arxiv",
+          "title": "From Reasoning Failures to Composable Video Spatial Intelligence",
+          "abstract": "Spatial reasoning benchmarks evaluate vision-language models across diverse tasks, but task-level scores do not reveal which underlying capabilities account for success or failure. Each task requires recovering spatial evidence, representing geometry, and reasoning over it. We disentangle these capabilities by comparing predicted and ground-truth spatial context under a shared schema and coordinate contract. This comparison reveals four recurring sources of error: inaccurate perception, missing information in the spatial context, selection of the wrong measurement, and errors in reference frames or in tracking position and orientation. Guided by this diagnosis, we develop CROSS, a training-free library of typed geometric operators and spatial skills that function over available evidence to support reliable video spatial reasoning. The resulting library supplies verified context to non-coding VLMs or callable skills to a SpatialClaw agent. We evaluate \\methodname{} on five benchmarks. \\methodname{} raises the average score from 55.9\\% to 60.2\\% on ReVSI and improves the SpatialClaw result from 62.8\\% to 66.3\\% on DSI-Bench. These gains demonstrate that explicit handling of spatial conventions can repair systematic reasoning failures without additional training.",
+          "authors": [
+            "Pengzhan Sun",
+            "Junbin Xiao",
+            "Ramanathan Rajaraman",
+            "Shiu-hong Kao",
+            "Angela Yao"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-10-01T16:31:19+00:00",
+          "link": "https://arxiv.org/pdf/2610.01999v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "spatial reasoning and spatial intelligence for video understanding",
+          "llm_evidence_cn": "面向视频理解的空间推理与空间智能",
+          "llm_evidence": "面向视频理解的空间推理与空间智能",
+          "canonical_evidence": "面向视频理解的空间推理与空间智能",
+          "llm_tldr_en": "Task-level scores on spatial reasoning benchmarks do not reveal which underlying capabilities cause failures. CROSS compares predicted and ground-truth spatial context under a shared schema, diagnosing four error sources and providing composable geometric operators.",
+          "llm_tldr_cn": "空间推理基准虽能评估视觉语言模型，但任务级分数无法揭示哪些底层能力导致成功或失败。该文在统一的模式与坐标契约下比较预测与真值空间上下文，归纳出感知不准、信息缺失、测量选择错误以及参考系与位姿跟踪错误四类反复出现的错误来源。据此提出免训练的CROSS算子库，组合类型化的几何算子与空间技能。结果揭示了视频空间推理的失败机理并提升了推理表现。这为可组合的视频空间智能诊断与改进提供了框架。",
+          "llm_tldr": "空间推理基准虽能评估视觉语言模型，但任务级分数无法揭示哪些底层能力导致成功或失败。该文在统一的模式与坐标契约下比较预测与真值空间上下文，归纳出感知不准、信息缺失、测量选择错误以及参考系与位姿跟踪错误四类反复出现的错误来源。据此提出免训练的CROSS算子库，组合类型化的几何算子与空间技能。结果揭示了视频空间推理的失败机理并提升了推理表现。这为可组合的视频空间智能诊断与改进提供了框架。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "spatial intelligence and spatial reasoning",
+          "matched_requirement_id": "req-11",
+          "selection_source": "carryover_cache",
+          "paper_id": "2610.01999v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.36219v1",
+          "source": "arxiv",
+          "title": "LeRF: Learning Reference Coordinate Frames for Perspective Taking Reasoning",
+          "abstract": "Perspective taking is a fundamental component of spatial intelligence, requiring models interpret spatial relations from a specified viewpoint, such as that of another entity or an imagined observer. Despite the increasing spatial reasoning capabilities of Vision-Language Models (VLMs), they still struggle with perspective taking, often defaulting to the camera viewpoint when a query requires reasoning from a different perspective. We introduce Learning Reference Coordinate Frames for Perspective Taking (LeRF), a framework that trains VLMs to construct and use explicit reference frames for viewpoint-dependent reasoning. Given an image and a query, LeRF decides whether a coordinate frame is necessary. If so, it grounds the reference entity and predicts the frame's origin and entity-centered reference frame. A lightweight renderer overlays the frame onto the image, enabling subsequent reasoning over these visual cues without external perception models or explicit 3D reconstruction. To learn this process, we first perform supervised fine-tuning to teach selective tool invocation and reference coordinate frame prediction, followed by reinforcement learning on spatial VQA pairs to improve frame-guided reasoning. Across diverse perspective-taking benchmarks, LeRF consistently improves over its backbone and achieves strong performance against existing open-source methods. Further evaluations also show improved reference-frame grounding and orientation estimation, supporting the effectiveness of learned reference frames for viewpoint-dependent reasoning.",
+          "authors": [
+            "Bang Xiao",
+            "Wenqi Jia",
+            "Ozgur Kara",
+            "Tiancheng Shen",
+            "Yibo Yang",
+            "Bolin Lai",
+            "Junho Kim",
+            "James Matthew Rehg"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-09-28T20:17:50+00:00",
+          "link": "https://arxiv.org/pdf/2609.36219v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "reference coordinate frames for perspective-taking spatial reasoning",
+          "llm_evidence_cn": "面向视角采择空间推理的参考坐标系",
+          "llm_evidence": "面向视角采择空间推理的参考坐标系",
+          "canonical_evidence": "面向视角采择空间推理的参考坐标系",
+          "llm_tldr_en": "LeRF trains vision-language models to build and use explicit reference coordinate frames, improving perspective-taking spatial reasoning beyond default camera viewpoints.",
+          "llm_tldr_cn": "视角采择是空间智能的核心能力，要求模型从他人或想象观察者的视角理解空间关系，但现有视觉语言模型常默认相机视角而难以正确推理。本文提出LeRF框架，训练模型显式构建并使用参考坐标系，并判断何时需要坐标系。实验表明该方法显著提升了视角相关空间推理的准确性，为空间智能研究提供了新范式。",
+          "llm_tldr": "视角采择是空间智能的核心能力，要求模型从他人或想象观察者的视角理解空间关系，但现有视觉语言模型常默认相机视角而难以正确推理。本文提出LeRF框架，训练模型显式构建并使用参考坐标系，并判断何时需要坐标系。实验表明该方法显著提升了视角相关空间推理的准确性，为空间智能研究提供了新范式。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "spatial reasoning and spatial relation inference",
+          "matched_requirement_id": "req-12",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.36219v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.34853v1",
+          "source": "arxiv",
+          "title": "EviSplat: Preserving Multi-View Evidence in 3D Gaussian Splatting for Open-Vocabulary Segmentation",
+          "abstract": "Open-vocabulary 3D scene understanding enables object localization and segmentation from free-form text queries without a fixed category vocabulary. Many recent methods build on 3D Gaussian Splatting and consolidate multi-view observations, such as masked crops from individual views, into language features or compact object descriptors before the query is known. However, observations of the same object vary across viewpoints and are not equally informative: some reveal cues relevant to a particular query, whereas others provide incomplete or misleading evidence. Pre-query consolidation can therefore suppress cues on which a later query depends. We introduce EviSplat, which preserves individual observation features as evidence for later text queries. EviSplat retains individual observation features within class-agnostic 3D instances that represent objects, object parts, or background regions. It also learns, for each Gaussian, a distribution describing which visual appearances its observations support. Given a text query, EviSplat scores each instance using its most relevant observations. It then computes a score for each Gaussian by combining instance-level relevance with locally supported evidence, weighted by how often and how unambiguously that Gaussian was observed. Different queries can thus draw on different visual cues from the same preserved evidence. Experiments across diverse datasets and evaluation protocols demonstrate state-of-the-art performance, supporting the benefit of preserving multi-view evidence until query time and aggregating it according to the query.",
+          "authors": [
+            "Sungho Moon",
+            "Kota Shimomura",
+            "Junwoo Park",
+            "Wonhyeok Choi",
+            "Seunghun Lee",
+            "Takayoshi Yamashita",
+            "Sunghoon Im"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV",
+            "cs.AI"
+          ],
+          "published": "2026-09-28T10:46:23+00:00",
+          "link": "https://arxiv.org/pdf/2609.34853v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "open-vocabulary 3D scene understanding with Gaussian Splatting",
+          "llm_evidence_cn": "基于高斯泼溅的开放词汇三维场景理解",
+          "llm_evidence": "基于高斯泼溅的开放词汇三维场景理解",
+          "canonical_evidence": "基于高斯泼溅的开放词汇三维场景理解",
+          "llm_tldr_en": "EviSplat preserves individual multi-view observation features in 3D Gaussian Splatting, improving open-vocabulary 3D segmentation by avoiding premature evidence consolidation.",
+          "llm_tldr_cn": "开放词汇三维场景理解要求根据自由文本查询定位和分割物体，但现有多数方法在查询前就把多视角观测压缩为统一描述，可能抑制后续查询所需的线索。本文提出EviSplat，在三维高斯泼溅中保留各视角观测特征作为独立证据，而非提前合并。实验表明该方法在开放词汇分割任务上取得更优表现，说明保留多视角证据对三维场景理解十分重要。",
+          "llm_tldr": "开放词汇三维场景理解要求根据自由文本查询定位和分割物体，但现有多数方法在查询前就把多视角观测压缩为统一描述，可能抑制后续查询所需的线索。本文提出EviSplat，在三维高斯泼溅中保留各视角观测特征作为独立证据，而非提前合并。实验表明该方法在开放词汇分割任务上取得更优表现，说明保留多视角证据对三维场景理解十分重要。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "3D scene understanding and reconstruction",
+          "matched_requirement_id": "req-13",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.34853v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.34826v1",
+          "source": "arxiv",
+          "title": "WM-VLM: Probing Internal World Models for Interleaved Visual-Textual Reasoning",
+          "abstract": "Humans often solve spatial problems by mentally simulating visual transformations. In contrast, conventional vision-language models (VLMs) reason primarily through language. We investigate whether VLMs can solve spatial problems by reasoning with both text and generated visual states. To this end, we introduce WM-VLM, which equips a pretrained VLM with a lightweight world model branch for generating intermediate visual states. Our two-stage training first teaches the model to generate the next visual state and then to use that state for reasoning. We programmatically construct spatial reasoning tasks with verifiable intermediate visual states. These tasks allow us to evaluate how well the model generates visual states and how much it relies on them to answer the question. On 2D and 3D mental rotation tasks, WM-VLM consistently outperforms the supervised fine-tuned backbone, with gains of up to 39.25 percentage points. Ablations suggest that these gains depend on the generated visual states, as removing or corrupting them sharply reduces performance. Together, these results suggest that internal world models offer a promising path toward VLMs that reason in both language and visual space.",
+          "authors": [
+            "Yuheng Zha",
+            "Yilei Wang",
+            "Qiyue Gao",
+            "Junrong Chen",
+            "Yujia Wu",
+            "Zhengfeng Lai",
+            "Zhengzhong Liu",
+            "Eric P. Xing"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-09-28T10:23:42+00:00",
+          "link": "https://arxiv.org/pdf/2609.34826v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "VLM with a world model branch for spatial reasoning via generated visual states",
+          "llm_evidence_cn": "带世界模型分支、通过生成视觉状态进行空间推理的视觉语言模型",
+          "llm_evidence": "带世界模型分支、通过生成视觉状态进行空间推理的视觉语言模型",
+          "canonical_evidence": "带世界模型分支、通过生成视觉状态进行空间推理的视觉语言模型",
+          "llm_tldr_en": "WM-VLM investigates whether VLMs can solve spatial problems by reasoning with generated visual states, adding a lightweight world model branch that predicts the next visual state before reasoning, with verifiable spatial tasks for evaluation.",
+          "llm_tldr_cn": "论文指出现有视觉语言模型主要依赖语言进行推理，难以像人类那样通过心理模拟视觉变换来解决空间问题。为此提出WM-VLM，为预训练VLM附加一个轻量世界模型分支，用于生成中间视觉状态，并采用两阶段训练：先学习预测下一视觉状态，再学习利用该状态进行推理。作者程序化构造了带有可验证中间视觉状态的空间推理任务，用以评估模型生成视觉状态的能力及其对视觉状态的依赖程度。该工作为空间智能与视觉-语言联合推理提供了新范式。",
+          "llm_tldr": "论文指出现有视觉语言模型主要依赖语言进行推理，难以像人类那样通过心理模拟视觉变换来解决空间问题。为此提出WM-VLM，为预训练VLM附加一个轻量世界模型分支，用于生成中间视觉状态，并采用两阶段训练：先学习预测下一视觉状态，再学习利用该状态进行推理。作者程序化构造了带有可验证中间视觉状态的空间推理任务，用以评估模型生成视觉状态的能力及其对视觉状态的依赖程度。该工作为空间智能与视觉-语言联合推理提供了新范式。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "spatial intelligence and spatial reasoning",
+          "matched_requirement_id": "req-11",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.34826v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.34148v1",
+          "source": "arxiv",
+          "title": "Geometric Encoding for Spatial Reasoning in Vision-Language Models",
+          "abstract": "Vision-Language Models (VLMs) are far more reliable at recognizing what appears in a video than at reasoning about its spatial and temporal properties, such as metric distances, object dimensions, and consistent object identities across frames. We present Geometric Code, a perception-to-geometry pipeline that computes explicit spatial structure from video and supplies it to VLMs as context to augment reasoning. A perception layer segments and classifies objects and recovers depth, camera pose, and intrinsics from monocular RGB video. A deterministic geometric engine then back-projects, merges, and cleans these outputs into a spatial code, including per-object positions, dimensions, counts, inter-object distances, appearance order, and room geometry. The code is serialized into VLMs' prompts, either alongside the video or replacing it entirely. Specifically, there is no component trained or fine-tuned in our approach. On VSI-Bench, augmenting 2B and 4B open models with the spatial code improves average accuracy by +4.1 points over the frames-only baseline, with the largest gains on numeric estimation tasks such as absolute distance (+24.1 points). The results suggest that explicitly computed geometry, delivered through the language channel, recovers spatial competence that small VLMs cannot extract from pixels alone.",
+          "authors": [
+            "Antonio Jun",
+            "Haoshui Yu",
+            "Zhengyi Lu",
+            "Huirong Fu",
+            "Yao Qiang"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-09-28T02:29:01+00:00",
+          "link": "https://arxiv.org/pdf/2609.34148v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "explicit geometric encoding from video to augment VLM spatial reasoning",
+          "llm_evidence_cn": "从视频构建显式几何编码以增强视觉语言模型空间推理",
+          "llm_evidence": "从视频构建显式几何编码以增强视觉语言模型空间推理",
+          "canonical_evidence": "从视频构建显式几何编码以增强视觉语言模型空间推理",
+          "llm_tldr_en": "Geometric Code computes explicit spatial structure from monocular RGB video via perception and a deterministic geometric engine, supplying VLMs with per-object geometry to augment spatial and temporal reasoning.",
+          "llm_tldr_cn": "视觉语言模型擅长识别视频内容，却难以推理度量距离、物体尺寸与跨帧一致的物体身份等空间时间属性。论文提出Geometric Code，一条从感知到几何的流水线：感知层对单目RGB视频做分割分类并恢复深度、相机位姿与内参，确定性几何引擎再反投影、融合与清洗，生成包含物体位置、尺寸、数量、间距、出现顺序与房间几何的空间编码。该编码作为上下文输入视觉语言模型，显著增强其空间与时间推理能力。",
+          "llm_tldr": "视觉语言模型擅长识别视频内容，却难以推理度量距离、物体尺寸与跨帧一致的物体身份等空间时间属性。论文提出Geometric Code，一条从感知到几何的流水线：感知层对单目RGB视频做分割分类并恢复深度、相机位姿与内参，确定性几何引擎再反投影、融合与清洗，生成包含物体位置、尺寸、数量、间距、出现顺序与房间几何的空间编码。该编码作为上下文输入视觉语言模型，显著增强其空间与时间推理能力。",
+          "llm_tags": [
+            "query:spatial-ai"
+          ],
+          "matched_query_tag": "query:spatial-ai",
+          "matched_query_text": "spatial reasoning and spatial relation inference",
+          "matched_requirement_id": "req-12",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.34148v1",
           "carry_days": 1
         }
       ]
     },
     "d-world": {
-      "updated_date": "20261002",
+      "updated_date": "20261003",
       "carryover_days": 9,
       "items": [
+        {
+          "id": "2610.02160v1",
+          "source": "arxiv",
+          "title": "4Director: Controlling Video World Models with Rigid 3D Geometry",
+          "abstract": "Precise control over camera and object motion is essential for professional video production. Existing methods control objects only coarsely, through image-plane cues that are ambiguous in depth and rotation or through 3D tracks and blobs that lack complete geometry and lose consistency across viewpoint changes. We introduce 4Director, a video world model conditioned on an explicit 4D scene representation: each object is reconstructed once from the input image as a canonical mesh and moved by one prescribed rigid transformation per frame. This representation provides an intuitive 3D control interface and prevents unobserved geometry from being regenerated independently in every frame. We render the controlled scene as a depth video and introduce a Motion Adapter that transforms this geometric scaffold into video while synthesizing view-consistent appearance, illumination, and non-rigid dynamics. For training, we construct RealCOD-Rigid, a new dataset of 20,774 clips annotated with rigid 3D scenes by our automatic pipeline. We further introduce Identity-Gated IoU (IG-IoU), which jointly evaluates adherence to prescribed object motion and preservation of object identity. Experiments demonstrate that 4Director consistently outperforms prior methods in visual quality and in camera and object control.",
+          "authors": [
+            "Wei Cao",
+            "Hao Zhang",
+            "Vikram Voleti",
+            "Yuqun Wu",
+            "Mallikarjun B R",
+            "Shimon Vainer",
+            "Mark Boss",
+            "Yaoyao Liu"
+          ],
+          "primary_category": "cs.CV",
+          "categories": [
+            "cs.CV"
+          ],
+          "published": "2026-10-01T17:52:58+00:00",
+          "link": "https://arxiv.org/pdf/2610.02160v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "video world model conditioned on explicit 4D scene representation with rigid 3D geometry",
+          "llm_evidence_cn": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+          "llm_evidence": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+          "canonical_evidence": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+          "llm_tldr_en": "4Director is a video world model conditioned on an explicit 4D scene representation, reconstructing each object as a canonical mesh moved by per-frame rigid transforms, enabling precise 3D camera and object motion control.",
+          "llm_tldr_cn": "视频制作需要精确控制相机与物体运动，但现有方法仅用图像平面线索或缺乏完整几何的三维轨迹与斑点，导致深度旋转歧义与跨视角不一致。论文提出4Director，一种以显式四维场景表示为条件的视频世界模型：每个物体先重建为规范网格，再按逐帧刚性变换运动，避免未观测几何在每帧被独立重生。模型把受控场景渲染为深度视频并引入运动适配机制，从而提供直观的三维控制接口，实现更精确一致的可控视频生成。",
+          "llm_tldr": "视频制作需要精确控制相机与物体运动，但现有方法仅用图像平面线索或缺乏完整几何的三维轨迹与斑点，导致深度旋转歧义与跨视角不一致。论文提出4Director，一种以显式四维场景表示为条件的视频世界模型：每个物体先重建为规范网格，再按逐帧刚性变换运动，避免未观测几何在每帧被独立重生。模型把受控场景渲染为深度视频并引入运动适配机制，从而提供直观的三维控制接口，实现更精确一致的可控视频生成。",
+          "llm_tags": [
+            "query:d-world"
+          ],
+          "matched_query_tag": "query:d-world",
+          "matched_query_text": "research on world models for model-based planning and reinforcement learning",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2610.02160v1",
+          "carry_days": 1
+        },
         {
           "id": "2609.37970v1",
           "source": "arxiv",
@@ -835,13 +746,13 @@
             "query:spatial-ai"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "unified world-action model for autonomous driving with 3D geometric consistency",
-          "llm_evidence_cn": "面向自动驾驶的统一世界-动作模型与三维几何一致性约束",
-          "llm_evidence": "面向自动驾驶的统一世界-动作模型与三维几何一致性约束",
-          "canonical_evidence": "面向自动驾驶的统一世界-动作模型与三维几何一致性约束",
-          "llm_tldr_en": "PhysWAM presents a unified world-action model for autonomous driving that co-denoises multiview video, depth, and ego motion with a Coupled Point Projection constraint grounding generation in measured 3D geometry.",
-          "llm_tldr_cn": "针对世界-动作模型联合生成时缺乏共享几何约束、预测易失真的问题，本文提出PhysWAM。该方法在单一流匹配Transformer中协同去噪多视角视频、度量深度与自车运动，并引入耦合点投影约束，将生成深度反投影为三维点后与激光雷达点对齐。实验表明该几何约束提升了自动驾驶场景生成与动作预测的物理一致性，为三维场景生成与决策联合建模提供了新框架。",
-          "llm_tldr": "针对世界-动作模型联合生成时缺乏共享几何约束、预测易失真的问题，本文提出PhysWAM。该方法在单一流匹配Transformer中协同去噪多视角视频、度量深度与自车运动，并引入耦合点投影约束，将生成深度反投影为三维点后与激光雷达点对齐。实验表明该几何约束提升了自动驾驶场景生成与动作预测的物理一致性，为三维场景生成与决策联合建模提供了新框架。",
+          "llm_evidence_en": "world-action model with 3D geometry for autonomous driving",
+          "llm_evidence_cn": "面向自动驾驶的几何一致世界-动作模型",
+          "llm_evidence": "面向自动驾驶的几何一致世界-动作模型",
+          "canonical_evidence": "面向自动驾驶的几何一致世界-动作模型",
+          "llm_tldr_en": "PhysWAM co-denoises multiview video, metric depth and ego motion in one flow-matching transformer, adding Coupled Point Projection to ground generated 3D points against LiDAR for physical consistency.",
+          "llm_tldr_cn": "世界-动作模型虽能联合预测场景演化与智能体动作，但缺乏共享几何约束导致物理一致性不足。本文提出PhysWAM，在单一流匹配Transformer中共去噪多视图视频、度量深度与自车运动，并引入耦合点投影约束，将生成深度反投影为3D点并与LiDAR对齐。该几何约束促使生成结果与实测场景几何一致。该工作为自动驾驶中结合3D场景生成与世界模型提供了物理一致的统一框架。",
+          "llm_tldr": "世界-动作模型虽能联合预测场景演化与智能体动作，但缺乏共享几何约束导致物理一致性不足。本文提出PhysWAM，在单一流匹配Transformer中共去噪多视图视频、度量深度与自车运动，并引入耦合点投影约束，将生成深度反投影为3D点并与LiDAR对齐。该几何约束促使生成结果与实测场景几何一致。该工作为自动驾驶中结合3D场景生成与世界模型提供了物理一致的统一框架。",
           "llm_tags": [
             "query:d-world"
           ],
@@ -850,124 +761,6 @@
           "matched_requirement_id": "req-29",
           "selection_source": "carryover_cache",
           "paper_id": "2609.37970v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.38673v1",
-          "source": "arxiv",
-          "title": "In-Distribution Imagination for Model-Based Offline Reinforcement Learning",
-          "abstract": "Model-based offline reinforcement learning (MBORL) improves sample efficiency through model-generated trajectories. However, accumulative model error can drive imagined trajectories outside the offline data distribution, leading to unrealistic synthetic data and unstable policy optimization. Many existing methods primarily control rollouts using transition-level uncertainty. We propose \\emph{in-distribution imagination} (IDI), a rollout control framework that estimates trajectory support in a learned representation space and adaptively truncates rollouts that leave the offline trajectory manifold. Combined with trajectory-regularized RL, an extension of entropy-regularized RL, IDI consistently improves performance in limited-data settings. Experiments show that trajectory support predicts rollout failure substantially better than transition-level uncertainty, highlighting the importance of trajectory-level rollout control in MBORL.",
-          "authors": [
-            "Mintae Kim",
-            "Koushil Sreenath"
-          ],
-          "primary_category": "cs.LG",
-          "categories": [
-            "cs.LG"
-          ],
-          "published": "2026-09-29T23:57:02+00:00",
-          "link": "https://arxiv.org/pdf/2609.38673v1",
-          "tags": [
-            "keyword:d-world",
-            "query:d-world"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "model-based offline RL with rollout control in learned representation space",
-          "llm_evidence_cn": "在学习表示空间控制rollout的基于模型离线强化学习",
-          "llm_evidence": "在学习表示空间控制rollout的基于模型离线强化学习",
-          "canonical_evidence": "在学习表示空间控制rollout的基于模型离线强化学习",
-          "llm_tldr_en": "Model-based offline RL suffers from accumulating model error that pushes imagined trajectories out of distribution. In-distribution imagination estimates trajectory support in a learned representation space and adaptively truncates off-manifold rollouts, improving performance in limited-data settings.",
-          "llm_tldr_cn": "基于模型的离线强化学习通过模型生成轨迹提升样本效率，但累积模型误差会使想象轨迹偏离离线数据分布，导致合成数据失真与策略优化不稳定。本文提出分布内想象(IDI)框架，在学习到的表示空间中估计轨迹支撑度，并自适应截断离开离线轨迹流形的rollout，同时结合轨迹正则化强化学习。实验表明该方法在有限数据条件下稳定提升性能，为可靠的模型式离线学习提供了rollout控制手段。",
-          "llm_tldr": "基于模型的离线强化学习通过模型生成轨迹提升样本效率，但累积模型误差会使想象轨迹偏离离线数据分布，导致合成数据失真与策略优化不稳定。本文提出分布内想象(IDI)框架，在学习到的表示空间中估计轨迹支撑度，并自适应截断离开离线轨迹流形的rollout，同时结合轨迹正则化强化学习。实验表明该方法在有限数据条件下稳定提升性能，为可靠的模型式离线学习提供了rollout控制手段。",
-          "llm_tags": [
-            "query:d-world"
-          ],
-          "matched_query_tag": "query:d-world",
-          "matched_query_text": "model-based reinforcement learning with learned world models",
-          "matched_requirement_id": "req-26",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.38673v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.39235v1",
-          "source": "arxiv",
-          "title": "The Planning Limits of Latent World Models",
-          "abstract": "World models offer a promising way to help robots understand how the physical world evolves and plan complex behaviours through imagination. Yet existing studies mainly demonstrate what these models can accomplish, leaving unclear when their predictions remain useful for planning and where they fail. We study this question using action-conditioned predictors built on five frozen self-supervised visual backbones: V-JEPA 2, V-JEPA 2.1, VideoMAEv2, VideoPrism, and DINOv2. We use frozen backbones to test representations intended to transfer across environments. We evaluate these models on diverse Meta-World manipulation tasks and real-robot interactions from BridgeData V2. We find that a world model guides action selection reliably only when the goal lies within, or slightly beyond, the trajectory it imagines during planning. With five-step rollouts, the length the predictor was trained on, the world model ranks actions reliably only for targets five to ten control steps ahead, whereas task goals lie 16 to 53 steps away. Neither an 81-fold larger predictor nor longer-rollout training extends this range; the encoder affects both range and closed-loop success, with V-JEPA 2.1 performing most consistently. More fundamentally, the limit persists under perfect prediction: using the real simulator, success falls from 92% to 41% as the target moves from five to twenty steps ahead of a five-step rollout. Planning therefore requires either longer imagined trajectories or closer subgoals. For distant goals, pure imagination succeeds in 23% of episodes, planning with feedback (MPC) raises success to 30%, imagining as far as the goal to 47%, and nearby expert subgoals to 76%. Used within its plannable range, a world model can also improve a vision-language-action (VLA) policy: choosing among eight actions the VLA proposes raises its success from 65% to 77% across 16 different tasks.",
-          "authors": [
-            "Ali Alrasheed",
-            "Basim Azam",
-            "Naveed Akhtar"
-          ],
-          "primary_category": "cs.RO",
-          "categories": [
-            "cs.RO",
-            "cs.CV"
-          ],
-          "published": "2026-09-30T08:05:32+00:00",
-          "link": "https://arxiv.org/pdf/2609.39235v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:spatial-ai",
-            "query:d-world"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "world models for planning and action selection with frozen visual backbones",
-          "llm_evidence_cn": "基于冻结视觉主干的世界模型规划与动作选择",
-          "llm_evidence": "基于冻结视觉主干的世界模型规划与动作选择",
-          "canonical_evidence": "基于冻结视觉主干的世界模型规划与动作选择",
-          "llm_tldr_en": "World models promise robot planning via imagination, but when their predictions remain useful is unclear. Using action-conditioned predictors on five frozen visual backbones, this study finds world models guide action selection reliably only when goals lie within or just beyond the data.",
-          "llm_tldr_cn": "世界模型被认为能帮助机器人理解物理世界演化并通过想象规划行为，但既有研究多展示其能力而少探究其预测何时仍对规划有用、何处会失败。本文基于V-JEPA 2、VideoMAEv2、VideoPrism与DINOv2等五个冻结自监督视觉主干构建动作条件预测器，在Meta-World操作任务与真实机器人交互上评估。结果发现只有当目标位于或略超训练分布时，世界模型才能可靠引导动作选择，揭示了潜在世界模型的规划边界。",
-          "llm_tldr": "世界模型被认为能帮助机器人理解物理世界演化并通过想象规划行为，但既有研究多展示其能力而少探究其预测何时仍对规划有用、何处会失败。本文基于V-JEPA 2、VideoMAEv2、VideoPrism与DINOv2等五个冻结自监督视觉主干构建动作条件预测器，在Meta-World操作任务与真实机器人交互上评估。结果发现只有当目标位于或略超训练分布时，世界模型才能可靠引导动作选择，揭示了潜在世界模型的规划边界。",
-          "llm_tags": [
-            "query:d-world"
-          ],
-          "matched_query_tag": "query:d-world",
-          "matched_query_text": "research on world models for model-based planning and reinforcement learning",
-          "matched_requirement_id": "req-21",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.39235v1",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.33563v1",
-          "source": "arxiv",
-          "title": "MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning",
-          "abstract": "World models improve sample efficiency by training policies on imagined trajectories, but their usefulness depends on learning representations that capture the information needed for future control. We study whether self-supervised joint-embedding prediction (JEPA) can provide this learning signal for multi-agent reinforcement learning. We introduce MA-JEPA, a stochastic world model that replaces observation reconstruction with prediction of target representations, enabling model-based multi-agent reinforcement learning with centralized training and decentralized execution. A categorical latent state and a causal Transformer are trained with posterior and action-conditioned dynamics prediction objectives and are then used for actor-critic learning from latent imagination. A training-only joint predictor conditions on all agents' local states and actions to predict each agent's next local observation embedding. These predictions are passed through the same local posterior used during real interaction with a centralized critic that is used only for value learning, with execution remaining decentralized. Our experiments show that this architecture performs strongly on SMAC, matching or exceeding the strongest reported comparator mean win rate on four of eight evaluated maps.",
-          "authors": [
-            "Brandon Gary Kaplowitz",
-            "Osaze James Obahor",
-            "Christian Schroeder de Witt"
-          ],
-          "primary_category": "cs.LG",
-          "categories": [
-            "cs.LG",
-            "cs.AI",
-            "cs.MA"
-          ],
-          "published": "2026-09-27T13:37:30+00:00",
-          "link": "https://arxiv.org/pdf/2609.33563v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:spatial-ai",
-            "query:d-world"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "joint-embedding world models for model-based reinforcement learning",
-          "llm_evidence_cn": "面向基于模型强化学习的联合嵌入世界模型",
-          "llm_evidence": "面向基于模型强化学习的联合嵌入世界模型",
-          "canonical_evidence": "面向基于模型强化学习的联合嵌入世界模型",
-          "llm_tldr_en": "World models improve sample efficiency but depend on representations useful for control. MA-JEPA is a stochastic world model that replaces observation reconstruction with prediction of target representations, enabling model-based multi-agent RL with centralized training and decentralized execution.",
-          "llm_tldr_cn": "世界模型通过在想象轨迹上训练策略来提升样本效率，但其效果取决于表征是否捕捉到未来控制所需信息。该文研究自监督联合嵌入预测（JEPA）能否为多智能体强化学习提供这种学习信号，提出随机世界模型MA-JEPA，用目标表征预测替代观测重建，支持集中训练、分散执行。模型以类别隐状态与因果Transformer，结合后验与动作条件动力学预测目标训练，并用于演员-评论家学习。",
-          "llm_tldr": "世界模型通过在想象轨迹上训练策略来提升样本效率，但其效果取决于表征是否捕捉到未来控制所需信息。该文研究自监督联合嵌入预测（JEPA）能否为多智能体强化学习提供这种学习信号，提出随机世界模型MA-JEPA，用目标表征预测替代观测重建，支持集中训练、分散执行。模型以类别隐状态与因果Transformer，结合后验与动作条件动力学预测目标训练，并用于演员-评论家学习。",
-          "llm_tags": [
-            "query:d-world"
-          ],
-          "matched_query_tag": "query:d-world",
-          "matched_query_text": "research on world models for model-based planning and reinforcement learning",
-          "matched_requirement_id": "req-21",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.33563v1",
           "carry_days": 1
         },
         {
@@ -995,66 +788,21 @@
             "query:d-world"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "turning pretrained video world models into robot policies for decision making",
-          "llm_evidence_cn": "将预训练视频世界模型转化为机器人决策策略",
-          "llm_evidence": "将预训练视频世界模型转化为机器人决策策略",
-          "canonical_evidence": "将预训练视频世界模型转化为机器人决策策略",
-          "llm_tldr_en": "The paper argues video world model pretraining already pays the cost, formalizing actualization: learning task-conditioned future selection and action readout on top of a frozen world model instead of fine-tuning the heavy backbone.",
-          "llm_tldr_cn": "预训练视频世界模型可生成多种合理未来，但机器人必须实现任务条件下的唯一未来，而现有方法需用大规模机器人数据微调庞大骨干。本文提出actualization范式，在冻结的世界模型表示空间上学习任务条件的未来选择与动作读出。实验表明无需昂贵微调即可将世界模型转为可执行策略，说明预训练已承担主要成本，为世界模型驱动的机器人控制提供高效路径。",
-          "llm_tldr": "预训练视频世界模型可生成多种合理未来，但机器人必须实现任务条件下的唯一未来，而现有方法需用大规模机器人数据微调庞大骨干。本文提出actualization范式，在冻结的世界模型表示空间上学习任务条件的未来选择与动作读出。实验表明无需昂贵微调即可将世界模型转为可执行策略，说明预训练已承担主要成本，为世界模型驱动的机器人控制提供高效路径。",
+          "llm_evidence_en": "turning pretrained video world models into executable robot policies",
+          "llm_evidence_cn": "将预训练视频世界模型转化为可执行机器人策略",
+          "llm_evidence": "将预训练视频世界模型转化为可执行机器人策略",
+          "canonical_evidence": "将预训练视频世界模型转化为可执行机器人策略",
+          "llm_tldr_en": "Pretrained video world models admit many plausible futures, but robots need the task-conditioned one; existing methods fine-tune the heavy backbone expensively. This work formalizes actualization, learning task-conditioned future selection and action readout on top of a frozen world model, avoiding large-scale robot-data fine-tuning while enabling executable policies.",
+          "llm_tldr_cn": "预训练视频世界模型能为场景预测多种可能未来，但机器人需要实现任务条件下的确切未来；现有方法往往用大规模机器人数据与算力微调沉重的世界模型主干。本文提出actualization任务，认为昂贵的表示学习已在预训练中完成，只需在冻结的世界模型之上学习任务条件下的未来选择与动作读出。该方法避免了重型微调，将世界模型的潜在未来转化为可执行的机器人策略，为世界模型驱动的模型-based 强化学习与机器人控制提供了高效路径。",
+          "llm_tldr": "预训练视频世界模型能为场景预测多种可能未来，但机器人需要实现任务条件下的确切未来；现有方法往往用大规模机器人数据与算力微调沉重的世界模型主干。本文提出actualization任务，认为昂贵的表示学习已在预训练中完成，只需在冻结的世界模型之上学习任务条件下的未来选择与动作读出。该方法避免了重型微调，将世界模型的潜在未来转化为可执行的机器人策略，为世界模型驱动的模型-based 强化学习与机器人控制提供了高效路径。",
           "llm_tags": [
             "query:d-world"
           ],
           "matched_query_tag": "query:d-world",
-          "matched_query_text": "research on world models for model-based planning and reinforcement learning",
-          "matched_requirement_id": "req-21",
+          "matched_query_text": "model-based reinforcement learning with learned world models",
+          "matched_requirement_id": "req-26",
           "selection_source": "carryover_cache",
           "paper_id": "2609.36413v2",
-          "carry_days": 1
-        },
-        {
-          "id": "2609.35023v1",
-          "source": "arxiv",
-          "title": "Proxy2World: Learning to Generate Worlds From Lightweight Proxies without Seeing Them",
-          "abstract": "Lightweight scene proxies let creators control scene layout and motion while leaving room for imagination in appearance, lighting, and visual effects. However, a suitable proxy is not uniquely defined, making paired proxy-video data difficult to construct automatically at scale. We present Proxy2World, a controllable world model that learns these complementary capabilities from ordinary posed RGBD videos, without training on authored proxy-video pairs. The model jointly learns depth-conditioned RGB generation and joint RGBD generation through cross-modal flow matching. Learning both tasks enables proxy-camera hybrid denoising at inference to follow the proxy structure while producing natural, detailed visuals. We further introduce ProxyBench to evaluate this capability across a diverse set of scenes, camera trajectories, and subject motions. Experiments on ProxyBench show that Proxy2World achieves a better balance between structural adherence and visual quality than camera-controlled and geometry-conditioned methods, supported by quantitative metrics, VLM assessments, human evaluations and diverse qualitative results.",
-          "authors": [
-            "Hongli Xu",
-            "Weilong Yan",
-            "Anbang Wang",
-            "Chunyu Zou",
-            "Siyu Hong",
-            "Jingwei Huang"
-          ],
-          "primary_category": "cs.CV",
-          "categories": [
-            "cs.CV"
-          ],
-          "published": "2026-09-28T12:22:35+00:00",
-          "link": "https://arxiv.org/pdf/2609.35023v1",
-          "tags": [
-            "keyword:d-world",
-            "keyword:dr",
-            "keyword:spatial-ai",
-            "query:d-world",
-            "query:dr",
-            "query:spatial-ai"
-          ],
-          "llm_score": 8.0,
-          "llm_evidence_en": "controllable world model generating scenes from lightweight proxies",
-          "llm_evidence_cn": "从轻量代理生成场景的可控世界模型",
-          "llm_evidence": "从轻量代理生成场景的可控世界模型",
-          "canonical_evidence": "从轻量代理生成场景的可控世界模型",
-          "llm_tldr_en": "Lightweight proxies let creators control layout and motion, but paired proxy-video data is hard to build. Proxy2World learns depth-conditioned RGB and joint RGBD generation via cross-modal flow matching from posed RGBD videos.",
-          "llm_tldr_cn": "轻量场景代理可让创作者控制布局与运动，但合适的代理并不唯一，导致成对的代理-视频数据难以规模化构建。本文提出Proxy2World，一种可控世界模型，直接从普通带位姿的RGBD视频学习，无需人工制作的代理-视频对，通过跨模态流匹配联合学习深度条件RGB生成与联合RGBD生成。推理时采用代理-相机混合去噪，在遵循代理结构的同时生成自然细节。该工作为可控三维内容生成提供了无需配对监督的世界模型方案。",
-          "llm_tldr": "轻量场景代理可让创作者控制布局与运动，但合适的代理并不唯一，导致成对的代理-视频数据难以规模化构建。本文提出Proxy2World，一种可控世界模型，直接从普通带位姿的RGBD视频学习，无需人工制作的代理-视频对，通过跨模态流匹配联合学习深度条件RGB生成与联合RGBD生成。推理时采用代理-相机混合去噪，在遵循代理结构的同时生成自然细节。该工作为可控三维内容生成提供了无需配对监督的世界模型方案。",
-          "llm_tags": [
-            "query:d-world"
-          ],
-          "matched_query_tag": "query:d-world",
-          "matched_query_text": "generative models for 3D content creation",
-          "matched_requirement_id": "req-23",
-          "selection_source": "carryover_cache",
-          "paper_id": "2609.35023v1",
           "carry_days": 1
         },
         {
@@ -1077,13 +825,13 @@
             "query:d-world"
           ],
           "llm_score": 8.0,
-          "llm_evidence_en": "model-based RL with calibrated world-model adaptation",
-          "llm_evidence_cn": "带校准世界模型适配的基于模型强化学习",
-          "llm_evidence": "带校准世界模型适配的基于模型强化学习",
-          "canonical_evidence": "带校准世界模型适配的基于模型强化学习",
-          "llm_tldr_en": "This paper addresses simulator-to-target shift in model-based reinforcement learning by introducing a Model-Corrected World Model that selects among model families using standardized calibration risk and confidence signals.",
-          "llm_tldr_cn": "基于模型的强化学习可借助模拟经验，但模拟器到目标域的迁移带来模型选择难题，直接校正或拟合都可能因目标数据有限而失败。本文提出模型校正世界模型MC-WM，将初始目标数据划分为拟合、选择与校准分区，按标准化校准风险挑选模型族。方法用置信信号与有效性谓词加权想象策略更新。大量MuJoCo迁移实验验证了该路由策略的有效性。",
-          "llm_tldr": "基于模型的强化学习可借助模拟经验，但模拟器到目标域的迁移带来模型选择难题，直接校正或拟合都可能因目标数据有限而失败。本文提出模型校正世界模型MC-WM，将初始目标数据划分为拟合、选择与校准分区，按标准化校准风险挑选模型族。方法用置信信号与有效性谓词加权想象策略更新。大量MuJoCo迁移实验验证了该路由策略的有效性。",
+          "llm_evidence_en": "world-model adaptation for model-based RL",
+          "llm_evidence_cn": "面向基于模型强化学习的世界模型自适应",
+          "llm_evidence": "面向基于模型强化学习的世界模型自适应",
+          "canonical_evidence": "面向基于模型强化学习的世界模型自适应",
+          "llm_tldr_en": "This paper introduces Model-Corrected World Model (MC-WM), which partitions target data into fit, selection and calibration sets and routes to the world model family with lower calibration risk for robust simulator-to-target adaptation in MBRL.",
+          "llm_tldr_cn": "基于模型的强化学习可利用模拟经验，但仿真到目标的迁移造成模型选择难题，直接修正或直接拟合目标在数据有限时都可能失败。本文提出模型校正世界模型MC-WM，将目标数据划分为拟合、选择与校准子集，并部署标准化校准风险更低的世界模型族。实验在MuJoCo多类迁移设定下验证了该路由策略的有效性，提升了世界模型自适应的稳健性。",
+          "llm_tldr": "基于模型的强化学习可利用模拟经验，但仿真到目标的迁移造成模型选择难题，直接修正或直接拟合目标在数据有限时都可能失败。本文提出模型校正世界模型MC-WM，将目标数据划分为拟合、选择与校准子集，并部署标准化校准风险更低的世界模型族。实验在MuJoCo多类迁移设定下验证了该路由策略的有效性，提升了世界模型自适应的稳健性。",
           "llm_tags": [
             "query:d-world"
           ],
@@ -1092,6 +840,52 @@
           "matched_requirement_id": "req-26",
           "selection_source": "carryover_cache",
           "paper_id": "2610.01001v1",
+          "carry_days": 1
+        },
+        {
+          "id": "2609.38927v1",
+          "source": "arxiv",
+          "title": "World-as-Graph: Relational World Modeling Through Latent Space Graphs",
+          "abstract": "World models aim to learn representations of real-world environments and predict their future evolution. Recent object-centric world models have made expressive progress by representing visual scenes as sets of object-level latent states, but object-object relations are often captured only implicitly, which limits explicit relational and temporal structure modeling and object-centric dynamic memory modeling. To address such challenges, we propose World-As-Graph (WAG), a graph-based object-centric world model that introduces relational inductive bias into JEPA-style predictive representation learning. The proposed WAG contains two main modules: (1) Relation-aware structure induction, which constructs time-varying latent graphs from object-centric slots and designs relation-aware object masking policies to guide relational object representation learning in latent space; (2) Object-centric memory transition, which maintains and updates object-level dynamic states by combining relational information from neighboring objects with historical memory, enabling effective autoregressive future prediction. Extensive experiments on both visual reasoning and robotic manipulation tasks could demonstrate the superior performance of our proposed WAG.",
+          "authors": [
+            "Yaqi Yang",
+            "Shuo Huang",
+            "Yujin Huang",
+            "Fucai Ke",
+            "Jiatong Han",
+            "Xin Zheng"
+          ],
+          "primary_category": "cs.LG",
+          "categories": [
+            "cs.LG",
+            "cs.CV"
+          ],
+          "published": "2026-09-30T04:08:41+00:00",
+          "link": "https://arxiv.org/pdf/2609.38927v1",
+          "tags": [
+            "keyword:d-world",
+            "keyword:dr",
+            "keyword:spatial-ai",
+            "query:d-world",
+            "query:dr",
+            "query:spatial-ai"
+          ],
+          "llm_score": 8.0,
+          "llm_evidence_en": "object-centric world model with relational structure for future prediction",
+          "llm_evidence_cn": "引入关系结构的物体中心世界模型进行未来预测",
+          "llm_evidence": "引入关系结构的物体中心世界模型进行未来预测",
+          "canonical_evidence": "引入关系结构的物体中心世界模型进行未来预测",
+          "llm_tldr_en": "World-as-Graph introduces a graph-based object-centric world model with relational inductive bias into JEPA-style predictive learning, constructing time-varying latent graphs from object slots.",
+          "llm_tldr_cn": "针对物体中心世界模型只能隐式建模物体间关系、限制显式关系与时间结构学习的问题，本文提出 World-as-Graph 图式世界模型。方法在 JEPA 式预测表征学习中引入关系归纳偏置，由物体槽构建时变潜图并进行关系感知结构归纳。实验表明显式关系建模改善了动态记忆与未来演化预测，为关系化环境的世界建模提供了新范式。",
+          "llm_tldr": "针对物体中心世界模型只能隐式建模物体间关系、限制显式关系与时间结构学习的问题，本文提出 World-as-Graph 图式世界模型。方法在 JEPA 式预测表征学习中引入关系归纳偏置，由物体槽构建时变潜图并进行关系感知结构归纳。实验表明显式关系建模改善了动态记忆与未来演化预测，为关系化环境的世界建模提供了新范式。",
+          "llm_tags": [
+            "query:d-world"
+          ],
+          "matched_query_tag": "query:d-world",
+          "matched_query_text": "research on world models for model-based planning and reinforcement learning",
+          "matched_requirement_id": "req-21",
+          "selection_source": "carryover_cache",
+          "paper_id": "2609.38927v1",
           "carry_days": 1
         }
       ]
