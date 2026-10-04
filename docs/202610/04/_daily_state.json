@@ -1,0 +1,249 @@
+{
+  "date": "20261004",
+  "date_label": "",
+  "generated_at": "2026-10-04 22:04:57 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2609.34148v1",
+      "route": "202610/04/2609.34148v1-geometric-encoding-for-spatial-reasoning-in-vision-language-models",
+      "title": "Geometric Encoding for Spatial Reasoning in Vision-Language Models",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从视频构建显式几何编码以增强视觉语言模型空间推理",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.34826v1",
+      "route": "202610/04/2609.34826v1-wm-vlm-probing-internal-world-models-for-interleaved-visual-textual-reasoning",
+      "title": "WM-VLM: Probing Internal World Models for Interleaved Visual-Textual Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "带世界模型分支、通过生成视觉状态进行空间推理的视觉语言模型",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.34853v1",
+      "route": "202610/04/2609.34853v1-evisplat-preserving-multi-view-evidence-in-3d-gaussian-splatting-for-open-vocabulary-segmentation",
+      "title": "EviSplat: Preserving Multi-View Evidence in 3D Gaussian Splatting for Open-Vocabulary Segmentation",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "基于高斯泼溅的开放词汇三维场景理解",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.35486v1",
+      "route": "202610/04/2609.35486v1-who-is-left-of-whom-tracing-spatial-evidence-and-role-binding-in-relative-position-reasoning",
+      "title": "Who Is Left of Whom? Tracing Spatial Evidence and Role Binding in Relative-Position Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "相对位置推理中的空间证据与角色绑定",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.36024v2",
+      "route": "202610/04/2609.36024v2-codimrecon-agentic-reconstruction-of-sim-ready-3d-scenes-with-deformable-curves-surfaces-and-volumes",
+      "title": "CoDimRecon: Agentic Reconstruction of Sim-Ready 3D Scenes with Deformable Curves, Surfaces, and Volumes",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从多视角RGB重建可形变曲线、曲面与体积的智能体框架",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.36219v1",
+      "route": "202610/04/2609.36219v1-lerf-learning-reference-coordinate-frames-for-perspective-taking-reasoning",
+      "title": "LeRF: Learning Reference Coordinate Frames for Perspective Taking Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向视角采择空间推理的参考坐标系",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.36413v2",
+      "route": "202610/04/2609.36413v2-one-from-infinity-actualizing-futures-from-pretrained-world-models-into-robot-actions",
+      "title": "One from Infinity: Actualizing Futures from Pretrained World Models into Robot Actions",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "将预训练视频世界模型转化为可执行机器人策略",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.37970v1",
+      "route": "202610/04/2609.37970v1-physwam-physically-consistent-world-action-model-for-autonomous-driving",
+      "title": "PhysWAM: Physically Consistent World Action Model for Autonomous Driving",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向自动驾驶的几何一致世界-动作模型",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.38620v1",
+      "route": "202610/04/2609.38620v1-higs-hierarchical-implicit-grids-for-joint-geometric-and-semantic-scene-understanding",
+      "title": "HIGS: Hierarchical Implicit Grids for Joint Geometric and Semantic Scene Understanding",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "用于几何与语义三维场景理解的层次隐式场",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.38716v1",
+      "route": "202610/04/2609.38716v1-spatialcore-confidence-aware-grounded-spatial-reasoning-in-large-vision--language-models",
+      "title": "SpatialCORE: Confidence-Aware Grounded Spatial Reasoning in Large Vision--Language Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "视觉语言模型中的置信度感知空间推理",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.38717v1",
+      "route": "202610/04/2609.38717v1-soft-spatial-reasoning",
+      "title": "Soft Spatial Reasoning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向空间推理的软思维后训练框架",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.38927v1",
+      "route": "202610/04/2609.38927v1-world-as-graph-relational-world-modeling-through-latent-space-graphs",
+      "title": "World-as-Graph: Relational World Modeling Through Latent Space Graphs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "d-world"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "引入关系结构的物体中心世界模型进行未来预测",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.39195v1",
+      "route": "202610/04/2609.39195v1-uruqi-learning-spatial-cognition-from-visual-experience",
+      "title": "Uruqi: Learning Spatial Cognition from Visual Experience",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从视觉经验学习具身空间智能与空间认知",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.39588v1",
+      "route": "202610/04/2609.39588v1-kilometervision-a-new-frontier-for-large-scale-spatial-intelligence-in-vlms",
+      "title": "KilometerVision: A New Frontier for Large-Scale Spatial Intelligence in VLMs",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-ai"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向视觉语言模型的大规模空间智能基准",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    },
+    {
+      "paper_id": "2609.39841v2",
+      "route": "202610/04/2609.39841v2-dyrad-radar-novel-view-synthesis-for-dynamic-driving-scenes",
+      "title": "DyRAD: Radar Novel View Synthesis for Dynamic Driving Scenes",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "dr"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "面向驾驶的动态场景重建与新视角合成",
+      "first_seen_at": "2026-10-04 22:04:57 UTC",
+      "updated_at": "2026-10-04 22:04:57 UTC"
+    }
+  ]
+}

@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-10-03</span>
+      <span class="dpr-home-dashboard-kicker">2026-10-04</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">共 21 篇</strong>
+    <strong class="dpr-home-dashboard-count">共 15 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>8</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>13</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>5</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>10</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-10-03 22:05:57 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-10-04 22:04:57 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,7 +69,8 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>2026-10-03 日报完成：共筛读 21 篇，精读 8 篇、速读 13 篇，重点覆盖 3D 场景理解与多智能体世界模型。最值得看的是两篇 9.0 分工作——SceneScaffold 用主动场景状态构建统一 3D 场景理解，MA-JEPA 把联合嵌入世界模型引入多智能体强化学习。普通读者可先读这两篇精读，再按兴趣追 TRACKGRAPH、ChronoFuseGS、GraphWrit3R 等 8.0 分速读方向。</p>
+<p>今日15篇论文中精读5篇、速读10篇，空间智能成主线，重点锁定几何编码与可变形3D场景重建。</p>
+<p>最值得看的是视觉-语言模型如何用几何编码提升空间推理</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -78,12 +79,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">精读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">8 篇</strong>
+    <strong class="dpr-home-dashboard-count">5 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding">SceneScaffold: Active Scene-State Construction for Unified 3D Scene Understanding</span></li><li><span class="dpr-home-dashboard-paper-title" title="MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning">MA-JEPA: Joint-Embedding World Models for Multi-Agent Reinforcement Learning</span></li><li><span class="dpr-home-dashboard-paper-title" title="RoGSW4RLD: Feed-Forward 4D Gaussian Lifting for Robot World Model Rollouts">RoGSW4RLD: Feed-Forward 4D Gaussian Lifting for Robot World Model Rollouts</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Geometric Encoding for Spatial Reasoning in Vision-Language Models">Geometric Encoding for Spatial Reasoning in Vision-Language Models</span></li><li><span class="dpr-home-dashboard-paper-title" title="CoDimRecon: Agentic Reconstruction of Sim-Ready 3D Scenes with Deformable Curves, Surfaces, and Volumes">CoDimRecon: Agentic Reconstruction of Sim-Ready 3D Scenes with Deformable Curves, Surfaces, and Volumes</span></li><li><span class="dpr-home-dashboard-paper-title" title="One from Infinity: Actualizing Futures from Pretrained World Models into Robot Actions">One from Infinity: Actualizing Futures from Pretrained World Models into Robot Actions</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">d-world <strong>4</strong></span><span class="dpr-home-dashboard-tag">dr <strong>3</strong></span><span class="dpr-home-dashboard-tag">spatial-ai <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">d-world <strong>2</strong></span><span class="dpr-home-dashboard-tag">dr <strong>2</strong></span><span class="dpr-home-dashboard-tag">spatial-ai <strong>1</strong></span></div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-skim-card">
   <div class="dpr-home-dashboard-header">
@@ -91,12 +92,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">速读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">13 篇</strong>
+    <strong class="dpr-home-dashboard-count">10 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="TRACKGRAPH: Online Open-Vocabulary 3D Scene Graphs via Image-Space Tracking">TRACKGRAPH: Online Open-Vocabulary 3D Scene Graphs via Image-Space Tracking</span></li><li><span class="dpr-home-dashboard-paper-title" title="ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat Persistence and Change Visualization">ChronoFuseGS: Multi-Temporal Gaussian Fusion with Per-Splat Persistence and Change Visualization</span></li><li><span class="dpr-home-dashboard-paper-title" title="GraphWrit3R: End-to-End 3D Scene Graph Writing">GraphWrit3R: End-to-End 3D Scene Graph Writing</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="WM-VLM: Probing Internal World Models for Interleaved Visual-Textual Reasoning">WM-VLM: Probing Internal World Models for Interleaved Visual-Textual Reasoning</span></li><li><span class="dpr-home-dashboard-paper-title" title="EviSplat: Preserving Multi-View Evidence in 3D Gaussian Splatting for Open-Vocabulary Segmentation">EviSplat: Preserving Multi-View Evidence in 3D Gaussian Splatting for Open-Vocabulary Segmentation</span></li><li><span class="dpr-home-dashboard-paper-title" title="Who Is Left of Whom? Tracing Spatial Evidence and Role Binding in Relative-Position Reasoning">Who Is Left of Whom? Tracing Spatial Evidence and Role Binding in Relative-Position Reasoning</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-ai <strong>8</strong></span><span class="dpr-home-dashboard-tag">d-world <strong>4</strong></span><span class="dpr-home-dashboard-tag">dr <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-ai <strong>9</strong></span><span class="dpr-home-dashboard-tag">d-world <strong>1</strong></span></div>
 </section>
 </div>
 
