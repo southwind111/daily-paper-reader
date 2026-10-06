@@ -1,13 +1,15 @@
 # 日报 · 2026-10-06
 
-- 最近生成时间：2026-10-06 00:42:45 UTC
-- 今日累计更新：1 次
+- 最近生成时间：2026-10-06 23:43:50 UTC
+- 今日累计更新：2 次
 - 今日累计推荐总数：4
 - 精读区：4
 - 速读区：0
 
 ## 今日简报（AI）
-10月6日日报完成4篇精读、速读0篇，整体状态成功。已列出的两篇8.0分精读最值得先看：《RelationVGGT》聚焦3D空间关系分割的视觉几何Transformer，《Calibration-risk routing》关注世界模型适配中的校准风险
+今天完成4篇论文精读，重点锁定3D空间关系分割与可控世界模型自适应两个8.0分方向。
+最值得看的是RelationVGGT用视觉几何Transformer做3D空间关系分割，以及Calibration-risk routing为世界模型适配做校准风险路由。
+普通读者可优先读这两篇的摘要与实验结论，留意它们如何把几何/风险信号转成可落地的控制方法。
 
 ## 精读区
 1. [RelationVGGT: Visual Geometry Transformers for 3D Spatial Relation Segmentation](/202610/06/2610.00970v1-relationvggt-visual-geometry-transformers-for-3d-spatial-relation-segmentation) （8.0/10）

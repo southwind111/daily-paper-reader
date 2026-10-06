@@ -54,11 +54,11 @@
     <strong class="dpr-home-dashboard-count">共 4 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
-    <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>2 次</dd></div>
     <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>4</dd></div>
     <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>0</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-10-06 00:42:45 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-10-06 23:43:50 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,7 +69,9 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>10月6日日报完成4篇精读、速读0篇，整体状态成功。已列出的两篇8.0分精读最值得先看：《RelationVGGT》聚焦3D空间关系分割的视觉几何Transformer，《Calibration-risk routing》关注世界模型适配中的校准风险</p>
+<p>今天完成4篇论文精读，重点锁定3D空间关系分割与可控世界模型自适应两个8.0分方向。</p>
+<p>最值得看的是RelationVGGT用视觉几何Transformer做3D空间关系分割，以及Calibration-risk routing为世界模型适配做校准风险路由。</p>
+<p>普通读者可优先读这两篇的摘要与实验结论，留意它们如何把几何/风险信号转成可落地的控制方法。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
