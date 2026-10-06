@@ -1,0 +1,186 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-10-06T00:40:26.780100+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 0,
+    "deep_divecandidates": 4,
+    "deep_cap": 5,
+    "deep_selected": 4,
+    "quick_candidates": 0,
+    "quick_skim_target": 10,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2610.01001v1",
+      "source": "arxiv",
+      "title": "Calibration-risk routing for controlled world-model adaptation",
+      "abstract": "Model-based reinforcement learning (MBRL) can exploit simulated experience, but a simulator-to-target shift creates a model-selection problem: correcting the simulator and fitting the target directly can each fail under limited target data. We introduce the Model-Corrected World Model (MC-WM), which separates initial target data into disjoint fit, selection, and calibration partitions and deploys the family with lower standardized calibration risk. A learned confidence signal and deterministic validity predicates weight one-step imagined policy updates without rewriting physical rewards. We evaluate 540 unique reported run cells across three controlled Multi-Joint dynamics with Contact (MuJoCo) shifts; one exact-routing cell was repeated after a pre-deployment artifact gate, giving 541 completed executions.",
+      "authors": [
+        "Yifan Zhang",
+        "Liang Zheng"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-10-01T03:44:47+00:00",
+      "link": "https://arxiv.org/pdf/2610.01001v1",
+      "tags": [
+        "keyword:d-world",
+        "query:d-world"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "world-model adaptation for model-based RL",
+      "llm_evidence_cn": "面向基于模型强化学习的世界模型自适应",
+      "llm_evidence": "面向基于模型强化学习的世界模型自适应",
+      "canonical_evidence": "面向基于模型强化学习的世界模型自适应",
+      "llm_tldr_en": "This paper introduces Model-Corrected World Model (MC-WM), which partitions target data into fit, selection and calibration sets and routes to the world model family with lower calibration risk for robust simulator-to-target adaptation in MBRL.",
+      "llm_tldr_cn": "基于模型的强化学习可利用模拟经验，但仿真到目标的迁移造成模型选择难题，直接修正或直接拟合目标在数据有限时都可能失败。本文提出模型校正世界模型MC-WM，将目标数据划分为拟合、选择与校准子集，并部署标准化校准风险更低的世界模型族。实验在MuJoCo多类迁移设定下验证了该路由策略的有效性，提升了世界模型自适应的稳健性。",
+      "llm_tldr": "基于模型的强化学习可利用模拟经验，但仿真到目标的迁移造成模型选择难题，直接修正或直接拟合目标在数据有限时都可能失败。本文提出模型校正世界模型MC-WM，将目标数据划分为拟合、选择与校准子集，并部署标准化校准风险更低的世界模型族。实验在MuJoCo多类迁移设定下验证了该路由策略的有效性，提升了世界模型自适应的稳健性。",
+      "llm_tags": [
+        "query:d-world"
+      ],
+      "matched_query_tag": "query:d-world",
+      "matched_query_text": "model-based reinforcement learning with learned world models",
+      "matched_requirement_id": "req-26",
+      "selection_source": "carryover_cache",
+      "paper_id": "2610.01001v1"
+    },
+    {
+      "id": "2610.00970v1",
+      "source": "arxiv",
+      "title": "RelationVGGT: Visual Geometry Transformers for 3D Spatial Relation Segmentation",
+      "abstract": "Recent advances in 3D reconstruction have progressed from per-scene optimization to feed-forward inference, and semantic scene understanding has followed suit -- yet existing methods remain confined to object-centric perception, neglecting spatial relations between objects. We formulate 3D spatial relation segmentation in a feed-forward, pose-free multi-view setting: given a visually specified subject and a relational text query, the model segments the target across views without receiving its category name. To this end, we propose RelationVGGT, a novel feed-forward framework that integrates semantic features from a visual foundation model with geometry-aware representations from a 3D geometry foundation model and leverages a relation transformer for subject-conditioned, cross-view relation prediction -- requiring neither per-scene optimization nor known camera poses. We additionally provide a fully automated annotation pipeline built on ScanNet++ with VLMs and LLMs, enabling scalable training data generation for this new task.",
+      "authors": [
+        "Minsu Kim",
+        "Jaesung Choe",
+        "Jiwoo Lee",
+        "Yu-Chiang Frank Wang",
+        "Seon Joo Kim"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "published": "2026-10-01T03:00:27+00:00",
+      "link": "https://arxiv.org/pdf/2610.00970v1",
+      "tags": [
+        "keyword:d-world",
+        "keyword:dr",
+        "keyword:spatial-ai",
+        "query:d-world",
+        "query:dr",
+        "query:spatial-ai"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "3D spatial relation segmentation with relational text query",
+      "llm_evidence_cn": "基于关系文本查询的三维空间关系分割",
+      "llm_evidence": "基于关系文本查询的三维空间关系分割",
+      "canonical_evidence": "基于关系文本查询的三维空间关系分割",
+      "llm_tldr_en": "RelationVGGT formulates feed-forward, pose-free 3D spatial relation segmentation, fusing semantic features with geometry-aware representations to segment a target given a relational text query.",
+      "llm_tldr_cn": "针对现有三维场景理解只做物体中心感知、忽视物体间空间关系的问题，本文提出 RelationVGGT，将三维空间关系分割形式化为无位姿前馈任务。方法融合视觉基础模型语义特征与三维几何基础模型表征，并借助关系Transformer跨视角分割由关系文本指定的目标。实验表明无需类别名称也能完成关系级分割，推动了空间关系推理与三维场景理解。",
+      "llm_tldr": "针对现有三维场景理解只做物体中心感知、忽视物体间空间关系的问题，本文提出 RelationVGGT，将三维空间关系分割形式化为无位姿前馈任务。方法融合视觉基础模型语义特征与三维几何基础模型表征，并借助关系Transformer跨视角分割由关系文本指定的目标。实验表明无需类别名称也能完成关系级分割，推动了空间关系推理与三维场景理解。",
+      "llm_tags": [
+        "query:spatial-ai"
+      ],
+      "matched_query_tag": "query:spatial-ai",
+      "matched_query_text": "spatial reasoning and spatial relation inference",
+      "matched_requirement_id": "req-12",
+      "selection_source": "carryover_cache",
+      "paper_id": "2610.00970v1"
+    },
+    {
+      "id": "2610.02160v1",
+      "source": "arxiv",
+      "title": "4Director: Controlling Video World Models with Rigid 3D Geometry",
+      "abstract": "Precise control over camera and object motion is essential for professional video production. Existing methods control objects only coarsely, through image-plane cues that are ambiguous in depth and rotation or through 3D tracks and blobs that lack complete geometry and lose consistency across viewpoint changes. We introduce 4Director, a video world model conditioned on an explicit 4D scene representation: each object is reconstructed once from the input image as a canonical mesh and moved by one prescribed rigid transformation per frame. This representation provides an intuitive 3D control interface and prevents unobserved geometry from being regenerated independently in every frame. We render the controlled scene as a depth video and introduce a Motion Adapter that transforms this geometric scaffold into video while synthesizing view-consistent appearance, illumination, and non-rigid dynamics. For training, we construct RealCOD-Rigid, a new dataset of 20,774 clips annotated with rigid 3D scenes by our automatic pipeline. We further introduce Identity-Gated IoU (IG-IoU), which jointly evaluates adherence to prescribed object motion and preservation of object identity. Experiments demonstrate that 4Director consistently outperforms prior methods in visual quality and in camera and object control.",
+      "authors": [
+        "Wei Cao",
+        "Hao Zhang",
+        "Vikram Voleti",
+        "Yuqun Wu",
+        "Mallikarjun B R",
+        "Shimon Vainer",
+        "Mark Boss",
+        "Yaoyao Liu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-10-01T17:52:58+00:00",
+      "link": "https://arxiv.org/pdf/2610.02160v1",
+      "tags": [
+        "keyword:d-world",
+        "keyword:dr",
+        "keyword:spatial-ai",
+        "query:d-world",
+        "query:dr",
+        "query:spatial-ai"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "video world model conditioned on explicit 4D scene representation with rigid 3D geometry",
+      "llm_evidence_cn": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+      "llm_evidence": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+      "canonical_evidence": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+      "llm_tldr_en": "4Director is a video world model conditioned on an explicit 4D scene representation, reconstructing each object as a canonical mesh moved by per-frame rigid transforms, enabling precise 3D camera and object motion control.",
+      "llm_tldr_cn": "视频制作需要精确控制相机与物体运动，但现有方法仅用图像平面线索或缺乏完整几何的三维轨迹与斑点，导致深度旋转歧义与跨视角不一致。论文提出4Director，一种以显式四维场景表示为条件的视频世界模型：每个物体先重建为规范网格，再按逐帧刚性变换运动，避免未观测几何在每帧被独立重生。模型把受控场景渲染为深度视频并引入运动适配机制，从而提供直观的三维控制接口，实现更精确一致的可控视频生成。",
+      "llm_tldr": "视频制作需要精确控制相机与物体运动，但现有方法仅用图像平面线索或缺乏完整几何的三维轨迹与斑点，导致深度旋转歧义与跨视角不一致。论文提出4Director，一种以显式四维场景表示为条件的视频世界模型：每个物体先重建为规范网格，再按逐帧刚性变换运动，避免未观测几何在每帧被独立重生。模型把受控场景渲染为深度视频并引入运动适配机制，从而提供直观的三维控制接口，实现更精确一致的可控视频生成。",
+      "llm_tags": [
+        "query:d-world"
+      ],
+      "matched_query_tag": "query:d-world",
+      "matched_query_text": "research on world models for model-based planning and reinforcement learning",
+      "matched_requirement_id": "req-21",
+      "selection_source": "carryover_cache",
+      "paper_id": "2610.02160v1"
+    },
+    {
+      "id": "2610.01999v1",
+      "source": "arxiv",
+      "title": "From Reasoning Failures to Composable Video Spatial Intelligence",
+      "abstract": "Spatial reasoning benchmarks evaluate vision-language models across diverse tasks, but task-level scores do not reveal which underlying capabilities account for success or failure. Each task requires recovering spatial evidence, representing geometry, and reasoning over it. We disentangle these capabilities by comparing predicted and ground-truth spatial context under a shared schema and coordinate contract. This comparison reveals four recurring sources of error: inaccurate perception, missing information in the spatial context, selection of the wrong measurement, and errors in reference frames or in tracking position and orientation. Guided by this diagnosis, we develop CROSS, a training-free library of typed geometric operators and spatial skills that function over available evidence to support reliable video spatial reasoning. The resulting library supplies verified context to non-coding VLMs or callable skills to a SpatialClaw agent. We evaluate \\methodname{} on five benchmarks. \\methodname{} raises the average score from 55.9\\% to 60.2\\% on ReVSI and improves the SpatialClaw result from 62.8\\% to 66.3\\% on DSI-Bench. These gains demonstrate that explicit handling of spatial conventions can repair systematic reasoning failures without additional training.",
+      "authors": [
+        "Pengzhan Sun",
+        "Junbin Xiao",
+        "Ramanathan Rajaraman",
+        "Shiu-hong Kao",
+        "Angela Yao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-10-01T16:31:19+00:00",
+      "link": "https://arxiv.org/pdf/2610.01999v1",
+      "tags": [
+        "keyword:d-world",
+        "keyword:dr",
+        "keyword:spatial-ai",
+        "query:d-world",
+        "query:dr",
+        "query:spatial-ai"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "spatial reasoning and spatial intelligence for video understanding",
+      "llm_evidence_cn": "面向视频理解的空间推理与空间智能",
+      "llm_evidence": "面向视频理解的空间推理与空间智能",
+      "canonical_evidence": "面向视频理解的空间推理与空间智能",
+      "llm_tldr_en": "Task-level scores on spatial reasoning benchmarks do not reveal which underlying capabilities cause failures. CROSS compares predicted and ground-truth spatial context under a shared schema, diagnosing four error sources and providing composable geometric operators.",
+      "llm_tldr_cn": "空间推理基准虽能评估视觉语言模型，但任务级分数无法揭示哪些底层能力导致成功或失败。该文在统一的模式与坐标契约下比较预测与真值空间上下文，归纳出感知不准、信息缺失、测量选择错误以及参考系与位姿跟踪错误四类反复出现的错误来源。据此提出免训练的CROSS算子库，组合类型化的几何算子与空间技能。结果揭示了视频空间推理的失败机理并提升了推理表现。这为可组合的视频空间智能诊断与改进提供了框架。",
+      "llm_tldr": "空间推理基准虽能评估视觉语言模型，但任务级分数无法揭示哪些底层能力导致成功或失败。该文在统一的模式与坐标契约下比较预测与真值空间上下文，归纳出感知不准、信息缺失、测量选择错误以及参考系与位姿跟踪错误四类反复出现的错误来源。据此提出免训练的CROSS算子库，组合类型化的几何算子与空间技能。结果揭示了视频空间推理的失败机理并提升了推理表现。这为可组合的视频空间智能诊断与改进提供了框架。",
+      "llm_tags": [
+        "query:spatial-ai"
+      ],
+      "matched_query_tag": "query:spatial-ai",
+      "matched_query_text": "spatial intelligence and spatial reasoning",
+      "matched_requirement_id": "req-11",
+      "selection_source": "carryover_cache",
+      "paper_id": "2610.01999v1"
+    }
+  ],
+  "quick_skim": []
+}

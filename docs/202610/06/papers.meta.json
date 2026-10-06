@@ -1,0 +1,69 @@
+{
+  "label": "2026-10-06",
+  "date": "2026-10-06",
+  "generated_at": "2026-10-06T00:42:50",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "202610/06/2610.00970v1-relationvggt-visual-geometry-transformers-for-3d-spatial-relation-segmentation",
+      "section": "deep",
+      "title_en": "RelationVGGT: Visual Geometry Transformers for 3D Spatial Relation Segmentation",
+      "authors": "Minsu Kim, Jaesung Choe, Jiwoo Lee, Yu-Chiang Frank Wang, Seon Joo Kim",
+      "date": "2026-10-01",
+      "pdf": "https://arxiv.org/pdf/2610.00970v1",
+      "score": "8.0",
+      "evidence": "基于关系文本查询的三维空间关系分割",
+      "tldr": "现有3D重建与语义理解虽从前馈推理取得进展，但仍以物体为中心，忽略物体间空间关系。RelationVGGT面向前馈、无位姿多视图的3D空间关系分割：给定视觉指定主体与关系文本查询，跨视图分割目标且不依赖类别名。方法融合视觉基础模型语义特征与3D几何基础模型表示，用关系Transformer进行主体条件跨视图预测。该框架无需逐场景优化或已知相机位姿，并基于ScanNet++用VLM/LLM构建全自动标注管线，为新任务提供可扩展训练数据。",
+      "tags": "query:spatial-ai",
+      "abstract_en": "Recent advances in 3D reconstruction have progressed from per-scene optimization to feed-forward inference, and semantic scene understanding has followed suit -- yet existing methods remain confined to object-centric perception, neglecting spatial relations between objects. We formulate 3D spatial relation segmentation in a feed-forward, pose-free multi-view setting: given a visually specified subject and a relational text query, the model segments the target across views without receiving its category name. To this end, we propose RelationVGGT, a novel feed-forward framework that integrates semantic features from a visual foundation model with geometry-aware representations from a 3D geometry foundation model and leverages a relation transformer for subject-conditioned, cross-view relation prediction -- requiring neither per-scene optimization nor known camera poses. We additionally provide a fully automated annotation pipeline built on ScanNet++ with VLMs and LLMs, enabling scalable training data generation for this new task.",
+      "source": "arxiv",
+      "selection_source": "carryover_cache"
+    },
+    {
+      "paper_id": "202610/06/2610.01001v1-calibration-risk-routing-for-controlled-world-model-adaptation",
+      "section": "deep",
+      "title_en": "Calibration-risk routing for controlled world-model adaptation",
+      "authors": "Yifan Zhang, Liang Zheng",
+      "date": "2026-10-01",
+      "pdf": "https://arxiv.org/pdf/2610.01001v1",
+      "score": "8.0",
+      "evidence": "面向基于模型强化学习的世界模型自适应",
+      "tldr": "模拟器到目标环境存在偏移时，基于模型的强化学习面临模型选择难题：有限目标数据下，修正模拟器与直接拟合目标都可能失败。本文提出MC-WM，将目标数据分为拟合、选择与校准三部分，并按标准化校准风险路由模型族。方法用置信信号和有效性谓词加权一步想象策略更新，不改写物理奖励。在三个受控MuJoCo偏移上评估540个唯一运行单元，门控后共541次执行，为可控世界模型自适应提供方案。",
+      "tags": "query:d-world",
+      "abstract_en": "Model-based reinforcement learning (MBRL) can exploit simulated experience, but a simulator-to-target shift creates a model-selection problem: correcting the simulator and fitting the target directly can each fail under limited target data. We introduce the Model-Corrected World Model (MC-WM), which separates initial target data into disjoint fit, selection, and calibration partitions and deploys the family with lower standardized calibration risk. A learned confidence signal and deterministic validity predicates weight one-step imagined policy updates without rewriting physical rewards. We evaluate 540 unique reported run cells across three controlled Multi-Joint dynamics with Contact (MuJoCo) shifts; one exact-routing cell was repeated after a pre-deployment artifact gate, giving 541 completed executions.",
+      "source": "arxiv",
+      "selection_source": "carryover_cache"
+    },
+    {
+      "paper_id": "202610/06/2610.01999v1-from-reasoning-failures-to-composable-video-spatial-intelligence",
+      "section": "deep",
+      "title_en": "From Reasoning Failures to Composable Video Spatial Intelligence",
+      "authors": "Pengzhan Sun, Junbin Xiao, Ramanathan Rajaraman, Shiu-hong Kao, Angela Yao",
+      "date": "2026-10-01",
+      "pdf": "https://arxiv.org/pdf/2610.01999v1",
+      "score": "8.0",
+      "evidence": "面向视频理解的空间推理与空间智能",
+      "tldr": "现有视频空间推理基准只给任务级分数，难以揭示模型成功或失败背后的具体能力缺陷。作者在统一空间模式与坐标约定下，对比预测和真实空间上下文，定位出感知不准、空间信息缺失、测量选择错误、参考系或位姿跟踪错误四类问题。基于此提出免训练库CROSS，用类型化几何算子与空间技能为VLM提供验证上下文，或为SpatialClaw提供可调用技能。在五个基准上，ReVSI平均分从55.9%升至60.2%，DSI-Bench的SpatialClaw从62.8%升至66.3%，表明显式处理空间约定无需训练即可修复系统性推理失败。",
+      "tags": "query:spatial-ai",
+      "abstract_en": "Spatial reasoning benchmarks evaluate vision-language models across diverse tasks, but task-level scores do not reveal which underlying capabilities account for success or failure. Each task requires recovering spatial evidence, representing geometry, and reasoning over it. We disentangle these capabilities by comparing predicted and ground-truth spatial context under a shared schema and coordinate contract. This comparison reveals four recurring sources of error: inaccurate perception, missing information in the spatial context, selection of the wrong measurement, and errors in reference frames or in tracking position and orientation. Guided by this diagnosis, we develop CROSS, a training-free library of typed geometric operators and spatial skills that function over available evidence to support reliable video spatial reasoning. The resulting library supplies verified context to non-coding VLMs or callable skills to a SpatialClaw agent. We evaluate \\methodname{} on five benchmarks. \\methodname{} raises the average score from 55.9\\% to 60.2\\% on ReVSI and improves the SpatialClaw result from 62.8\\% to 66.3\\% on DSI-Bench. These gains demonstrate that explicit handling of spatial conventions can repair systematic reasoning failures without additional training.",
+      "source": "arxiv",
+      "selection_source": "carryover_cache"
+    },
+    {
+      "paper_id": "202610/06/2610.02160v1-4director-controlling-video-world-models-with-rigid-3d-geometry",
+      "section": "deep",
+      "title_en": "4Director: Controlling Video World Models with Rigid 3D Geometry",
+      "authors": "Wei Cao, Hao Zhang, Vikram Voleti, Yuqun Wu, Mallikarjun B R, Shimon Vainer, Mark Boss, Yaoyao Liu",
+      "date": "2026-10-01",
+      "pdf": "https://arxiv.org/pdf/2610.02160v1",
+      "score": "8.0",
+      "evidence": "以显式四维场景表示与刚性三维几何条件化的视频世界模型",
+      "tldr": "精确控制相机与物体运动对专业视频制作至关重要，但现有方法仅依赖图像平面线索或稀疏3D轨迹，存在深度旋转歧义、几何不完整与跨视角不一致问题。4Director以显式4D场景表示为条件，将每个物体从输入图像重建为规范网格，并按每帧刚性变换驱动，再渲染为深度视频，通过Motion Adapter合成视角一致的外观、光照与非刚性动态。作者构建了含20,774个片段的RealCOD-Rigid数据集，并提出IG-IoU联合评估运动遵循与身份保持，实验在视觉质量及相机/物体控制上超越先前方法。",
+      "tags": "query:d-world",
+      "abstract_en": "Precise control over camera and object motion is essential for professional video production. Existing methods control objects only coarsely, through image-plane cues that are ambiguous in depth and rotation or through 3D tracks and blobs that lack complete geometry and lose consistency across viewpoint changes. We introduce 4Director, a video world model conditioned on an explicit 4D scene representation: each object is reconstructed once from the input image as a canonical mesh and moved by one prescribed rigid transformation per frame. This representation provides an intuitive 3D control interface and prevents unobserved geometry from being regenerated independently in every frame. We render the controlled scene as a depth video and introduce a Motion Adapter that transforms this geometric scaffold into video while synthesizing view-consistent appearance, illumination, and non-rigid dynamics. For training, we construct RealCOD-Rigid, a new dataset of 20,774 clips annotated with rigid 3D scenes by our automatic pipeline. We further introduce Identity-Gated IoU (IG-IoU), which jointly evaluates adherence to prescribed object motion and preservation of object identity. Experiments demonstrate that 4Director consistently outperforms prior methods in visual quality and in camera and object control.",
+      "source": "arxiv",
+      "selection_source": "carryover_cache"
+    }
+  ],
+  "errors": []
+}
